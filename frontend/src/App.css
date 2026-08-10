@@ -7,6 +7,7 @@
   border: 2px solid transparent;
   transition: border-color 0.3s;
   margin-bottom: 24px;
+  background-color: var(--accent-bg);
 
   &:hover {
     border-color: var(--accent-border);
@@ -72,7 +73,7 @@
 
 #next-steps {
   display: flex;
-  border-top: 1px solid var(--border);
+  /* border-top: 20px solid var(--border); */
   text-align: left;
 
   & > div {

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import "../css/AuthStyles.css";
 
@@ -18,11 +18,6 @@ function Register() {
     const [isError, setIsError] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] =
-        useState(false);
-
-    // Handle input changes
     const handleChange = (e) => {
         setFormData({
             ...formData,
@@ -30,14 +25,13 @@ function Register() {
         });
     };
 
-    // Register
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         setMessage("");
         setIsError(false);
 
-        // Check password
+        // Password check
         if (
             formData.password !==
             formData.password_confirmation
@@ -78,7 +72,7 @@ function Register() {
                 response.data
             );
 
-            // Save token
+            // If Laravel sends token
             if (response.data.token) {
                 localStorage.setItem(
                     "token",
@@ -86,11 +80,13 @@ function Register() {
                 );
             }
 
-            // Save user
+            // If Laravel sends user
             if (response.data.user) {
                 localStorage.setItem(
                     "user",
-                    JSON.stringify(response.data.user)
+                    JSON.stringify(
+                        response.data.user
+                    )
                 );
             }
 
@@ -104,7 +100,7 @@ function Register() {
             // Go to login
             setTimeout(() => {
                 navigate("/");
-            }, 1200);
+            }, 1000);
 
         } catch (error) {
             console.error(
@@ -116,19 +112,16 @@ function Register() {
 
             if (error.response) {
 
-                console.log(
-                    "Laravel response:",
-                    error.response.data
-                );
-
-                // Laravel validation errors
-                if (error.response.data.errors) {
-
+                if (
+                    error.response.data.errors
+                ) {
                     const errors =
                         error.response.data.errors;
 
                     const firstError =
-                        Object.values(errors)[0]?.[0];
+                        Object.values(
+                            errors
+                        )[0]?.[0];
 
                     setMessage(
                         firstError ||
@@ -136,7 +129,6 @@ function Register() {
                     );
 
                 } else {
-
                     setMessage(
                         error.response.data.message ||
                         "Registration failed."
@@ -164,305 +156,123 @@ function Register() {
     return (
         <div className="auth-container">
 
-            <div className="auth-card register-card">
+            <div className="auth-card">
 
-                {/* Logo */}
-                <div className="auth-logo">
-                    S
-                </div>
-
-                {/* Title */}
-                <h2 className="auth-title">
-                    Create an account
-                </h2>
+                <h2>Create Account</h2>
 
                 <p className="auth-subtitle">
-                    Create your account and get started
+                    Register a new account
                 </p>
 
-                {/* Message */}
                 {message && (
                     <div
-                        className={`auth-message ${
+                        className={
                             isError
-                                ? "error"
-                                : "success"
-                        }`}
+                                ? "message error"
+                                : "message success"
+                        }
                     >
                         {message}
                     </div>
                 )}
 
-                {/* Registration Form */}
-                <form
-                    onSubmit={handleSubmit}
-                    className="auth-form"
-                >
+                <form onSubmit={handleSubmit}>
 
                     {/* Name */}
                     <div className="form-group">
+                        <label>Name</label>
 
-                        <label htmlFor="name">
-                            Full name
-                        </label>
-
-                        <div className="input-wrapper">
-
-                            <span className="input-icon">
-                                👤
-                            </span>
-
-                            <input
-                                id="name"
-                                type="text"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                placeholder="John Doe"
-                                className="form-input"
-                                autoComplete="name"
-                                required
-                            />
-
-                        </div>
-
+                        <input
+                            type="text"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            placeholder="Enter your name"
+                            required
+                        />
                     </div>
 
                     {/* Email */}
                     <div className="form-group">
+                        <label>Email</label>
 
-                        <label htmlFor="email">
-                            Email address
-                        </label>
-
-                        <div className="input-wrapper">
-
-                            <span className="input-icon">
-                                ✉
-                            </span>
-
-                            <input
-                                id="email"
-                                type="email"
-                                name="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                placeholder="you@example.com"
-                                className="form-input"
-                                autoComplete="email"
-                                required
-                            />
-
-                        </div>
-
+                        <input
+                            type="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            placeholder="Enter your email"
+                            required
+                        />
                     </div>
 
                     {/* Phone */}
                     <div className="form-group">
+                        <label>Phone</label>
 
-                        <label htmlFor="phone">
-                            Phone number
-                        </label>
-
-                        <div className="input-wrapper">
-
-                            <span className="input-icon">
-                                📞
-                            </span>
-
-                            <input
-                                id="phone"
-                                type="tel"
-                                name="phone"
-                                value={formData.phone}
-                                onChange={handleChange}
-                                placeholder="9876543210"
-                                className="form-input"
-                                autoComplete="tel"
-                                maxLength="10"
-                                inputMode="numeric"
-                                required
-                            />
-
-                        </div>
-
-                        <span className="password-info">
-                            Enter a 10-digit phone number.
-                        </span>
-
+                        <input
+                            type="tel"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleChange}
+                            placeholder="9876543210"
+                            maxLength="10"
+                            inputMode="numeric"
+                            required
+                        />
                     </div>
 
                     {/* Password */}
                     <div className="form-group">
+                        <label>Password</label>
 
-                        <label htmlFor="password">
-                            Password
-                        </label>
-
-                        <div className="input-wrapper">
-
-                            <span className="input-icon">
-                                🔒
-                            </span>
-
-                            <input
-                                id="password"
-                                type={
-                                    showPassword
-                                        ? "text"
-                                        : "password"
-                                }
-                                name="password"
-                                value={formData.password}
-                                onChange={handleChange}
-                                placeholder="Create a password"
-                                className="form-input password-input"
-                                autoComplete="new-password"
-                                required
-                            />
-
-                            <button
-                                type="button"
-                                className="password-toggle"
-                                onClick={() =>
-                                    setShowPassword(
-                                        !showPassword
-                                    )
-                                }
-                            >
-                                {showPassword
-                                    ? "Hide"
-                                    : "Show"}
-                            </button>
-
-                        </div>
-
-                        <span className="password-info">
-                            Use at least 6 characters.
-                        </span>
-
+                        <input
+                            type="password"
+                            name="password"
+                            value={formData.password}
+                            onChange={handleChange}
+                            placeholder="Enter password"
+                            required
+                        />
                     </div>
 
                     {/* Confirm Password */}
                     <div className="form-group">
-
-                        <label htmlFor="password_confirmation">
-                            Confirm password
+                        <label>
+                            Confirm Password
                         </label>
 
-                        <div className="input-wrapper">
-
-                            <span className="input-icon">
-                                🔐
-                            </span>
-
-                            <input
-                                id="password_confirmation"
-                                type={
-                                    showConfirmPassword
-                                        ? "text"
-                                        : "password"
-                                }
-                                name="password_confirmation"
-                                value={
-                                    formData.password_confirmation
-                                }
-                                onChange={handleChange}
-                                placeholder="Confirm your password"
-                                className="form-input password-input"
-                                autoComplete="new-password"
-                                required
-                            />
-
-                            <button
-                                type="button"
-                                className="password-toggle"
-                                onClick={() =>
-                                    setShowConfirmPassword(
-                                        !showConfirmPassword
-                                    )
-                                }
-                            >
-                                {showConfirmPassword
-                                    ? "Hide"
-                                    : "Show"}
-                            </button>
-
-                        </div>
-
+                        <input
+                            type="password"
+                            name="password_confirmation"
+                            value={
+                                formData.password_confirmation
+                            }
+                            onChange={handleChange}
+                            placeholder="Confirm password"
+                            required
+                        />
                     </div>
 
-                    {/* Terms */}
-                    <div className="terms-row">
-
-                        <label className="checkbox-label">
-
-                            <input
-                                type="checkbox"
-                                required
-                            />
-
-                            <span>
-                                I agree to the{" "}
-
-                                <Link
-                                    to="/terms"
-                                    className="terms-link"
-                                >
-                                    Terms & Conditions
-                                </Link>
-                            </span>
-
-                        </label>
-
-                    </div>
-
-                    {/* Register Button */}
+                    {/* Button */}
                     <button
                         type="submit"
-                        className="auth-button"
                         disabled={loading}
                     >
-
-                        {loading ? (
-                            <>
-                                <span className="spinner"></span>
-                                Creating account...
-                            </>
-                        ) : (
-                            <>
-                                Create account
-
-                                <span className="button-arrow">
-                                    →
-                                </span>
-                            </>
-                        )}
-
+                        {loading
+                            ? "Registering..."
+                            : "Register"}
                     </button>
 
                 </form>
 
-                {/* Divider */}
-                <div className="auth-divider">
-                    <span>OR</span>
-                </div>
+                <p className="auth-footer">
+                    Already have an account?{" "}
 
-                {/* Login */}
-                <div className="auth-footer">
-
-                    <span>
-                        Already have an account?
-                    </span>
-
-                    <Link
-                        to="/"
-                        className="auth-link"
-                    >
-                        Sign in
+                    <Link to="/">
+                        Login
                     </Link>
-
-                </div>
+                </p>
 
             </div>
 

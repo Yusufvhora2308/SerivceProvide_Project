@@ -1,35 +1,18 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import "../css/AuthStyles.css";
 
 function Login() {
     const navigate = useNavigate();
 
-    const [formData, setFormData] = useState({
-        email: "",
-        password: "",
-    });
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
 
     const [message, setMessage] = useState("");
     const [isError, setIsError] = useState(false);
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-
-    // ============================
-    // HANDLE INPUT CHANGE
-    // ============================
-
-    const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value,
-        });
-    };
-
-    // ============================
-    // LOGIN
-    // ============================
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -39,148 +22,80 @@ function Login() {
         setIsError(false);
 
         try {
-            const response = await api.post(
-                "/login",
-                formData
-            );
+            const response = await api.post("/login", {
+                email,
+                password,
+            });
 
-            console.log(
-                "Login Response:",
-                response.data
-            );
+            console.log("Login Response:", response.data);
 
             // Laravel response:
-            //
-            // {
-            //     success: true,
-            //     message: "Login successful",
-            //     data: {
-            //         user: {...},
-            //         token: "...",
-            //         token_type: "Bearer"
-            //     }
-            // }
+            // response.data.data.token
+            // response.data.data.user
 
-            const loginData = response.data.data;
+            const data = response.data.data;
 
-            if (!loginData) {
+            if (!data || !data.token || !data.user) {
                 setIsError(true);
-                setMessage(
-                    "Invalid response from server."
-                );
+                setMessage("Invalid response from server.");
                 return;
             }
 
-            const token = loginData.token;
-            const user = loginData.user;
-
-            // Check token and user
-            if (!token || !user) {
-                setIsError(true);
-                setMessage(
-                    "Invalid response from server."
-                );
-                return;
-            }
-
-            // ============================
-            // SAVE TOKEN
-            // ============================
-
+            // Save token
             localStorage.setItem(
                 "token",
-                token
+                data.token
             );
 
-            // ============================
-            // SAVE USER
-            // ============================
-
+            // Save user
             localStorage.setItem(
                 "user",
-                JSON.stringify(user)
+                JSON.stringify(data.user)
             );
-
-            console.log("Token:", token);
-            console.log("User:", user);
-
-            // ============================
-            // LOGIN SUCCESS
-            // ============================
-
-            setIsError(false);
 
             setMessage(
                 response.data.message ||
                 "Login successful!"
             );
 
-            // ============================
-            // REDIRECT
-            // ============================
-
+            // Go to dashboard
             setTimeout(() => {
                 navigate("/dashboard");
             }, 800);
 
         } catch (error) {
-
-            console.error(
-                "Login Error:",
-                error
-            );
+            console.error("Login Error:", error);
 
             setIsError(true);
 
-            // Laravel response error
             if (error.response) {
-
-                console.log(
-                    "Laravel Error:",
-                    error.response.data
-                );
-
-                // Validation errors
-                if (
-                    error.response.data.errors
-                ) {
-
+                if (error.response.data.errors) {
                     const errors =
                         error.response.data.errors;
 
                     const firstError =
-                        Object.values(
-                            errors
-                        )[0]?.[0];
+                        Object.values(errors)[0]?.[0];
 
                     setMessage(
                         firstError ||
-                        "Validation error."
+                        "Validation failed."
                     );
-
                 } else {
-
                     setMessage(
                         error.response.data.message ||
                         "Login failed."
                     );
                 }
-
             } else if (error.request) {
-
                 setMessage(
                     "Unable to connect to Laravel server."
                 );
-
             } else {
-
                 setMessage(
                     "Something went wrong."
                 );
             }
-
         } finally {
-
             setLoading(false);
         }
     };
@@ -190,111 +105,63 @@ function Login() {
 
             <div className="auth-card">
 
-                {/* Logo */}
-                <div className="auth-logo">
-                    S
-                </div>
-
-                {/* Title */}
-                <h2 className="auth-title">
-                    Welcome back
-                </h2>
+                <h2>Login</h2>
 
                 <p className="auth-subtitle">
-                    Sign in to continue to your account
+                    Login to your account
                 </p>
 
-                {/* Message */}
                 {message && (
                     <div
-                        className={`auth-message ${
+                        className={
                             isError
-                                ? "error"
-                                : "success"
-                        }`}
+                                ? "message error"
+                                : "message success"
+                        }
                     >
                         {message}
                     </div>
                 )}
 
-                {/* Login Form */}
-                <form
-                    onSubmit={handleSubmit}
-                    className="auth-form"
-                >
+                <form onSubmit={handleSubmit}>
 
-                    {/* Email */}
                     <div className="form-group">
+                        <label>Email</label>
 
-                        <label htmlFor="email">
-                            Email address
-                        </label>
-
-                        <div className="input-wrapper">
-
-                            <span className="input-icon">
-                                ✉
-                            </span>
-
-                            <input
-                                id="email"
-                                type="email"
-                                name="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                placeholder="you@example.com"
-                                className="form-input"
-                                autoComplete="email"
-                                required
-                            />
-
-                        </div>
-
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) =>
+                                setEmail(e.target.value)
+                            }
+                            placeholder="Enter email"
+                            required
+                        />
                     </div>
 
-                    {/* Password */}
                     <div className="form-group">
+                        <label>Password</label>
 
-                        <div className="label-row">
-
-                            <label htmlFor="password">
-                                Password
-                            </label>
-
-                            <Link
-                                to="/forgot-password"
-                                className="forgot-link"
-                            >
-                                Forgot password?
-                            </Link>
-
-                        </div>
-
-                        <div className="input-wrapper">
-
-                            <span className="input-icon">
-                                🔒
-                            </span>
+                        <div className="password-box">
 
                             <input
-                                id="password"
                                 type={
                                     showPassword
                                         ? "text"
                                         : "password"
                                 }
-                                name="password"
-                                value={formData.password}
-                                onChange={handleChange}
-                                placeholder="Enter your password"
-                                className="form-input password-input"
-                                autoComplete="current-password"
+                                value={password}
+                                onChange={(e) =>
+                                    setPassword(
+                                        e.target.value
+                                    )
+                                }
+                                placeholder="Enter password"
                                 required
                             />
 
                             <button
                                 type="button"
-                                className="password-toggle"
                                 onClick={() =>
                                     setShowPassword(
                                         !showPassword
@@ -307,72 +174,26 @@ function Login() {
                             </button>
 
                         </div>
-
                     </div>
 
-                    {/* Remember Me */}
-                    <div className="remember-row">
-
-                        <label className="checkbox-label">
-
-                            <input
-                                type="checkbox"
-                            />
-
-                            <span>
-                                Remember me
-                            </span>
-
-                        </label>
-
-                    </div>
-
-                    {/* Login Button */}
                     <button
                         type="submit"
-                        className="auth-button"
                         disabled={loading}
                     >
-
-                        {loading ? (
-                            <>
-                                <span className="spinner"></span>
-                                Logging in...
-                            </>
-                        ) : (
-                            <>
-                                Login
-
-                                <span className="button-arrow">
-                                    →
-                                </span>
-                            </>
-                        )}
-
+                        {loading
+                            ? "Logging in..."
+                            : "Login"}
                     </button>
 
                 </form>
 
-                {/* Divider */}
-                <div className="auth-divider">
-                    <span>OR</span>
-                </div>
+                <p className="auth-footer">
+                    Don't have an account?{" "}
 
-                {/* Register */}
-                <div className="auth-footer">
-
-                    <span>
-                        Don't have an account?
-                    </span>
-
-                    <Link
-                        to="/register"
-                        className="auth-link"
-                    >
-                        Create account
+                    <Link to="/register">
+                        Register
                     </Link>
-
-                </div>
+                </p>
 
             </div>
 

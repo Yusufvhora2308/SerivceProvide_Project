@@ -1,10 +1,10 @@
-// PATH: src/Pages/Login.jsx
+// PATH: src/Pages/AdminLogin.jsx
 
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../api/axios";
 
-function Login() {
+function AdminLogin() {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -20,11 +20,10 @@ function Login() {
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState(false);
 
-  // Load saved message from localStorage on component mount
   useEffect(() => {
-    const savedMessage = localStorage.getItem("userLoginMessage");
-    const savedIsError = localStorage.getItem("userLoginIsError") === "true";
-    const savedSuccess = localStorage.getItem("userLoginSuccess") === "true";
+    const savedMessage = localStorage.getItem("loginMessage");
+    const savedIsError = localStorage.getItem("loginIsError") === "true";
+    const savedSuccess = localStorage.getItem("loginSuccess") === "true";
     
     if (savedMessage) {
       setMessage(savedMessage);
@@ -33,58 +32,48 @@ function Login() {
     }
   }, []);
 
-  // ============================
-  // HANDLE INPUT CHANGE
-  // ============================
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
       [name]: type === "checkbox" ? checked : value,
     });
-    // Only clear field-specific errors when user types
     if (errors[name]) {
       setErrors({ ...errors, [name]: "" });
     }
-    // Clear general message when user types
     if (message) {
       setMessage("");
       setIsError(false);
       setSuccess(false);
-      localStorage.removeItem("userLoginMessage");
-      localStorage.removeItem("userLoginIsError");
-      localStorage.removeItem("userLoginSuccess");
+      localStorage.removeItem("loginMessage");
+      localStorage.removeItem("loginIsError");
+      localStorage.removeItem("loginSuccess");
     }
   };
 
-  // Clear message when user clicks X
   const handleClearMessage = () => {
     setMessage("");
     setIsError(false);
     setSuccess(false);
-    // Clear from localStorage
-    localStorage.removeItem("userLoginMessage");
-    localStorage.removeItem("userLoginIsError");
-    localStorage.removeItem("userLoginSuccess");
+    localStorage.removeItem("loginMessage");
+    localStorage.removeItem("loginIsError");
+    localStorage.removeItem("loginSuccess");
   };
 
-  // ============================
-  // LOGIN SUBMIT - USER ONLY
-  // ============================
   const handleSubmit = async (e) => {
     e.preventDefault();
     e.stopPropagation();
 
-    // ✅ CLIENT-SIDE VALIDATION: Check if email or password is empty
+    // ✅ Client-side validation
     if (!formData.email || !formData.password) {
       setIsError(true);
       setSuccess(false);
       setMessage("Please fill in email and password");
       setLoading(false);
       
-      localStorage.setItem("userLoginMessage", "Please fill in email and password");
-      localStorage.setItem("userLoginIsError", "true");
-      localStorage.setItem("userLoginSuccess", "false");
+      localStorage.setItem("loginMessage", "Please fill in email and password");
+      localStorage.setItem("loginIsError", "true");
+      localStorage.setItem("loginSuccess", "false");
       
       const newErrors = {};
       if (!formData.email) newErrors.email = ["Email is required"];
@@ -100,150 +89,137 @@ function Login() {
     setSuccess(false);
     setErrors({});
     
-    localStorage.removeItem("userLoginMessage");
-    localStorage.removeItem("userLoginIsError");
-    localStorage.removeItem("userLoginSuccess");
+    localStorage.removeItem("loginMessage");
+    localStorage.removeItem("loginIsError");
+    localStorage.removeItem("loginSuccess");
 
     try {
-      const response = await api.post("/login", formData);
+      const response = await api.post("/admin/login", formData);
 
-      console.log("✅ User Login Response:", response.data);
+      console.log("✅ Admin Login Response:", response.data);
 
       const loginData = response.data?.data;
 
       if (!loginData || !loginData.token || !loginData.user) {
-        const errorMsg = "Invalid response structure from server.";
+        // ❌ DON'T redirect - stay on admin login page
         setIsError(true);
-        setMessage(errorMsg);
+        setMessage("Invalid email or password");
         setLoading(false);
-        localStorage.setItem("userLoginMessage", errorMsg);
-        localStorage.setItem("userLoginIsError", "true");
-        localStorage.setItem("userLoginSuccess", "false");
+        localStorage.setItem("loginMessage", "Invalid email or password");
+        localStorage.setItem("loginIsError", "true");
+        localStorage.setItem("loginSuccess", "false");
         return;
       }
 
       const { token, user } = loginData;
 
-      // ✅ CHECK: Prevent admin users from logging in here
-      if (user.role === "admin") {
-        const errorMsg = "Invalid email or password";
+      // ✅ ONLY ADMIN CAN LOGIN HERE
+      if (user.role !== "admin") {
+        // ❌ DON'T redirect - stay on admin login page
         setIsError(true);
         setSuccess(false);
-        setMessage(errorMsg);
+        setMessage("Invalid email or password");
         setLoading(false);
-        localStorage.setItem("userLoginMessage", errorMsg);
-        localStorage.setItem("userLoginIsError", "true");
-        localStorage.setItem("userLoginSuccess", "false");
+        localStorage.setItem("loginMessage", "Invalid email or password");
+        localStorage.setItem("loginIsError", "true");
+        localStorage.setItem("loginSuccess", "false");
         return;
       }
 
-      // Save credentials (only for regular users)
+      // Save credentials (only for admin)
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("role", user.role || "customer");
+      localStorage.setItem("role", user.role);
 
-      console.log("✅ User saved:", user);
+      console.log("✅ Admin User saved:", user);
       console.log("✅ Token saved:", token);
 
-      const successMsg = response.data.message || "Login successful! Redirecting...";
+      const successMsg = "Admin login successful! Redirecting...";
       setSuccess(true);
       setIsError(false);
       setMessage(successMsg);
       
-      localStorage.setItem("userLoginMessage", successMsg);
-      localStorage.setItem("userLoginIsError", "false");
-      localStorage.setItem("userLoginSuccess", "true");
+      localStorage.setItem("loginMessage", successMsg);
+      localStorage.setItem("loginIsError", "false");
+      localStorage.setItem("loginSuccess", "true");
 
-      // Redirect to user dashboard
+      // ✅ Redirect to admin dashboard ONLY on success
       setTimeout(() => {
         setLoading(false);
-        localStorage.removeItem("userLoginMessage");
-        localStorage.removeItem("userLoginIsError");
-        localStorage.removeItem("userLoginSuccess");
-        navigate("/dashboard");
+        localStorage.removeItem("loginMessage");
+        localStorage.removeItem("loginIsError");
+        localStorage.removeItem("loginSuccess");
+        navigate("/admin/dashboard");
       }, 2000);
       
     } catch (error) {
-      console.error("❌ Login Error:", error);
+      console.error("❌ Admin Login Error:", error);
       
+      // Log the full error for debugging
       if (error.response) {
         console.error("❌ Error Response Data:", error.response.data);
         console.error("❌ Error Status:", error.response.status);
+        
+        // ✅ Handle specific status codes without redirect
+        const status = error.response.status;
+        const errorData = error.response.data;
+        
+        // ✅ Always stay on admin login page
+        if (status === 401 || status === 403 || status === 422) {
+          // Wrong credentials or validation error
+          setIsError(true);
+          setSuccess(false);
+          setMessage("Invalid email or password");
+          setLoading(false);
+          localStorage.setItem("loginMessage", "Invalid email or password");
+          localStorage.setItem("loginIsError", "true");
+          localStorage.setItem("loginSuccess", "false");
+          return;
+        }
       } else if (error.request) {
-        console.error("❌ No response received:", error.request);
-      } else {
-        console.error("❌ Error message:", error.message);
+        // ✅ Network error - stay on admin login page
+        setIsError(true);
+        setSuccess(false);
+        setLoading(false);
+        setMessage("Unable to connect to the server. Please check your network.");
+        localStorage.setItem("loginMessage", "Unable to connect to the server.");
+        localStorage.setItem("loginIsError", "true");
+        localStorage.setItem("loginSuccess", "false");
+        return;
       }
 
+      // ✅ Fallback - stay on admin login page
       setIsError(true);
       setSuccess(false);
       setLoading(false);
-
-      let errorMsg = "";
-
-      if (error.response) {
-        const status = error.response.status;
-        const errorData = error.response.data;
-
-        if (status === 422) {
-          if (errorData.errors) {
-            setErrors(errorData.errors);
-            const firstErrorKey = Object.keys(errorData.errors)[0];
-            errorMsg = errorData.errors[firstErrorKey]?.[0] || "Validation failed. Please check your input.";
-          } else {
-            errorMsg = errorData.message || "Validation failed. Please check your input.";
-          }
-        } 
-        else if (status === 401) {
-          errorMsg = errorData.message || "Invalid email or password. Please try again.";
-        }
-        else if (status === 403) {
-          errorMsg = errorData.message || "Access denied. Please contact support.";
-        }
-        else {
-          errorMsg = errorData.message || "Login failed. Please try again.";
-        }
-      } else if (error.request) {
-        errorMsg = "Unable to connect to the server. Please check your network connection.";
-      } else {
-        errorMsg = "Something went wrong. Please try again.";
-      }
-
-      setMessage(errorMsg);
-      localStorage.setItem("userLoginMessage", errorMsg);
-      localStorage.setItem("userLoginIsError", "true");
-      localStorage.setItem("userLoginSuccess", "false");
-    } finally {
-      if (!success) {
-        setLoading(false);
-      }
+      setMessage("Invalid email or password");
+      localStorage.setItem("loginMessage", "Invalid email or password");
+      localStorage.setItem("loginIsError", "true");
+      localStorage.setItem("loginSuccess", "false");
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans antialiased text-slate-800">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50/50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans antialiased">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         
-        {/* Brand Logo */}
         <div className="flex justify-center">
-          <div className="h-12 w-12 rounded-xl bg-blue-600 flex items-center justify-center text-white text-2xl font-bold shadow-md shadow-blue-500/20">
-            U
+          <div className="h-16 w-16 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg shadow-indigo-500/30">
+            A
           </div>
         </div>
 
-        {/* Header Text */}
         <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-slate-900">
-          User Login
+          Admin Login
         </h2>
         <p className="mt-2 text-center text-sm text-slate-600">
-          Sign in to access your dashboard and services
+          Sign in to manage your school management system
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-6 shadow-sm border border-slate-200 rounded-2xl sm:px-10">
+        <div className="bg-white/80 backdrop-blur-sm py-8 px-6 shadow-xl border border-slate-200/60 rounded-2xl sm:px-10">
           
-          {/* Status Message */}
           {message && (
             <div
               className={`mb-6 p-4 rounded-xl text-sm font-medium flex items-start gap-3 transition-all ${
@@ -268,7 +244,6 @@ function Login() {
                 onClick={handleClearMessage}
                 className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-200/50"
                 aria-label="Close message"
-                title="Dismiss message"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -277,13 +252,11 @@ function Login() {
             </div>
           )}
 
-          {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             
-            {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1.5">
-                Email address <span className="text-red-500">*</span>
+                Admin Email Address <span className="text-red-500">*</span>
               </label>
               <div className="relative rounded-lg shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -297,10 +270,10 @@ function Login() {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="you@example.com"
+                  placeholder="admin@school.com"
                   className={`block w-full rounded-xl border ${
                     errors.email ? "border-red-500 ring-2 ring-red-500/20" : "border-slate-300"
-                  } pl-10 pr-4 py-2.5 text-slate-900 placeholder-slate-400 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all`}
+                  } pl-10 pr-4 py-2.5 text-slate-900 placeholder-slate-400 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all`}
                   autoComplete="email"
                 />
               </div>
@@ -311,7 +284,6 @@ function Login() {
               )}
             </div>
 
-            {/* Password Field */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1.5">
                 Password <span className="text-red-500">*</span>
@@ -331,7 +303,7 @@ function Login() {
                   placeholder="••••••••"
                   className={`block w-full rounded-xl border ${
                     errors.password ? "border-red-500 ring-2 ring-red-500/20" : "border-slate-300"
-                  } pl-10 pr-12 py-2.5 text-slate-900 placeholder-slate-400 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all`}
+                  } pl-10 pr-12 py-2.5 text-slate-900 placeholder-slate-400 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all`}
                   autoComplete="current-password"
                 />
                 <button
@@ -347,40 +319,38 @@ function Login() {
                   <span className="mr-1">⚠️</span> {errors.password[0]}
                 </p>
               )}
-              <div className="mt-2 text-right">
-                <Link
-                  to="/forgot-password"
-                  className="text-sm font-semibold text-blue-600 hover:text-blue-500 transition-colors"
-                >
-                  Forgot password?
-                </Link>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember"
+                  name="remember"
+                  type="checkbox"
+                  checked={formData.remember}
+                  onChange={handleChange}
+                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20 text-sm cursor-pointer"
+                />
+                <label htmlFor="remember" className="ml-2.5 block text-sm text-slate-600 cursor-pointer select-none">
+                  Remember me
+                </label>
               </div>
+              <Link
+                to="/admin/forgot-password"
+                className="text-sm font-semibold text-indigo-600 hover:text-indigo-500 transition-colors"
+              >
+                Forgot password?
+              </Link>
             </div>
 
-            {/* Remember Me */}
-            <div className="flex items-center">
-              <input
-                id="remember"
-                name="remember"
-                type="checkbox"
-                checked={formData.remember}
-                onChange={handleChange}
-                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20 text-sm cursor-pointer"
-              />
-              <label htmlFor="remember" className="ml-2.5 block text-sm text-slate-600 cursor-pointer select-none">
-                Remember me
-              </label>
-            </div>
-
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
               className={`w-full flex justify-center items-center gap-2 py-2.5 px-4 border border-transparent rounded-xl text-sm font-semibold text-white transition-all ${
                 loading && success
                   ? "bg-emerald-600 hover:bg-emerald-700"
-                  : "bg-blue-600 hover:bg-blue-700"
-              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-80 disabled:cursor-not-allowed shadow-sm shadow-blue-500/10`}
+                  : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-80 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20`}
             >
               {loading && success ? (
                 <>
@@ -400,7 +370,7 @@ function Login() {
                 </>
               ) : (
                 <>
-                  <span>Sign in</span>
+                  <span>Sign in as Admin</span>
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>
@@ -409,41 +379,32 @@ function Login() {
             </button>
           </form>
 
-          {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-slate-200" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-3 text-slate-400 font-medium tracking-wider">
+              <span className="bg-white/80 backdrop-blur-sm px-3 text-slate-400 font-medium tracking-wider">
                 Or
               </span>
             </div>
           </div>
 
-          {/* Register Callout */}
           <div className="text-center">
             <p className="text-sm text-slate-600">
-              Don't have an account?{" "}
+              Are you a user?{" "}
               <Link
-                to="/register"
-                className="font-semibold text-blue-600 hover:text-blue-500 transition-colors"
+                to="/login"
+                className="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors"
               >
-                Create an account
+                Go to User Login
               </Link>
             </p>
           </div>
 
-          {/* Admin Login Link */}
-          <div className="mt-4 text-center">
-            <p className="text-xs text-slate-500">
-              Are you an admin?{" "}
-              <Link
-                to="/admin/login"
-                className="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors"
-              >
-                Go to Admin Login
-              </Link>
+          <div className="mt-4 p-3 bg-indigo-50 rounded-xl border border-indigo-100/60">
+            <p className="text-xs text-slate-600 text-center">
+              <span className="font-semibold">Demo Admin:</span> admin@school.com / Admin@123
             </p>
           </div>
 
@@ -453,4 +414,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default AdminLogin;

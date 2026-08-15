@@ -1,37 +1,47 @@
+// PATH: src/App.js
+
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./Pages/Login";
 import Register from "./Pages/Register";
+import AdminLogin from "./Pages/AdminLogin";
 import ProtectedRoute from "./components/ProtectedRoute";
-
-function Dashboard() {
-  return <h1 style={{ color: "paleturquoise" }}>User Dashboard</h1>;
-}
-
-function AdminDashboard() {
-  return <h1 style={{ color: "orange" }}>Admin Dashboard</h1>;
-}
+import AdminDashboard from "./Pages/Admin/AdminDashboard";
+import UserDashboard from "./Pages/Users/UserDashboard";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Login */}
+        {/* ✅ Public Routes - Authentication */}
         <Route path="/" element={<Login />} />
-
-        {/* Registration */}
+        <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
 
-        {/* Protected User Dashboard */}
+        {/* ✅ Protected User Routes */}
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
-              <Dashboard />
+            <ProtectedRoute allowedRoles={["customer", "user"]}>
+              <UserDashboard />
             </ProtectedRoute>
           }
         />
+
+        {/* ✅ Protected Admin Routes */}
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ✅ Redirect to login for any other route */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );

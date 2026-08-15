@@ -168,7 +168,74 @@ class AuthController extends Controller
             ],
         ], 200);
     }
+    
+    /**
+     * POST /api/admin/login
+     * Admin-specific login - only allows users with 'admin' role
+     */
+    public function adminLogin(Request $request)
+    {
+        // ---------- VALIDATION ----------
+        $validator = Validator::make($request->all(), [
+            'email'    => ['required', 'string', 'email'],
+            'password' => ['required', 'string'],
+        ], [
+            'email.required'    => 'Email is required.',
+            'email.email'       => 'Please enter a valid email address.',
+            'password.required' => 'Password is required.',
+        ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        // ---------- CHECK CREDENTIALS ----------
+        $user = User::where('email', $validated['email'])->first();
+
+        if (! $user || ! Hash::check($validated['password'], $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid email or password',
+            ], 401);
+        }
+
+        // Check if user has admin role
+        if ($user->role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied. Admin privileges required.',
+            ], 403);
+        }
+
+        if ($user->status !== 'active') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Your account is '.$user->status.'. Please contact support.',
+            ], 403);
+        }
+
+        // Revoke old tokens
+        $user->tokens()->delete();
+
+        $token = $user->createToken('admin_auth_token')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Admin login successful',
+            'data'    => [
+                'user'       => $this->formatUser($user),
+                'token'      => $token,
+                'token_type' => 'Bearer',
+            ],
+        ], 200);
+    }
+    
     /**
      * POST /api/logout
      * Requires Authorization: Bearer <token> header.

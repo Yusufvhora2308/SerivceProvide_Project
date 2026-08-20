@@ -434,18 +434,7 @@ function Login() {
             </p>
           </div>
 
-          {/* Admin Login Link */}
-          <div className="mt-4 text-center">
-            <p className="text-xs text-slate-500">
-              Are you an admin?{" "}
-              <Link
-                to="/admin/login"
-                className="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors"
-              >
-                Go to Admin Login
-              </Link>
-            </p>
-          </div>
+       
 
         </div>
       </div>

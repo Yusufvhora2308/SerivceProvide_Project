@@ -201,24 +201,26 @@ function AdminLogin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50/50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans antialiased">
+    
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white/80 backdrop-blur-sm py-8 px-6 shadow-xl border border-slate-200/60 rounded-2xl sm:px-10">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         
+        {/* Brand Logo */}
         <div className="flex justify-center">
-          <div className="h-16 w-16 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg shadow-indigo-500/30">
-            A
+          <div className="rounded-xl flex items-center justify-center text-white text-2xl font-bold size-full w-80">
+          <img src="../../public/Quick_Admin_Logos/admintext.png" alt="Admin Logo" />
           </div>
         </div>
 
-        <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-slate-900">
-          Admin Login
+        {/* Header Text */}
+        <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-blue-950">
+          User Login
         </h2>
-        <p className="mt-2 text-center text-sm text-slate-600">
-          Sign in to manage your school management system
+        <p className="mt-2 mb-6 text-center text-sm text-slate-600">
+          Sign in to access your dashboard and services
         </p>
       </div>
-
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white/80 backdrop-blur-sm py-8 px-6 shadow-xl border border-slate-200/60 rounded-2xl sm:px-10">
           
           {message && (
             <div
@@ -348,9 +350,9 @@ function AdminLogin() {
               disabled={loading}
               className={`w-full flex justify-center items-center gap-2 py-2.5 px-4 border border-transparent rounded-xl text-sm font-semibold text-white transition-all ${
                 loading && success
-                  ? "bg-emerald-600 hover:bg-emerald-700"
-                  : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-80 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20`}
+                  ? "bg-emerald-600 hover:bg-orange-700"
+                  : "bg-gradient-to-r from-orange-600 to-orange-600 hover:from-orange-700 hover:to-orange-700"
+              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-80 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20`}
             >
               {loading && success ? (
                 <>

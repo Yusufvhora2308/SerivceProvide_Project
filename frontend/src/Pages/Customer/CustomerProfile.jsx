@@ -111,7 +111,7 @@ const CustomerProfile = () => {
           title: "Unable to Load Profile",
           text: "Something went wrong while loading your profile.",
           confirmButtonText: "OK",
-          confirmButtonColor: "#2563eb",
+          confirmButtonColor: "#fb8c00",
         });
       }
     } finally {
@@ -159,7 +159,7 @@ const CustomerProfile = () => {
         title: "Image Too Large",
         text: "Profile photo must be less than 2 MB.",
         confirmButtonText: "OK",
-        confirmButtonColor: "#2563eb",
+        confirmButtonColor: "#fb8c00",
       });
 
       return;
@@ -245,7 +245,7 @@ const CustomerProfile = () => {
         title: "Name Required",
         text: "Please enter your full name.",
         confirmButtonText: "OK",
-        confirmButtonColor: "#2563eb",
+        confirmButtonColor: "#fb8c00",
       });
 
       return;
@@ -257,7 +257,7 @@ const CustomerProfile = () => {
         title: "Email Required",
         text: "Please enter your email address.",
         confirmButtonText: "OK",
-        confirmButtonColor: "#2563eb",
+        confirmButtonColor: "#fb8c00",
       });
 
       return;
@@ -269,7 +269,7 @@ const CustomerProfile = () => {
         title: "Phone Required",
         text: "Please enter your phone number.",
         confirmButtonText: "OK",
-        confirmButtonColor: "#2563eb",
+        confirmButtonColor: "#fb8c00",
       });
 
       return;
@@ -356,7 +356,7 @@ const CustomerProfile = () => {
         title: "Profile Updated!",
         text: "Your personal information has been updated successfully.",
         confirmButtonText: "OK",
-        confirmButtonColor: "#2563eb",
+        confirmButtonColor: "#fb8c00",
         timer: 3000,
         timerProgressBar: true,
       });
@@ -482,7 +482,7 @@ const CustomerProfile = () => {
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
 
           {/* PROFILE HEADER */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-8 sm:px-8">
+          <div className="bg-gradient-to-r from-orange-600 to-orange-100 px-6 py-8 sm:px-8">
             <div className="flex flex-col items-center gap-5 sm:flex-row">
 
               {/* PROFILE PHOTO */}
@@ -565,7 +565,7 @@ const CustomerProfile = () => {
                 <button
                   type="button"
                   onClick={handleEdit}
-                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-[0.98]"
+                  className="inline-flex items-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 active:scale-[0.98]"
                 >
                   <Edit3 size={16} />
                   Edit Profile
@@ -791,7 +791,7 @@ const CustomerProfile = () => {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {saving ? (
                       <>

@@ -222,26 +222,26 @@ function Login() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans antialiased text-slate-800">
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-6 shadow-sm border border-slate-200 rounded-2xl sm:px-10">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         
         {/* Brand Logo */}
         <div className="flex justify-center">
-          <div className="h-12 w-12 rounded-xl bg-blue-600 flex items-center justify-center text-white text-2xl font-bold shadow-md shadow-blue-500/20">
-            U
+          <div className="rounded-xl flex items-center justify-center text-white text-2xl font-bold size-full">
+          <img src="../../public/Quick_Service_Logos/full-logo/quick-service-full-128.png" alt="Quick Service Logo" />
           </div>
         </div>
 
         {/* Header Text */}
-        <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-slate-900">
+        <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-blue-950">
           User Login
         </h2>
-        <p className="mt-2 text-center text-sm text-slate-600">
+        <p className="mt-2 mb-6 text-center text-sm text-slate-600">
           Sign in to access your dashboard and services
         </p>
       </div>
-
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-6 shadow-sm border border-slate-200 rounded-2xl sm:px-10">
           
           {/* Status Message */}
           {message && (
@@ -379,8 +379,8 @@ function Login() {
               className={`w-full flex justify-center items-center gap-2 py-2.5 px-4 border border-transparent rounded-xl text-sm font-semibold text-white transition-all ${
                 loading && success
                   ? "bg-emerald-600 hover:bg-emerald-700"
-                  : "bg-blue-600 hover:bg-blue-700"
-              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-80 disabled:cursor-not-allowed shadow-sm shadow-blue-500/10`}
+                  : "bg-orange-600 hover:bg-orange-700"
+              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-80 disabled:cursor-not-allowed shadow-sm shadow-blue-500/10`}
             >
               {loading && success ? (
                 <>

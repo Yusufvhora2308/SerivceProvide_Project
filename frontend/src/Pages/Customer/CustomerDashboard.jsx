@@ -194,7 +194,7 @@ const CustomerDashboard = () => {
             <button
               type="button"
               onClick={() => navigate("/customer/services")}
-              className="hidden items-center gap-1 text-xs font-semibold text-blue-600 transition hover:text-blue-700 sm:flex"
+              className="hidden items-center gap-1 text-xs font-semibold text-orange-600 transition hover:text-ornage-700 sm:flex"
             >
               View All
               <ArrowRight size={14} />
@@ -244,10 +244,10 @@ const CustomerDashboard = () => {
                     key={service.id}
                     type="button"
                     onClick={() => handleServiceClick(service.id)}
-                    className="group flex min-h-[140px] w-full flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-3 text-left shadow-xs transition duration-150 hover:border-blue-200 hover:shadow-md active:scale-[0.98] sm:p-4"
+                    className="group flex min-h-[140px] w-full flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-3 text-left shadow-xs transition duration-150 hover:border-black-200 hover:shadow-md active:scale-[0.98] sm:p-4"
                   >
                     {/* Icon */}
-                    <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 transition group-hover:bg-blue-600 group-hover:text-white sm:h-10 sm:w-10">
+                    <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50 text-orange-600 transition group-hover:bg-orange-600 group-hover:text-white sm:h-10 sm:w-10">
                       <Icon
                         size={16}
                         className="sm:h-[18px] sm:w-[18px]"
@@ -257,7 +257,7 @@ const CustomerDashboard = () => {
 
                     {/* Content */}
                     <div className="w-full">
-                      <h3 className="truncate text-xs font-semibold text-slate-900 group-hover:text-blue-600 sm:text-sm">
+                      <h3 className="truncate text-xs font-semibold text-slate-900 group-hover:text-orange-600 sm:text-sm">
                         {service.name}
                       </h3>
                       <p className="mt-0.5 truncate text-[10px] text-slate-400 sm:text-[11px]">

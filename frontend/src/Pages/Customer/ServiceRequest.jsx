@@ -320,7 +320,7 @@ const ServiceRequest = () => {
                         <button
                             type="submit"
                             disabled={submitting}
-                            className="w-full rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="w-full rounded-xl bg-orange-600 px-6 py-3 font-semibold text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {submitting
                                 ? "Creating Request..."

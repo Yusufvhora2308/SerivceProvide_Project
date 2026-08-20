@@ -65,8 +65,8 @@ function AdminDashboard() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-slate-600 font-medium">Loading dashboard...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-orange-600 mx-auto"></div>
+          <p className="mt-4 text-orange-600 font-medium">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -92,10 +92,9 @@ function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-indigo-500/30">
-                A
-              </div>
-              <span className="ml-3 text-xl font-bold text-slate-900">Admin Panel</span>
+              <div className="rounded-xl flex items-center justify-center text-white text-2xl font-bold size-full w-35">
+              <img src="../../public/Quick_Admin_Logos/admintext.png" alt="Quick Service Logo" />
+            </div>
               <span className="ml-3 text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full font-semibold">
                 v1.0
               </span>
@@ -156,7 +155,7 @@ function AdminDashboard() {
                 <p className="text-3xl font-bold text-slate-900 mt-1">{stats.users}</p>
                 <p className="text-xs text-emerald-600 mt-1">↑ 12% this month</p>
               </div>
-              <div className="h-14 w-14 bg-indigo-50 rounded-2xl flex items-center justify-center">
+              <div className="h-14 w-14 bg-orange-50 rounded-2xl flex items-center justify-center">
                 <span className="text-2xl">👥</span>
               </div>
             </div>

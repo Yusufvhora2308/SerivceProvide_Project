@@ -142,6 +142,9 @@ const CustomerDashboard = () => {
     navigate(`/customer/services/${serviceId}/request`);
   };
 
+  console.log(localStorage.getItem("token"));
+  
+
   return (
     <main className="relative min-h-[calc(100vh-4rem)] sm:min-h-[calc(100vh-5rem)] w-full overflow-x-hidden bg-slate-50/50 px-3.5 py-4 sm:px-6 sm:py-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col">

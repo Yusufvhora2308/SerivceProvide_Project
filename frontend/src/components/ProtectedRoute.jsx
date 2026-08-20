@@ -11,19 +11,16 @@ function ProtectedRoute({ children, allowedRoles = [] }) {
   const userRole = user.role || "customer";
 
   if (!token) {
-    return (
-      <Navigate 
-        to="/login" 
-        state={{ from: location.pathname }} 
-        replace 
-      />
-    );
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
     // Redirect admin to admin dashboard, users to user dashboard
     if (userRole === "admin") {
       return <Navigate to="/admin/dashboard" replace />;
+    }
+    if (userRole === "provider") {
+      return <Navigate to="/provider/dashboard" replace />;
     } else {
       return <Navigate to="/dashboard" replace />;
     }

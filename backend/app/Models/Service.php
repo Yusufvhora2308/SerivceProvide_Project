@@ -21,4 +21,13 @@ class Service extends Model
     {
         return $this->hasMany(ServiceRequest::class);
     }
+
+    //provider servises
+    public function providers()
+    {
+        return $this->belongsToMany(
+            Provider::class,
+            'provider_services'
+        )->withTimestamps();
+    }
 }

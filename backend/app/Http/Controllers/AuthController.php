@@ -5,6 +5,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Provider;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -21,15 +22,15 @@ class AuthController extends Controller
     private function formatUser(User $user): array
     {
         return [
-            'id'          => $user->id,
-            'name'        => $user->name,
-            'email'       => $user->email,
-            'phone'       => $user->phone,
-            'address'     => $user->address,
-            'role'        => $user->role,
-            'status'      => $user->status,
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'address' => $user->address,
+            'role' => $user->role,
+            'status' => $user->status,
             'is_verified' => $user->is_verified,
-            'created_at'  => $user->created_at?->toDateTimeString(),
+            'created_at' => $user->created_at?->toDateTimeString(),
         ];
     }
 
@@ -41,9 +42,9 @@ class AuthController extends Controller
     {
         // ---------- VALIDATION ----------
         $validator = Validator::make($request->all(), [
-            'name'     => ['required', 'string', 'min:3', 'max:100'],
-            'email'    => ['required', 'string', 'email', 'max:150', 'unique:users,email'],
-            'phone'    => ['required', 'string', 'regex:/^[6-9][0-9]{9}$/', 'unique:users,phone'],
+            'name' => ['required', 'string', 'min:3', 'max:100'],
+            'email' => ['required', 'string', 'email', 'max:150', 'unique:users,email'],
+            'phone' => ['required', 'string', 'regex:/^[6-9][0-9]{9}$/', 'unique:users,phone'],
             'password' => [
                 'required',
                 'string',
@@ -51,27 +52,27 @@ class AuthController extends Controller
                 'confirmed', // needs password_confirmation field to match
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/', // 1 lowercase, 1 uppercase, 1 number
             ],
-            'address'  => ['nullable', 'string', 'max:255'],
+            'address' => ['nullable', 'string', 'max:255'],
         ], [
-            'name.required'      => 'Name is required.',
-            'name.min'           => 'Name must be at least 3 characters.',
-            'email.required'     => 'Email address is required.',
-            'email.email'        => 'Please enter a valid email address.',
-            'email.unique'       => 'This email is already registered. Try logging in.',
-            'phone.required'     => 'Phone number is required.',
-            'phone.regex'        => 'Enter a valid 10-digit mobile number.',
-            'phone.unique'       => 'This phone number is already registered.',
-            'password.required'  => 'Password is required.',
-            'password.min'       => 'Password must be at least 8 characters.',
+            'name.required' => 'Name is required.',
+            'name.min' => 'Name must be at least 3 characters.',
+            'email.required' => 'Email address is required.',
+            'email.email' => 'Please enter a valid email address.',
+            'email.unique' => 'This email is already registered. Try logging in.',
+            'phone.required' => 'Phone number is required.',
+            'phone.regex' => 'Enter a valid 10-digit mobile number.',
+            'phone.unique' => 'This phone number is already registered.',
+            'password.required' => 'Password is required.',
+            'password.min' => 'Password must be at least 8 characters.',
             'password.confirmed' => 'Password and confirmation do not match.',
-            'password.regex'     => 'Password must include at least 1 uppercase letter, 1 lowercase letter, and 1 number.',
+            'password.regex' => 'Password must include at least 1 uppercase letter, 1 lowercase letter, and 1 number.',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors'  => $validator->errors(),
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -80,13 +81,13 @@ class AuthController extends Controller
         // ---------- CREATE USER ----------
         try {
             $user = User::create([
-                'name'     => $validated['name'],
-                'email'    => $validated['email'],
-                'phone'    => $validated['phone'],
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'],
                 'password' => Hash::make($validated['password']),
-                'address'  => $validated['address'] ?? null,
-                'role'     => 'customer', // registration via this endpoint is always customer
-                'status'   => 'active',
+                'address' => $validated['address'] ?? null,
+                'role' => 'customer', // registration via this endpoint is always customer
+                'status' => 'active',
             ]);
 
             $token = $user->createToken('auth_token')->plainTextToken;
@@ -94,14 +95,14 @@ class AuthController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Registration successful',
-                'data'    => [
-                    'user'       => $this->formatUser($user),
-                    'token'      => $token,
+                'data' => [
+                    'user' => $this->formatUser($user),
+                    'token' => $token,
                     'token_type' => 'Bearer',
                 ],
             ], 201);
         } catch (Throwable $e) {
-            Log::error('Registration failed: '.$e->getMessage());
+            Log::error('Registration failed: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -118,11 +119,11 @@ class AuthController extends Controller
     {
         // ---------- VALIDATION ----------
         $validator = Validator::make($request->all(), [
-            'email'    => ['required', 'string', 'email'],
+            'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
         ], [
-            'email.required'    => 'Email is required.',
-            'email.email'       => 'Please enter a valid email address.',
+            'email.required' => 'Email is required.',
+            'email.email' => 'Please enter a valid email address.',
             'password.required' => 'Password is required.',
         ]);
 
@@ -130,7 +131,7 @@ class AuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors'  => $validator->errors(),
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -139,7 +140,7 @@ class AuthController extends Controller
         // ---------- CHECK CREDENTIALS ----------
         $user = User::where('email', $validated['email'])->first();
 
-        if (! $user || ! Hash::check($validated['password'], $user->password)) {
+        if (!$user || !Hash::check($validated['password'], $user->password)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid email or password',
@@ -149,7 +150,7 @@ class AuthController extends Controller
         if ($user->status !== 'active') {
             return response()->json([
                 'success' => false,
-                'message' => 'Your account is '.$user->status.'. Please contact support.',
+                'message' => 'Your account is ' . $user->status . '. Please contact support.',
             ], 403);
         }
 
@@ -161,14 +162,14 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Login successful',
-            'data'    => [
-                'user'       => $this->formatUser($user),
-                'token'      => $token,
+            'data' => [
+                'user' => $this->formatUser($user),
+                'token' => $token,
                 'token_type' => 'Bearer',
             ],
         ], 200);
     }
-    
+
     /**
      * POST /api/admin/login
      * Admin-specific login - only allows users with 'admin' role
@@ -177,11 +178,11 @@ class AuthController extends Controller
     {
         // ---------- VALIDATION ----------
         $validator = Validator::make($request->all(), [
-            'email'    => ['required', 'string', 'email'],
+            'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
         ], [
-            'email.required'    => 'Email is required.',
-            'email.email'       => 'Please enter a valid email address.',
+            'email.required' => 'Email is required.',
+            'email.email' => 'Please enter a valid email address.',
             'password.required' => 'Password is required.',
         ]);
 
@@ -189,7 +190,7 @@ class AuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors'  => $validator->errors(),
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -198,7 +199,7 @@ class AuthController extends Controller
         // ---------- CHECK CREDENTIALS ----------
         $user = User::where('email', $validated['email'])->first();
 
-        if (! $user || ! Hash::check($validated['password'], $user->password)) {
+        if (!$user || !Hash::check($validated['password'], $user->password)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid email or password',
@@ -216,7 +217,7 @@ class AuthController extends Controller
         if ($user->status !== 'active') {
             return response()->json([
                 'success' => false,
-                'message' => 'Your account is '.$user->status.'. Please contact support.',
+                'message' => 'Your account is ' . $user->status . '. Please contact support.',
             ], 403);
         }
 
@@ -228,14 +229,56 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Admin login successful',
-            'data'    => [
-                'user'       => $this->formatUser($user),
-                'token'      => $token,
+            'data' => [
+                'user' => $this->formatUser($user),
+                'token' => $token,
                 'token_type' => 'Bearer',
             ],
         ], 200);
     }
-    
+
+    //provider registration
+    public function registerProvider(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
+            'phone' => 'required|string|max:20',
+        ]);
+
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'],
+            'password' => Hash::make($validated['password']),
+            'role' => 'provider',
+            'status' => 'active',
+        ]);
+
+        $provider = Provider::create([
+            'user_id' => $user->id,
+            'is_online' => false,
+            'availability_status' => 'offline',
+            'verification_status' => 'pending',
+        ]);
+
+        $user->tokens()->delete();
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Provider registration successful.',
+            'data' => [
+                'user' => $user,
+                'provider' => $provider,
+                'token' => $token,
+            ],
+        ], 201);
+    }
+
     /**
      * POST /api/logout
      * Requires Authorization: Bearer <token> header.
@@ -258,7 +301,7 @@ class AuthController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data'    => $this->formatUser($request->user()),
+            'data' => $this->formatUser($request->user()),
         ]);
     }
 }

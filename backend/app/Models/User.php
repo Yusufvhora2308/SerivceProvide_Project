@@ -79,4 +79,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(ServiceRequest::class, 'customer_id');
     }
+
+    //provider profile
+    public function provider()
+    {
+        return $this->hasOne(Provider::class);
+    }
 }

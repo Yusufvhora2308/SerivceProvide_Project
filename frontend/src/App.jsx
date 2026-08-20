@@ -15,6 +15,11 @@ import MyRequests from "./Pages/Customer/MyRequests";
 import RequestDetails from "./Pages/Customer/RequestDetails";
 import CustomerLayout from "./components/Customer/CustomerLayout";
 import CustomerDashboard from "./Pages/Customer/CustomerDashboard";
+import ProviderRegister from "./Pages/Provider/ProviderRegister";
+import { Dashboard } from "./Pages/Provider/ProviderDashboard";
+import ProviderLogin from "./Pages/Provider/ProviderLogin";
+import ProviderSetup from "./Pages/Provider/ProviderSetup";
+import ProviderVerificationPending from "./Pages/Provider/ProviderVerificationPending";
 
 function App() {
   return (
@@ -36,21 +41,15 @@ function App() {
         >
           //customer dashboard
           <Route path="/dashboard" element={<CustomerDashboard />} />
-         
           //all services
-          <Route path="/customer/services" 
-          element={<Services />} 
-          />
-
+          <Route path="/customer/services" element={<Services />} />
           //service request
           <Route
             path="/customer/services/:serviceId/request"
             element={<ServiceRequest />}
           />
-
           //all service request
           <Route path="/customer/requests" element={<MyRequests />} />
-
           //request details
           <Route
             path="/customer/service-requests/:id"
@@ -64,6 +63,21 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Povider routes */}
+        <Route path="/provider/register" element={<ProviderRegister />} />
+        <Route path="/provider/login" element={<ProviderLogin />} />
+        <Route path="/provider/dashboard" element={<Dashboard />} />
+        {/* padding page */}
+        <Route path="/provider/verification" element={<ProviderVerificationPending />} />
+        <Route
+          path="/provider/setup"
+          element={
+            <ProtectedRoute allowedRoles={["provider"]}>
+              <ProviderSetup />
             </ProtectedRoute>
           }
         />

@@ -215,7 +215,7 @@ function AdminLogin() {
 
         {/* Header Text */}
         <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-blue-950">
-          User Login
+          Admin Login
         </h2>
         <p className="mt-2 mb-6 text-center text-sm text-slate-600">
           Sign in to access your dashboard and services

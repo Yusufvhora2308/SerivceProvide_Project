@@ -158,7 +158,7 @@ class AuthController extends Controller
         $user->tokens()->delete();
 
         $token = $user->createToken('auth_token')->plainTextToken;
-
+        
         return response()->json([
             'success' => true,
             'message' => 'Login successful',
@@ -277,6 +277,63 @@ class AuthController extends Controller
                 'token' => $token,
             ],
         ], 201);
+    }
+
+    //provider login
+     public function loginProvider(Request $request)
+    {
+        // ---------- VALIDATION ----------
+        $validator = Validator::make($request->all(), [
+            'email' => ['required', 'string', 'email'],
+            'password' => ['required', 'string'],
+        ], [
+            'email.required' => 'Email is required.',
+            'email.email' => 'Please enter a valid email address.',
+            'password.required' => 'Password is required.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        // ---------- CHECK CREDENTIALS ----------
+        $user = User::where('email', $validated['email'])->first();
+
+        if (!$user || !Hash::check($validated['password'], $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid email or password',
+            ], 401);
+        }
+
+        if ($user->status !== 'active') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Your account is ' . $user->status . '. Please contact support.',
+            ], 403);
+        }
+
+        // Revoke old tokens so only the latest login session stays valid
+        $user->tokens()->delete();
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Login successful',
+            'data' => [
+                'user' => $this->formatUser($user),
+                'token' => $token,
+                'token_type' => 'Bearer',
+                'verification_status' => $user->provider->verification_status,
+            ],
+        ], 200);
     }
 
     /**

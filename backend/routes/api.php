@@ -23,6 +23,7 @@ Route::post('/admin/login', [AuthController::class, 'adminLogin']); // Admin log
 
 //provider registration
 Route::post('/provider/register', [AuthController::class, 'registerProvider']);
+Route::post('/provider/login', [AuthController::class, 'loginProvider']);
 Route::post('/provider/services', [ProviderController::class, 'selectServices']);
 Route::post('/provider/documents', [ProviderController::class, 'uploadDocuments']);
 Route::middleware('auth:sanctum')->group(function () {

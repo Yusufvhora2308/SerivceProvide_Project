@@ -27,10 +27,10 @@ const ProviderLogin = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post("/login", formData);
+      const response = await axios.post("/provider/login", formData);
 
       if (response.data.success) {
-        const { token, user } = response.data.data;
+        const { token, user, verification_status } = response.data.data;
 
         // Make sure this is actually a provider
         if (user.role !== "provider") {
@@ -44,7 +44,11 @@ const ProviderLogin = () => {
 
         localStorage.setItem("user", JSON.stringify(user));
 
-        navigate("/provider/dashboard");
+        if (verification_status === "approved") {
+          navigate("/provider/dashboard");
+        } else {
+          navigate("/provider/verification");
+        }
       }
     } catch (error) {
       console.error("Provider login error:", error);

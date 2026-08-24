@@ -13,7 +13,19 @@ import { Navigate } from "react-router-dom";
 
 function GuestRoute({ children }) {
   const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const safeJSONParse = (item) => {
+    // Run this once in your browser console
+    localStorage.removeItem("user");
+    if (!item || item === "undefined") return null;
+    try {
+      return JSON.parse(item);
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // Then use it:
+  const user = safeJSONParse(localStorage.getItem("user"));
 
   // Not logged in at all -> let them see the login/register page normally
   if (!token || !user) {

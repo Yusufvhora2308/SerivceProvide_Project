@@ -126,8 +126,8 @@ const CustomerSidebar = ({ isOpen, onClose, onLogout }) => {
           className={({ isActive }) =>
             `group relative flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200 ${
               isActive
-                ? "bg-blue-600 text-white shadow-md shadow-blue-600/25"
-                : "text-gray-600 hover:bg-blue-50/70 hover:text-blue-600 active:scale-[0.99]"
+                ? "bg-orange-600 text-white shadow-md shadow-orange-600/25"
+                : "text-gray-600 hover:bg-orange-50/70 hover:text-orange-600 active:scale-[0.99]"
             }`
           }
         >
@@ -140,7 +140,7 @@ const CustomerSidebar = ({ isOpen, onClose, onLogout }) => {
                   className={`shrink-0 transition-transform duration-200 ${
                     isActive
                       ? "text-white"
-                      : "text-gray-400 group-hover:scale-110 group-hover:text-blue-600"
+                      : "text-gray-400 group-hover:scale-110 group-hover:text-orange-600"
                   }`}
                 />
 
@@ -185,18 +185,18 @@ const CustomerSidebar = ({ isOpen, onClose, onLogout }) => {
         {/* Header */}
         <div className="flex h-16 items-center justify-between border-b border-gray-100 px-5 sm:h-20 sm:px-6">
           <div className="hidden items-center gap-3 lg:flex">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-700 to-blue-500 text-sm font-bold text-white shadow-sm shadow-blue-500/25 sm:h-10 sm:w-10 sm:text-base">
-              S
+            <div className="rounded-xl flex items-center justify-center text-white text-2xl font-bold size-full">
+              <img src="../../public/user_header_logo.png" alt="Quick Service Logo" />
             </div>
 
-            <div>
+            {/* <div>
               <h2 className="text-base font-bold tracking-tight text-gray-900 sm:text-lg">
                 Service
                 <span className="text-blue-600">
                   Hub
                 </span>
               </h2>
-            </div>
+            </div> */}
           </div>
 
           {/* Mobile Close */}

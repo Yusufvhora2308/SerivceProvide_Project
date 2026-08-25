@@ -1,291 +1,377 @@
 // PATH: src/Pages/Admin/AdminDashboard.jsx
 
-import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import {
+  Users,
+  UserCog,
+  Wrench,
+  ClipboardList,
+  CalendarCheck,
+  CreditCard,
+  ArrowUpRight,
+  ArrowRight,
+  TrendingUp,
+  CheckCircle2,
+  Clock3,
+  AlertCircle,
+  DollarSign,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 import api from "../../api/axios";
 
-function AdminDashboard() {
-  const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+const AdminDashboard = () => {
+  const [user, setUser] = useState({});
+  const [services, setServices] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    users: 1247,
-    classes: 48,
-    teachers: 36,
-    students: 2850,
-  });
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    } else {
-      // If no user, redirect to login
-      navigate("/admin/login");
-    }
-    fetchStats();
-    setLoading(false);
-  }, [navigate]);
+    const storedUser = JSON.parse(
+      localStorage.getItem("user") || "{}"
+    );
+    setUser(storedUser);
+    fetchDashboardData();
+  }, []);
 
-  const fetchStats = async () => {
+  const fetchDashboardData = async () => {
     try {
-      // Uncomment when API endpoints are ready
-      // const response = await api.get("/admin/stats");
-      // if (response.data.success) {
-      //   setStats(response.data.data);
-      // }
-      
-      // For demo, keeping static data
-      console.log("📊 Stats loaded successfully");
-    } catch (error) {
-      console.error("Error fetching stats:", error);
-    }
-  };
+      setLoading(true);
+      const [servicesResponse, requestsResponse] = await Promise.allSettled([
+        api.get("/services"),
+        api.get("/service-requests"),
+      ]);
 
-  const handleLogout = async () => {
-    try {
-      await api.post("/logout");
+      if (servicesResponse.status === "fulfilled" && servicesResponse.value?.data?.data) {
+        setServices(servicesResponse.value.data.data);
+      }
+
+      if (requestsResponse.status === "fulfilled" && requestsResponse.value?.data?.data) {
+        setRequests(requestsResponse.value.data.data);
+      }
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error("Dashboard Error:", error);
     } finally {
-      // Clear all localStorage data
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      localStorage.removeItem("role");
-      localStorage.removeItem("loginMessage");
-      localStorage.removeItem("loginIsError");
-      localStorage.removeItem("loginSuccess");
-      
-      // Redirect to admin login
-      navigate("/admin/login");
+      setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-slate-600 font-medium">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+  const stats = [
+    {
+      title: "Total Customers",
+      value: "1,247",
+      change: "+12.5%",
+      icon: Users,
+      bg: "bg-blue-50 dark:bg-blue-900/20",
+      iconColor: "text-blue-600 dark:text-blue-400",
+      link: "/admin/users",
+    },
+    {
+      title: "Service Providers",
+      value: "186",
+      change: "+8.2%",
+      icon: UserCog,
+      bg: "bg-purple-50 dark:bg-purple-900/20",
+      iconColor: "text-purple-600 dark:text-purple-400",
+      link: "/admin/providers",
+    },
+    {
+      title: "Total Revenue",
+      value: "$24,850",
+      change: "+18.4%",
+      icon: DollarSign,
+      bg: "bg-emerald-50 dark:bg-emerald-900/20",
+      iconColor: "text-emerald-600 dark:text-emerald-400",
+      link: "/admin/payments",
+    },
+    {
+      title: "Service Requests",
+      value: requests.length || "328",
+      change: "+4.6%",
+      icon: ClipboardList,
+      bg: "bg-amber-50 dark:bg-amber-900/20",
+      iconColor: "text-amber-600 dark:text-amber-400",
+      link: "/admin/requests",
+    },
+  ];
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="text-center">
-          <p className="text-red-600 font-semibold">Session expired. Please login again.</p>
-          <Link to="/admin/login" className="mt-4 inline-block bg-indigo-600 text-white px-6 py-3 rounded-xl hover:bg-indigo-700 transition">
-            Go to Login
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const quickActions = [
+    {
+      title: "Manage Customers",
+      description: "View and manage registered customers",
+      icon: Users,
+      link: "/admin/users",
+      bg: "bg-blue-50 dark:bg-blue-900/20",
+      color: "text-blue-600 dark:text-blue-400",
+    },
+    {
+      title: "Manage Providers",
+      description: "Verify and manage service providers",
+      icon: UserCog,
+      link: "/admin/providers",
+      bg: "bg-purple-50 dark:bg-purple-900/20",
+      color: "text-purple-600 dark:text-purple-400",
+    },
+    {
+      title: "Manage Services",
+      description: "Add, edit and manage services",
+      icon: Wrench,
+      link: "/admin/services",
+      bg: "bg-orange-50 dark:bg-orange-900/20",
+      color: "text-orange-600 dark:text-orange-400",
+    },
+    {
+      title: "Service Requests",
+      description: "Monitor customer service requests",
+      icon: ClipboardList,
+      link: "/admin/requests",
+      bg: "bg-amber-50 dark:bg-amber-900/20",
+      color: "text-amber-600 dark:text-amber-400",
+    },
+    {
+      title: "Bookings",
+      description: "Manage confirmed bookings",
+      icon: CalendarCheck,
+      link: "/admin/bookings",
+      bg: "bg-cyan-50 dark:bg-cyan-900/20",
+      color: "text-cyan-600 dark:text-cyan-400",
+    },
+    {
+      title: "Reports",
+      description: "View business reports and analytics",
+      icon: CreditCard,
+      link: "/admin/reports",
+      bg: "bg-pink-50 dark:bg-pink-900/20",
+      color: "text-pink-600 dark:text-pink-400",
+    },
+  ];
+
+  const recentRequests = requests.slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Header */}
-      <nav className="bg-white shadow-md border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-indigo-500/30">
-                A
+    <div className="min-h-[calc(100vh-4rem)] bg-slate-50/70 px-4 py-5 sm:px-6 sm:py-7 lg:px-8 dark:bg-gray-900/70">
+      <div className="mx-auto max-w-7xl">
+        {/* Welcome */}
+        <section className="mb-6">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 p-6 text-white shadow-lg sm:p-8 dark:from-blue-800 dark:via-blue-700 dark:to-indigo-700">
+            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10" />
+            <div className="absolute -bottom-24 -left-16 h-52 w-52 rounded-full bg-white/10" />
+            <div className="absolute right-10 top-10 h-32 w-32 rounded-full bg-white/5" />
+
+            <div className="relative z-10">
+              <p className="mb-1 text-sm font-medium text-blue-100">
+                ServiceHub Administration
+              </p>
+              <h1 className="text-2xl font-bold sm:text-3xl">
+                Good Afternoon, {user?.name || "Admin"} 👋
+              </h1>
+              <p className="mt-2 max-w-xl text-sm text-blue-100">
+                Manage customers, service providers, services and service requests from one place.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium backdrop-blur">
+                  Service Management
+                </span>
+                <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium backdrop-blur">
+                  Provider Management
+                </span>
+                <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium backdrop-blur">
+                  Customer Management
+                </span>
               </div>
-              <span className="ml-3 text-xl font-bold text-slate-900">Admin Panel</span>
-              <span className="ml-3 text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full font-semibold">
-                v1.0
-              </span>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-md">
-                  {user?.name ? user.name.charAt(0).toUpperCase() : "A"}
-                </div>
-                <div className="hidden sm:block">
-                  <p className="text-sm font-semibold text-slate-900">{user?.name || "Admin"}</p>
-                  <p className="text-xs text-slate-500">{user?.email || "admin@school.com"}</p>
-                </div>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 border border-red-200 hover:border-red-300"
+          </div>
+        </section>
+
+        {/* Stats */}
+        <section className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {stats.map((stat) => {
+            const Icon = stat.icon;
+
+            return (
+              <Link
+                key={stat.title}
+                to={stat.link}
+                className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* Welcome Banner */}
-        <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full -mr-32 -mt-32"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white opacity-10 rounded-full -ml-24 -mb-24"></div>
-          <div className="relative z-10">
-            <h1 className="text-2xl md:text-3xl font-bold">
-              Welcome back, {user?.name || "Admin"}! 👋
-            </h1>
-            <p className="text-indigo-100 mt-2">Manage your school management system efficiently</p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <span className="bg-white/20 backdrop-blur rounded-full px-4 py-1.5 text-sm font-medium">
-                🏫 School Management System
-              </span>
-              <span className="bg-white/20 backdrop-blur rounded-full px-4 py-1.5 text-sm font-medium">
-                📅 {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-500">Total Users</p>
-                <p className="text-3xl font-bold text-slate-900 mt-1">{stats.users}</p>
-                <p className="text-xs text-emerald-600 mt-1">↑ 12% this month</p>
-              </div>
-              <div className="h-14 w-14 bg-indigo-50 rounded-2xl flex items-center justify-center">
-                <span className="text-2xl">👥</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-500">Total Classes</p>
-                <p className="text-3xl font-bold text-slate-900 mt-1">{stats.classes}</p>
-                <p className="text-xs text-emerald-600 mt-1">↑ 5 new this week</p>
-              </div>
-              <div className="h-14 w-14 bg-emerald-50 rounded-2xl flex items-center justify-center">
-                <span className="text-2xl">📚</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-500">Total Teachers</p>
-                <p className="text-3xl font-bold text-slate-900 mt-1">{stats.teachers}</p>
-                <p className="text-xs text-slate-500 mt-1">Active faculty</p>
-              </div>
-              <div className="h-14 w-14 bg-purple-50 rounded-2xl flex items-center justify-center">
-                <span className="text-2xl">👨‍🏫</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-500">Total Students</p>
-                <p className="text-3xl font-bold text-slate-900 mt-1">{stats.students}</p>
-                <p className="text-xs text-emerald-600 mt-1">↑ 8% from last year</p>
-              </div>
-              <div className="h-14 w-14 bg-amber-50 rounded-2xl flex items-center justify-center">
-                <span className="text-2xl">🎓</span>
-              </div>
-            </div>
-          </div>
-        </div>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 sm:text-sm dark:text-gray-400">
+                      {stat.title}
+                    </p>
+                    <p className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl dark:text-white">
+                      {loading ? "..." : stat.value}
+                    </p>
+                    <p className="mt-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                      ↑ {stat.change} this month
+                    </p>
+                  </div>
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${stat.bg}`}>
+                    <Icon size={22} className={stat.iconColor} />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-slate-400 group-hover:text-blue-600 dark:text-gray-500 dark:group-hover:text-blue-400">
+                  View details
+                  <ArrowUpRight size={14} />
+                </div>
+              </Link>
+            );
+          })}
+        </section>
 
         {/* Quick Actions */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Link to="/admin/users" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group">
-            <div className="flex items-start gap-4">
-              <div className="h-12 w-12 bg-indigo-50 rounded-xl flex items-center justify-center group-hover:bg-indigo-100 transition">
-                <span className="text-2xl">👥</span>
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-900 group-hover:text-indigo-600 transition">Manage Users</h3>
-                <p className="text-sm text-slate-500 mt-1">View and manage all users</p>
-                <span className="mt-2 inline-block text-indigo-600 font-semibold text-sm group-hover:translate-x-1 transition-transform">
-                  View Users →
-                </span>
-              </div>
-            </div>
-          </Link>
-          
-          <Link to="/admin/classes" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group">
-            <div className="flex items-start gap-4">
-              <div className="h-12 w-12 bg-emerald-50 rounded-xl flex items-center justify-center group-hover:bg-emerald-100 transition">
-                <span className="text-2xl">📚</span>
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-900 group-hover:text-emerald-600 transition">Manage Classes</h3>
-                <p className="text-sm text-slate-500 mt-1">Create and manage classes</p>
-                <span className="mt-2 inline-block text-emerald-600 font-semibold text-sm group-hover:translate-x-1 transition-transform">
-                  View Classes →
-                </span>
-              </div>
-            </div>
-          </Link>
-          
-          <Link to="/admin/reports" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group">
-            <div className="flex items-start gap-4">
-              <div className="h-12 w-12 bg-purple-50 rounded-xl flex items-center justify-center group-hover:bg-purple-100 transition">
-                <span className="text-2xl">📊</span>
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-900 group-hover:text-purple-600 transition">Reports</h3>
-                <p className="text-sm text-slate-500 mt-1">View system reports</p>
-                <span className="mt-2 inline-block text-purple-600 font-semibold text-sm group-hover:translate-x-1 transition-transform">
-                  View Reports →
-                </span>
-              </div>
-            </div>
-          </Link>
-        </div>
+        <section className="mb-7">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              Quick Management
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-gray-400">
+              Manage the main areas of your service portal
+            </p>
+          </div>
 
-        {/* Recent Activity Section */}
-        <div className="mt-8 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-slate-900">Recent Activity</h3>
-            <span className="text-sm text-slate-500">Last 7 days</span>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {quickActions.map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <Link
+                  key={item.title}
+                  to={item.link}
+                  className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+                >
+                  <div className="flex gap-4">
+                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${item.bg}`}>
+                      <Icon size={21} className={item.color} />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
+                        {item.title}
+                      </h3>
+                      <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-gray-400">
+                        {item.description}
+                      </p>
+                      <div className={`mt-3 flex items-center gap-1 text-xs font-semibold ${item.color}`}>
+                        Manage
+                        <ArrowRight size={13} className="transition group-hover:translate-x-1" />
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-              <div className="h-8 w-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 text-sm font-bold">U</div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-slate-900">New user registered</p>
-                <p className="text-xs text-slate-500">John Doe created an account</p>
+        </section>
+
+        {/* Bottom Grid */}
+        <section className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+          {/* Recent Requests */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2 dark:border-gray-700 dark:bg-gray-800">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                  Recent Service Requests
+                </h2>
+                <p className="text-xs text-slate-400 dark:text-gray-500">
+                  Latest customer requests
+                </p>
               </div>
-              <span className="text-xs text-slate-400">2 hours ago</span>
+              <Link
+                to="/admin/requests"
+                className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                View All
+                <ArrowRight size={14} />
+              </Link>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-              <div className="h-8 w-8 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 text-sm font-bold">C</div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-slate-900">New class created</p>
-                <p className="text-xs text-slate-500">Class 10-A has been added</p>
+
+            {recentRequests.length > 0 ? (
+              <div className="space-y-3">
+                {recentRequests.map((request, index) => (
+                  <div
+                    key={request.id || index}
+                    className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-gray-700/50"
+                  >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                      <ClipboardList size={16} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-800 dark:text-white">
+                        {request.service?.name || request.service_name || "Service Request"}
+                      </p>
+                      <p className="truncate text-xs text-slate-400 dark:text-gray-400">
+                        {request.status || "Pending"} request
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold capitalize text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+                      {request.status || "pending"}
+                    </span>
+                  </div>
+                ))}
               </div>
-              <span className="text-xs text-slate-400">5 hours ago</span>
+            ) : (
+              <div className="rounded-xl bg-slate-50 py-10 text-center dark:bg-gray-700/50">
+                <ClipboardList size={30} className="mx-auto text-slate-300 dark:text-gray-600" />
+                <p className="mt-2 text-sm font-semibold text-slate-500 dark:text-gray-400">
+                  No recent requests
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* System Status */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+              System Overview
+            </h2>
+            <p className="mt-1 text-xs text-slate-400 dark:text-gray-500">
+              Current portal status
+            </p>
+
+            <div className="mt-5 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-900/30">
+                  <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-white">Services</p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400">System operational</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/30">
+                  <Clock3 size={18} className="text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-white">Requests</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400">Monitoring active</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-900/30">
+                  <AlertCircle size={18} className="text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-white">Providers</p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400">Verification required</p>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-              <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 text-sm font-bold">T</div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-slate-900">Teacher assigned</p>
-                <p className="text-xs text-slate-500">Mrs. Smith assigned to Class 8-B</p>
-              </div>
-              <span className="text-xs text-slate-400">1 day ago</span>
+
+            <div className="mt-6 rounded-xl bg-blue-50 p-4 dark:bg-blue-900/30">
+              <p className="text-xs font-semibold text-blue-700 dark:text-blue-400">
+                Admin Tip
+              </p>
+              <p className="mt-1 text-xs leading-5 text-blue-600 dark:text-blue-300">
+                Verify service providers before allowing them to accept customer requests.
+              </p>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );
-}
+};
 
 export default AdminDashboard;

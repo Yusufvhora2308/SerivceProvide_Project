@@ -1,8 +1,4 @@
 // PATH: src/components/ProtectedRoute.jsx
-//
-// Purpose: Wraps PRIVATE pages (Dashboard, Admin Dashboard, etc).
-// If the person is NOT logged in, or logged in with the wrong role,
-// they get redirected away — they can never reach these pages directly by URL.
 
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
@@ -11,30 +7,129 @@ function ProtectedRoute({ children, allowedRoles = [] }) {
   const location = useLocation();
 
   const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const userData = localStorage.getItem("user");
+  const savedRole = localStorage.getItem("role");
 
-  // Not logged in -> send to login, remember where they were trying to go
-  if (!token || !user) {
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  // ==========================================
+  // NOT LOGGED IN
+  // ==========================================
+
+  if (!token || !userData) {
+    return (
+      <Navigate
+        to="/login"
+        state={{ from: location.pathname }}
+        replace
+      />
+    );
   }
 
-  const userRole = user.role || "customer";
+  // ==========================================
+  // PARSE USER
+  // ==========================================
 
-  // Logged in, but wrong role for this page (e.g. customer trying /admin/dashboard)
-  if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
-    if (userRole === "admin") {
-      return <Navigate to="/admin/dashboard" replace />;
-    }
-    return <Navigate to="/dashboard" replace />;
-  }
+  let user;
 
-  // Account blocked/inactive -> force logout
-  if (user.status && user.status !== "active") {
+  try {
+    user = JSON.parse(userData);
+  } catch (error) {
+    console.error("Invalid user data:", error);
+
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("role");
+
     return <Navigate to="/login" replace />;
   }
+
+  // ==========================================
+  // ROLE
+  // ==========================================
+
+  const userRole = user?.role || savedRole;
+
+  // ==========================================
+  // ROLE NOT FOUND
+  // ==========================================
+
+  if (!userRole) {
+    console.error("User role not found");
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+
+    return <Navigate to="/login" replace />;
+  }
+
+  // ==========================================
+  // ACCOUNT STATUS
+  // ==========================================
+
+  if (
+    user?.status &&
+    user.status !== "active"
+  ) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+
+    return <Navigate to="/login" replace />;
+  }
+
+  // ==========================================
+  // ADMIN - Allow admin to access all routes
+  // ==========================================
+
+  if (userRole === "admin") {
+    // Admin can access any protected route
+    return children;
+  }
+
+  // ==========================================
+  // ROLE CHECK FOR NON-ADMIN USERS
+  // ==========================================
+
+  if (
+    allowedRoles.length > 0 &&
+    !allowedRoles.includes(userRole)
+  ) {
+    console.log(
+      "Access denied:",
+      userRole,
+      "Allowed:",
+      allowedRoles
+    );
+
+    // Provider
+    if (userRole === "provider") {
+      return (
+        <Navigate
+          to="/provider/dashboard"
+          replace
+        />
+      );
+    }
+
+    // Customer
+    if (
+      userRole === "customer" ||
+      userRole === "user"
+    ) {
+      return (
+        <Navigate
+          to="/dashboard"
+          replace
+        />
+      );
+    }
+
+    return <Navigate to="/login" replace />;
+  }
+
+  // ==========================================
+  // ALLOWED
+  // ==========================================
 
   return children;
 }

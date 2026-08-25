@@ -8,7 +8,11 @@ import Register from "./Pages/Register";
 import AdminLogin from "./Pages/AdminLogin";
 import ProtectedRoute from "./components/ProtectedRoute";
 import GuestRoute from "./components/GuestRoute";
+import AdminLayout from "./components/Admin/AdminLayout";
 import AdminDashboard from "./Pages/Admin/AdminDashboard";
+import AdminUsers from "./Pages/Admin/AdminUsers";
+import Providers from "./Pages/Admin/Providers";
+
 // import UserDashboard from "./Pages/Users/UserDashboard";
 import Services from "./Pages/Customer/Services";
 import ServiceRequest from "./Pages/Customer/ServiceRequest";
@@ -17,6 +21,15 @@ import RequestDetails from "./Pages/Customer/RequestDetails";
 import CustomerLayout from "./components/Customer/CustomerLayout";
 import CustomerDashboard from "./Pages/Customer/CustomerDashboard";
 import CustomerProfile from "./Pages/Customer/CustomerProfile";
+
+
+
+import ProviderRegister from "./Pages/Provider/ProviderRegister";
+import { ProviderDashboard } from "./Pages/Provider/ProviderDashboard";
+import ProviderLogin from "./Pages/Provider/ProviderLogin";
+import ProviderSetup from "./Pages/Provider/ProviderSetup";
+import ProviderVerificationPending from "./Pages/Provider/ProviderVerificationPending";
+import ProviderDocumentEdit from "./Pages/Provider/ProviderDocumentEdit";
 
 function App() {
   return (
@@ -90,15 +103,74 @@ function App() {
           />
         </Route>
 
-        {/* ✅ Protected Admin Routes */}
+       {/* ========================================= */}
+{/* PROVIDER ROUTES */}
+{/* ========================================= */}
+
+  {/* Provider Register - Wrap with GuestRoute */}
         <Route
-          path="/admin/dashboard"
+          path="/provider/register"
           element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <AdminDashboard />
+            <GuestRoute>
+              <ProviderRegister />
+            </GuestRoute>
+          }
+        />
+
+        {/* Provider Login - Wrap with GuestRoute */}
+        <Route
+          path="/provider/login"
+          element={
+            <GuestRoute>
+              <ProviderLogin />
+            </GuestRoute>
+          }
+        />
+
+        {/* Provider Verification - This should be accessible after registration */}
+        <Route
+          path="/provider/verification"
+          element={<ProviderVerificationPending />}
+        />
+
+        <Route
+          path="/provider/documents/edit"
+          element={<ProviderDocumentEdit />}
+        />
+
+        {/* Provider Setup - Protected */}
+        <Route
+          path="/provider/setup"
+          element={
+            <ProtectedRoute allowedRoles={["provider"]}>
+              <ProviderSetup />
             </ProtectedRoute>
           }
         />
+
+        {/* Provider Dashboard - Protected */}
+        <Route
+          path="/provider/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["provider"]}>
+              <ProviderDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* ✅ Protected Admin Routes */}
+         <Route
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/providers" element={<Providers />} />
+        </Route>
 
         {/* ✅ Redirect to login for any other route */}
         <Route path="*" element={<Navigate to="/login" replace />} />

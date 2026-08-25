@@ -1,31 +1,99 @@
 // PATH: src/components/GuestRoute.jsx
-//
-// Purpose: Wraps PUBLIC pages (Login, Register, AdminLogin).
-// If the person is already logged in, they should never see these pages again —
-// they get redirected straight to their dashboard instead.
-//
-// This is the "opposite" of ProtectedRoute:
-//   ProtectedRoute -> blocks access WITHOUT login
-//   GuestRoute     -> blocks access WHEN ALREADY logged in
 
 import React from "react";
 import { Navigate } from "react-router-dom";
 
 function GuestRoute({ children }) {
   const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const userData = localStorage.getItem("user");
+  const savedRole = localStorage.getItem("role");
 
-  // Not logged in at all -> let them see the login/register page normally
-  if (!token || !user) {
+  // ==========================================
+  // NOT LOGGED IN - Show the page
+  // ==========================================
+
+  if (!token || !userData) {
     return children;
   }
 
-  // Already logged in -> send them to the right dashboard based on role
-  if (user.role === "admin") {
-    return <Navigate to="/admin/dashboard" replace />;
+  // ==========================================
+  // PARSE USER
+  // ==========================================
+
+  let user;
+
+  try {
+    user = JSON.parse(userData);
+  } catch (error) {
+    console.error("Invalid user data");
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+
+    return children;
   }
 
-  return <Navigate to="/dashboard" replace />;
+  // ==========================================
+  // ROLE
+  // ==========================================
+
+  const userRole = user?.role || savedRole;
+
+  // ==========================================
+  // STATUS
+  // ==========================================
+
+  if (
+    user?.status &&
+    user.status !== "active"
+  ) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+
+    return children;
+  }
+
+  // ==========================================
+  // REDIRECT BASED ON ROLE
+  // ==========================================
+
+  // ADMIN
+  if (userRole === "admin") {
+    return (
+      <Navigate
+        to="/admin/dashboard"
+        replace
+      />
+    );
+  }
+
+  // PROVIDER
+  if (userRole === "provider") {
+    return (
+      <Navigate
+        to="/provider/dashboard"
+        replace
+      />
+    );
+  }
+
+  // CUSTOMER / USER
+  if (
+    userRole === "customer" ||
+    userRole === "user"
+  ) {
+    return (
+      <Navigate
+        to="/dashboard"
+        replace
+      />
+    );
+  }
+
+  // Fallback - if role is unknown, show the page
+  return children;
 }
 
 export default GuestRoute;

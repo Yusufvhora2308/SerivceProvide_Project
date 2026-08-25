@@ -10,7 +10,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import GuestRoute from "./components/GuestRoute";
 import AdminDashboard from "./Pages/Admin/AdminDashboard";
 // import UserDashboard from "./Pages/Users/UserDashboard";
-import Services from "./Pages/Customer/Servises";
+import Services from "./Pages/Customer/Services";
 import ServiceRequest from "./Pages/Customer/ServiceRequest";
 import MyRequests from "./Pages/Customer/MyRequests";
 import RequestDetails from "./Pages/Customer/RequestDetails";
@@ -72,7 +72,7 @@ function App() {
           <Route path="/customer/profile" element={<CustomerProfile />}/>
 
           {/* all services */}
-          <Route path="/customer/services" element={<Services />} />
+          <Route path="/customer/services" element={<Services />}/>
 
           {/* service request */}
           <Route

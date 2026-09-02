@@ -312,4 +312,128 @@ class ProviderController extends Controller
             'provider' => $provider,
         ]);
     }
+
+    /**
+ * Update Provider Current Location
+ */
+public function updateLocation(Request $request)
+{
+    // Validate location data
+    $validated = $request->validate([
+        'latitude' => [
+            'required',
+            'numeric',
+            'between:-90,90',
+        ],
+
+        'longitude' => [
+            'required',
+            'numeric',
+            'between:-180,180',
+        ],
+
+        'is_online' => [
+            'nullable',
+            'boolean',
+        ],
+    ]);
+
+    // Get authenticated provider
+    $provider = Provider::where(
+        'user_id',
+        $request->user()->id
+    )->first();
+
+    // Provider profile not found
+    if (!$provider) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Provider profile not found.',
+        ], 404);
+    }
+
+    // Update location
+    $provider->latitude = $validated['latitude'];
+    $provider->longitude = $validated['longitude'];
+
+    // Update online status if provided
+    if (array_key_exists('is_online', $validated)) {
+        $provider->is_online = $validated['is_online'];
+
+        $provider->availability_status =
+            $validated['is_online']
+                ? 'online'
+                : 'offline';
+    }
+
+    $provider->save();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Provider location updated successfully.',
+        'provider' => [
+            'id' => $provider->id,
+            'latitude' => $provider->latitude,
+            'longitude' => $provider->longitude,
+            'is_online' => $provider->is_online,
+            'availability_status' => $provider->availability_status,
+        ],
+    ]);
+}
+
+/*
+|--------------------------------------------------------------------------
+| UPDATE PROVIDER ONLINE / OFFLINE STATUS
+|--------------------------------------------------------------------------
+*/
+
+public function updateStatus(Request $request)
+{
+    $validated = $request->validate([
+        'is_online' => [
+            'required',
+            'boolean',
+        ],
+    ]);
+
+    // Get authenticated provider
+    $provider = Provider::where(
+        'user_id',
+        $request->user()->id
+    )->first();
+
+    // Provider not found
+    if (!$provider) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Provider profile not found.',
+        ], 404);
+    }
+
+    // Update online status
+    $provider->is_online = $validated['is_online'];
+
+    // Update availability status
+    if ($validated['is_online']) {
+        $provider->availability_status = 'available';
+    } else {
+        $provider->availability_status = 'offline';
+    }
+
+    $provider->save();
+
+    return response()->json([
+        'success' => true,
+
+        'message' => $validated['is_online']
+            ? 'Provider is now online.'
+            : 'Provider is now offline.',
+
+        'provider' => [
+            'id' => $provider->id,
+            'is_online' => (bool) $provider->is_online,
+            'availability_status' => $provider->availability_status,
+        ],
+    ]);
+}
 }

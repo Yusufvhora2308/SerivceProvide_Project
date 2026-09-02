@@ -4,11 +4,13 @@ use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminProviderController;
 use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\Api\ServiceController;
-use App\Http\Controllers\Api\ServiceRequestController;
+use App\Http\Controllers\Api\Customer\ServiceRequestController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CustomerProfileController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Provider\ProviderServiceController;
+use App\Http\Controllers\Api\Customer\NearbyProviderController;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,57 +37,169 @@ Route::post('/admin/login', [AuthController::class, 'adminLogin']);
 Route::post('/provider/register', [AuthController::class, 'registerProvider']);
 Route::post('/provider/login', [AuthController::class, 'loginProvider']);
 
-
+Route::get('/services', [ServiceController::class, 'index']);
+Route::get('/services/{id}', [ServiceController::class, 'show']);
 /*
 |--------------------------------------------------------------------------
 | Authenticated Routes
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth:sanctum')->prefix('customer')->group(function () {
+
+    // Nearby providers
+    Route::get(
+        '/nearby-providers',[NearbyProviderController::class, 'nearbyProviders']
+    );
+
+
+    // Create booking
+    Route::post(
+        '/service-requests',
+        [ServiceRequestController::class, 'store']
+    );
+
+    // Customer bookings
+    Route::get(
+        '/service-requests',
+        [ServiceRequestController::class, 'index']
+    );
+
+    // Booking detail
+    Route::get(
+        '/service-requests/{id}',
+        [ServiceRequestController::class, 'show']
+    );
+
+    // Cancel booking
+    Route::post(
+        '/service-requests/{id}/cancel',
+        [ServiceRequestController::class, 'cancel']
+    );
+
+});
+
+
+
+
+
+Route::middleware('auth:sanctum')->prefix('provider')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | Provider Routes
+    | Provider Service Selection - Registration
     |--------------------------------------------------------------------------
     */
 
-    // Select provider services
     Route::post(
-        '/provider/services',
+        '/select-services',
         [ProviderController::class, 'selectServices']
     );
 
-    // Upload first verification document
+
+    /*
+    |--------------------------------------------------------------------------
+    | Provider My Services
+    |--------------------------------------------------------------------------
+    */
+    
+    // Get available master services
+    Route::get(
+        '/available-services',
+        [ProviderServiceController::class, 'availableServices']
+    );
+
+    // Get provider's own services
+    Route::get(
+        '/services',
+        [ProviderServiceController::class, 'index']
+    );
+
+    // Add provider service
     Route::post(
-        '/provider/documents',
+        '/services',
+        [ProviderServiceController::class, 'store']
+    );
+
+    // Get single provider service
+    Route::get(
+        '/services/{id}',
+        [ProviderServiceController::class, 'show']
+    );
+
+    // Update provider service
+    Route::put(
+        '/services/{id}',
+        [ProviderServiceController::class, 'update']
+    );
+
+    // Delete provider service
+    Route::delete(
+        '/services/{id}',
+        [ProviderServiceController::class, 'destroy']
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Provider Documents
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post(
+        '/documents',
         [ProviderController::class, 'uploadDocuments']
     );
 
-    // Get latest provider document
     Route::get(
-        '/provider/documents',
+        '/documents',
         [ProviderController::class, 'documents']
     );
 
-    // Provider profile
+
+    /*
+    |--------------------------------------------------------------------------
+    | Provider Profile
+    |--------------------------------------------------------------------------
+    */
+
     Route::get(
-        '/provider/profile',
+        '/profile',
         [ProviderController::class, 'profile']
     );
 
-    // Update rejected document
     Route::post(
-        '/provider/documents/update',
+        '/documents/update',
         [ProviderController::class, 'updateDocument']
     );
 
-    // Provider dashboard
+
+    /*
+    |--------------------------------------------------------------------------
+    | Provider Dashboard
+    |--------------------------------------------------------------------------
+    */
+
     Route::get(
-        '/provider/dashboard',
+        '/dashboard',
         [ProviderController::class, 'dashboard']
     );
 
+    /*
+|--------------------------------------------------------------------------
+| Provider Location
+|--------------------------------------------------------------------------
+*/
+
+Route::put(
+    '/location',
+    [ProviderController::class, 'updateLocation']
+);
+/*
+| Provider Online / Offline Status
+|--------------------------------------------------------------------------
+*/
+Route::post('/update-status', [ProviderController::class, 'updateStatus']);
 
     /*
     |--------------------------------------------------------------------------
@@ -103,61 +217,6 @@ Route::middleware('auth:sanctum')->group(function () {
         [AuthController::class, 'me']
     );
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Customer Profile
-    |--------------------------------------------------------------------------
-    */
-
-    Route::get(
-        '/user/profile',
-        [CustomerProfileController::class, 'show']
-    );
-
-    Route::post(
-        '/user/profile/update',
-        [CustomerProfileController::class, 'update']
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Services
-    |--------------------------------------------------------------------------
-    */
-
-    Route::get(
-        '/services',
-        [ServiceController::class, 'index']
-    );
-
-    Route::get(
-        '/services/{id}',
-        [ServiceController::class, 'show']
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Service Requests
-    |--------------------------------------------------------------------------
-    */
-
-    Route::post(
-        '/service-requests',
-        [ServiceRequestController::class, 'store']
-    );
-
-    Route::get(
-        '/service-requests',
-        [ServiceRequestController::class, 'index']
-    );
-
-    Route::get(
-        '/service-requests/{id}',
-        [ServiceRequestController::class, 'show']
-    );
 });
 
 

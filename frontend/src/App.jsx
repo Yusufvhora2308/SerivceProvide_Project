@@ -1,43 +1,70 @@
-// PATH: src/App.js
-
-import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 
 import Login from "./Pages/Login";
 import Register from "./Pages/Register";
 import AdminLogin from "./Pages/AdminLogin";
+
 import ProtectedRoute from "./components/ProtectedRoute";
 import GuestRoute from "./components/GuestRoute";
+
+
+// ==========================================
+// ADMIN
+// ==========================================
+
 import AdminLayout from "./components/Admin/AdminLayout";
 import AdminDashboard from "./Pages/Admin/AdminDashboard";
 import AdminUsers from "./Pages/Admin/AdminUsers";
 import Providers from "./Pages/Admin/Providers";
 
-// import UserDashboard from "./Pages/Users/UserDashboard";
+
+// ==========================================
+// CUSTOMER
+// ==========================================
+
+import CustomerLayout from "./components/Customer/CustomerLayout";
+import CustomerDashboard from "./Pages/Customer/CustomerDashboard";
+import CustomerProfile from "./Pages/Customer/CustomerProfile";
 import Services from "./Pages/Customer/Services";
 import ServiceRequest from "./Pages/Customer/ServiceRequest";
 import MyRequests from "./Pages/Customer/MyRequests";
 import RequestDetails from "./Pages/Customer/RequestDetails";
-import CustomerLayout from "./components/Customer/CustomerLayout";
-import CustomerDashboard from "./Pages/Customer/CustomerDashboard";
-import CustomerProfile from "./Pages/Customer/CustomerProfile";
+import MyBookings from "./Pages/Customer/MyBookings";
+import ServiceDetails from "./Pages/Customer/ServiceDetails";
 
 
+// ==========================================
+// PROVIDER
+// ==========================================
+
+import ProviderLayout from "./components/Provider/ProviderLayout";
 
 import ProviderRegister from "./Pages/Provider/ProviderRegister";
-import { ProviderDashboard } from "./Pages/Provider/ProviderDashboard";
 import ProviderLogin from "./Pages/Provider/ProviderLogin";
+import ProviderDashboard from "./Pages/Provider/ProviderDashboard";
 import ProviderSetup from "./Pages/Provider/ProviderSetup";
 import ProviderVerificationPending from "./Pages/Provider/ProviderVerificationPending";
 import ProviderDocumentEdit from "./Pages/Provider/ProviderDocumentEdit";
+import MyServices from "./Pages/Provider/MyServices";
+import AddService from "./Pages/Provider/AddService";
+import EditService from "./Pages/Provider/EditService";
+
 
 function App() {
   return (
     <BrowserRouter>
+
       <Routes>
-        {/* ✅ Public Routes - Authentication */}
-        {/* GuestRoute: if already logged in, these redirect straight to the
-            correct dashboard instead of showing the login/register form again */}
+
+        {/* =================================================
+            CUSTOMER AUTH
+        ================================================= */}
+
         <Route
           path="/"
           element={
@@ -46,6 +73,7 @@ function App() {
             </GuestRoute>
           }
         />
+
         <Route
           path="/login"
           element={
@@ -54,6 +82,7 @@ function App() {
             </GuestRoute>
           }
         />
+
         <Route
           path="/register"
           element={
@@ -62,6 +91,12 @@ function App() {
             </GuestRoute>
           }
         />
+
+
+        {/* =================================================
+            ADMIN LOGIN
+        ================================================= */}
+
         <Route
           path="/admin/login"
           element={
@@ -71,43 +106,68 @@ function App() {
           }
         />
 
-        {/* ✅ Protected User, Customer Routes */}
+
+        {/* =================================================
+            CUSTOMER ROUTES
+        ================================================= */}
+
         <Route
           element={
-            <ProtectedRoute allowedRoles={["customer", "user"]}>
+            <ProtectedRoute
+              allowedRoles={["customer", "user"]}
+            >
               <CustomerLayout />
             </ProtectedRoute>
           }
         >
-          {/* customer dashboard */}
-          <Route path="/dashboard" element={<CustomerDashboard />} />
 
-          <Route path="/customer/profile" element={<CustomerProfile />}/>
+          <Route
+            path="/dashboard"
+            element={<CustomerDashboard />}
+          />
 
-          {/* all services */}
-          <Route path="/customer/services" element={<Services />}/>
+          <Route
+            path="/customer/profile"
+            element={<CustomerProfile />}
+          />
 
-          {/* service request */}
+          <Route
+            path="/customer/services"
+            element={<Services />}
+          />
+
+          <Route
+  path="/customer/services/:id"
+  element={<ServiceDetails />}
+/>
+
           <Route
             path="/customer/services/:serviceId/request"
             element={<ServiceRequest />}
           />
 
-          {/* all service requests */}
-          <Route path="/customer/requests" element={<MyRequests />} />
+          <Route
+            path="/customer/requests"
+            element={<MyRequests />}
+          />
 
-          {/* request details */}
           <Route
             path="/customer/service-requests/:id"
             element={<RequestDetails />}
           />
+
+            <Route
+    path="/customer/bookings"
+    element={<MyBookings />}
+  />
+
         </Route>
 
-       {/* ========================================= */}
-{/* PROVIDER ROUTES */}
-{/* ========================================= */}
 
-  {/* Provider Register - Wrap with GuestRoute */}
+        {/* =================================================
+            PROVIDER AUTH
+        ================================================= */}
+
         <Route
           path="/provider/register"
           element={
@@ -117,7 +177,6 @@ function App() {
           }
         />
 
-        {/* Provider Login - Wrap with GuestRoute */}
         <Route
           path="/provider/login"
           element={
@@ -127,54 +186,232 @@ function App() {
           }
         />
 
-        {/* Provider Verification - This should be accessible after registration */}
+
+        {/* =================================================
+            PROVIDER VERIFICATION
+        ================================================= */}
+
         <Route
           path="/provider/verification"
-          element={<ProviderVerificationPending />}
+          element={
+            <ProtectedRoute
+              allowedRoles={["provider"]}
+            >
+              <ProviderVerificationPending />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/provider/documents/edit"
-          element={<ProviderDocumentEdit />}
-        />
-
-        {/* Provider Setup - Protected */}
-        <Route
-          path="/provider/setup"
           element={
-            <ProtectedRoute allowedRoles={["provider"]}>
-              <ProviderSetup />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Provider Dashboard - Protected */}
-        <Route
-          path="/provider/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={["provider"]}>
-              <ProviderDashboard />
+            <ProtectedRoute
+              allowedRoles={["provider"]}
+            >
+              <ProviderDocumentEdit />
             </ProtectedRoute>
           }
         />
 
 
-        {/* ✅ Protected Admin Routes */}
-         <Route
+        {/* =================================================
+            PROVIDER PANEL
+        ================================================= */}
+
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRoles={["provider"]}
+            >
+              <ProviderLayout />
+            </ProtectedRoute>
+          }
+        >
+
+          {/* Dashboard */}
+
+          <Route
+            path="/provider/dashboard"
+            element={<ProviderDashboard />}
+          />
+
+          {/* Provider Services */}
+
+          <Route
+            path="/provider/setup"
+            element={<ProviderSetup />}
+          />
+
+          <Route
+            path="/provider/services"
+            element={<MyServices />}
+          />
+
+          <Route
+            path="/provider/services/add"
+            element={<AddService />}
+          />
+
+          <Route
+            path="/provider/services/edit/:id"
+            element={<EditService />}
+          />
+
+          {/* Service Requests */}
+
+          <Route
+            path="/provider/requests"
+            element={
+              <div className="min-h-[calc(100vh-80px)] bg-slate-50 p-6">
+                <div className="mx-auto max-w-7xl">
+                  <h1 className="text-2xl font-bold text-slate-900">
+                    Service Requests
+                  </h1>
+
+                  <p className="mt-2 text-sm text-slate-500">
+                    Manage customer service requests here.
+                  </p>
+                </div>
+              </div>
+            }
+          />
+
+          {/* Bookings */}
+
+          <Route
+            path="/provider/bookings"
+            element={
+              <div className="min-h-[calc(100vh-80px)] bg-slate-50 p-6">
+                <div className="mx-auto max-w-7xl">
+                  <h1 className="text-2xl font-bold text-slate-900">
+                    Bookings
+                  </h1>
+
+                  <p className="mt-2 text-sm text-slate-500">
+                    Manage your bookings here.
+                  </p>
+                </div>
+              </div>
+            }
+          />
+
+          {/* Earnings */}
+
+          <Route
+            path="/provider/earnings"
+            element={
+              <div className="min-h-[calc(100vh-80px)] bg-slate-50 p-6">
+                <div className="mx-auto max-w-7xl">
+                  <h1 className="text-2xl font-bold text-slate-900">
+                    Earnings
+                  </h1>
+
+                  <p className="mt-2 text-sm text-slate-500">
+                    Track your earnings here.
+                  </p>
+                </div>
+              </div>
+            }
+          />
+
+          {/* Profile */}
+
+          <Route
+            path="/provider/profile"
+            element={
+              <div className="min-h-[calc(100vh-80px)] bg-slate-50 p-6">
+                <div className="mx-auto max-w-7xl">
+                  <h1 className="text-2xl font-bold text-slate-900">
+                    My Profile
+                  </h1>
+
+                  <p className="mt-2 text-sm text-slate-500">
+                    Manage your provider profile.
+                  </p>
+                </div>
+              </div>
+            }
+          />
+
+          {/* Settings */}
+
+          <Route
+            path="/provider/settings"
+            element={
+              <div className="min-h-[calc(100vh-80px)] bg-slate-50 p-6">
+                <div className="mx-auto max-w-7xl">
+                  <h1 className="text-2xl font-bold text-slate-900">
+                    Settings
+                  </h1>
+                </div>
+              </div>
+            }
+          />
+
+          {/* Help */}
+
+          <Route
+            path="/provider/help"
+            element={
+              <div className="min-h-[calc(100vh-80px)] bg-slate-50 p-6">
+                <div className="mx-auto max-w-7xl">
+                  <h1 className="text-2xl font-bold text-slate-900">
+                    Help & Support
+                  </h1>
+                </div>
+              </div>
+            }
+          />
+
+        </Route>
+
+
+        {/* =================================================
+            ADMIN ROUTES
+        ================================================= */}
+
+        <Route
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <AdminLayout />
             </ProtectedRoute>
           }
         >
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/users" element={<AdminUsers />} />
-          <Route path="/admin/providers" element={<Providers />} />
+
+          <Route
+            path="/admin/dashboard"
+            element={<AdminDashboard />}
+          />
+
+          <Route
+            path="/admin/users"
+            element={<AdminUsers />}
+          />
+
+          <Route
+            path="/admin/providers"
+            element={<Providers />}
+          />
+
         </Route>
 
-        {/* ✅ Redirect to login for any other route */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+
+        {/* =================================================
+            FALLBACK
+        ================================================= */}
+
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to="/login"
+              replace
+            />
+          }
+        />
+
       </Routes>
+
     </BrowserRouter>
   );
 }

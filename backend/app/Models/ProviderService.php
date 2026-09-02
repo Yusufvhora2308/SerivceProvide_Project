@@ -10,7 +10,18 @@ class ProviderService extends Model
     protected $fillable = [
         'provider_id',
         'service_id',
+        'price',
+        'experience',
+        'service_area',
+        'service_image',
+        'is_active',
     ];
+
+       protected $casts = [
+        'price' => 'decimal:2',
+        'is_active' => 'boolean',
+    ];
+
 
     public function provider(): BelongsTo
     {

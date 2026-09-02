@@ -39,13 +39,21 @@ class Provider extends Model
     }
 
     // Services offered by provider
-    public function services(): BelongsToMany
-    {
-        return $this->belongsToMany(
-            Service::class,
-            'provider_services'
-        )->withTimestamps();
-    }
+public function services(): BelongsToMany
+{
+    return $this->belongsToMany(
+        Service::class,
+        'provider_services'
+    )
+    ->withPivot([
+        'price',
+        'experience',
+        'service_area',
+        'service_image',
+        'is_active',
+    ])
+    ->withTimestamps();
+}
 
     // Verification documents
     public function documents(): HasMany

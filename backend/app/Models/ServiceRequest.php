@@ -11,6 +11,7 @@ class ServiceRequest extends Model
 {
     protected $fillable = [
         'customer_id',
+        'provider_id',
         'service_id',
         'address',
         'latitude',
@@ -27,13 +28,46 @@ class ServiceRequest extends Model
         'longitude' => 'decimal:7',
     ];
 
+    /*
+    |--------------------------------------------------------------------------
+    | Customer
+    |--------------------------------------------------------------------------
+    */
+
     public function customer(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'customer_id');
+        return $this->belongsTo(
+            User::class,
+            'customer_id'
+        );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Provider
+    |--------------------------------------------------------------------------
+    */
+
+    public function provider(): BelongsTo
+    {
+        return $this->belongsTo(
+            User::class,
+            'provider_id'
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Service
+    |--------------------------------------------------------------------------
+    */
 
     public function service(): BelongsTo
     {
-        return $this->belongsTo(Service::class);
+        return $this->belongsTo(
+            Service::class,
+            'service_id'
+        );
     }
 }
+

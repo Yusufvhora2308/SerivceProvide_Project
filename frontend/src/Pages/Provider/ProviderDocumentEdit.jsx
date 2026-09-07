@@ -11,7 +11,7 @@ import {
   AlertTriangle,
   Plus,
 } from "lucide-react";
-import axios from "../../api/axios";
+import api from "../../api/axios";
 import Swal from "sweetalert2";
 
 const ProviderDocumentEdit = () => {
@@ -46,7 +46,7 @@ const ProviderDocumentEdit = () => {
       setError("");
 
       // First, get provider profile with documents
-      const response = await axios.get("/provider/profile");
+      const response = await api.get("/provider/profile");
       console.log("Full API Response:", response.data);
 
       // Extract provider data
@@ -163,7 +163,7 @@ const ProviderDocumentEdit = () => {
       console.log("Document number:", documentNumber);
       console.log("File:", document.name);
 
-      const response = await axios.post("/provider/documents", formData, {
+      const response = await api.post("/provider/documents", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -244,7 +244,7 @@ const ProviderDocumentEdit = () => {
       console.log("Document number:", documentNumber);
       console.log("File:", document.name);
 
-      const response = await axios.post("/provider/documents/update", formData, {
+      const response = await api.post("/provider/documents/update", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },

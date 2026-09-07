@@ -4,8 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Models\User;
-use App\Models\Service;
 
 class ServiceRequest extends Model
 {
@@ -42,6 +40,7 @@ class ServiceRequest extends Model
         );
     }
 
+
     /*
     |--------------------------------------------------------------------------
     | Provider
@@ -51,10 +50,11 @@ class ServiceRequest extends Model
     public function provider(): BelongsTo
     {
         return $this->belongsTo(
-            User::class,
+            Provider::class,
             'provider_id'
         );
     }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -70,4 +70,3 @@ class ServiceRequest extends Model
         );
     }
 }
-

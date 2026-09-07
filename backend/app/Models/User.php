@@ -56,6 +56,8 @@ class User extends Authenticatable
         ];
     }
 
+    
+
     /**
      * Helper methods to check role — useful later in controllers/middleware.
      */

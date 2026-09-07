@@ -81,7 +81,7 @@ const CustomerSidebar = ({ isOpen, onClose, onLogout }) => {
     },
     {
       name: "My Requests",
-      path: "/customer/requests",
+       path:"/customer/my-requests",
       icon: MapPin,
     },
     {

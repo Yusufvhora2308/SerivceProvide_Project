@@ -69,4 +69,12 @@ public function services(): BelongsToMany
             'verified_by'
         );
     }
+
+    public function serviceRequests(): HasMany
+{
+    return $this->hasMany(
+        ServiceRequest::class,
+        'provider_id'
+    );
+}
 }

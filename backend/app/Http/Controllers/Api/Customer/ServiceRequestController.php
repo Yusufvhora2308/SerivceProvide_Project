@@ -29,6 +29,12 @@ class ServiceRequestController extends Controller
                 'exists:services,id',
             ],
 
+            'provider_id' => [
+                'required',
+                'integer',
+                'exists:providers,id',
+            ],
+
             'address' => [
                 'required',
                 'string',
@@ -56,8 +62,8 @@ class ServiceRequestController extends Controller
             'request_type' => [
                 'required',
                 Rule::in([
-                    'instant',
-                    'scheduled',
+                       'now',
+                        'scheduled',
                 ]),
             ],
 
@@ -91,7 +97,7 @@ class ServiceRequestController extends Controller
         */
 
         if (
-            $validated['request_type'] === 'instant'
+            $validated['request_type'] === 'now'
         ) {
             $validated['scheduled_at'] = null;
         }
@@ -122,7 +128,7 @@ class ServiceRequestController extends Controller
         $serviceRequest = ServiceRequest::create([
             'customer_id' => $customer->id,
 
-            'provider_id' => null,
+            'provider_id' => $validated['provider_id'],
 
             'service_id' => $validated['service_id'],
 
@@ -141,7 +147,7 @@ class ServiceRequestController extends Controller
             'scheduled_at' =>
                 $validated['scheduled_at'] ?? null,
 
-            'status' => 'pending',
+           'status' => 'searching',
         ]);
 
         /*
@@ -272,22 +278,15 @@ class ServiceRequestController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        if (
-            in_array(
-                $serviceRequest->status,
-                [
-                    'completed',
-                    'cancelled',
-                    'rejected',
-                ]
-            )
-        ) {
-            return response()->json([
-                'success' => false,
-                'message' =>
-                    'This request cannot be cancelled.',
-            ], 422);
-        }
+   if (
+    $serviceRequest->status === 'service_completed'
+    || $serviceRequest->status === 'cancelled'
+) {
+    return response()->json([
+        'success' => false,
+        'message' => 'This request cannot be cancelled.',
+    ], 422);
+}
 
         /*
         |--------------------------------------------------------------------------

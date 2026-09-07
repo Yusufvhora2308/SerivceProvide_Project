@@ -16,30 +16,38 @@ class ProviderController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function selectServices(Request $request)
-    {
-        $validated = $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'service_ids' => 'required|array|min:1',
-            'service_ids.*' => 'integer|exists:services,id',
-        ]);
+   public function selectServices(Request $request)
+{
+    $validated = $request->validate([
+        'user_id' => 'required|exists:users,id',
+        'service_ids' => 'required|array|min:1',
+        'service_ids.*' => 'integer|exists:services,id',
+    ]);
 
-        $provider = Provider::where(
-            'user_id',
-            $validated['user_id']
-        )->firstOrFail();
+    $provider = Provider::where(
+        'user_id',
+        $validated['user_id']
+    )->firstOrFail();
 
-        $provider->services()->sync(
-            $validated['service_ids']
-        );
+    $syncData = [];
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Services selected successfully.',
-            'services' => $provider->services,
-        ]);
+    foreach ($validated['service_ids'] as $serviceId) {
+        $syncData[$serviceId] = [
+            'price' => 0,
+            'experience' => 0,
+            'service_area' => 'Not specified',
+            'is_active' => true,
+        ];
     }
 
+    $provider->services()->sync($syncData);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Services selected successfully.',
+        'services' => $provider->services,
+    ]);
+}
 
     /*
     |--------------------------------------------------------------------------

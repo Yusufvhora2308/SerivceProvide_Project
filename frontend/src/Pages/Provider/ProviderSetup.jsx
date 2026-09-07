@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "../../api/axios";
+import api from "../../api/axios";
 
 const ProviderSetup = () => {
   const navigate = useNavigate();
@@ -28,7 +28,9 @@ const ProviderSetup = () => {
 
   const fetchServices = async () => {
     try {
-      const response = await axios.get("/services");
+       const response = await api.get(
+      "/provider/available-services"
+    );
 
       /*
        * Adjust this only if your existing API
@@ -62,32 +64,43 @@ const ProviderSetup = () => {
   // STEP 1 → STEP 2
   // ==========================================
 
-  const handleServicesContinue = async () => {
-    if (selectedServices.length === 0) {
-      setError("Please select at least one service.");
-      return;
+ const handleServicesContinue = async () => {
+  if (selectedServices.length === 0) {
+    setError("Please select at least one service.");
+    return;
+  }
+
+  setError("");
+  setLoading(true);
+
+  try {
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    await api.post("/provider/select-services", {
+      user_id: user.id,
+      service_ids: selectedServices,
+    });
+
+    setStep(2);
+  } catch (error) {
+    console.error("Service selection error:", error);
+
+    const errors = error.response?.data?.errors;
+
+    if (errors) {
+      const firstError = Object.values(errors)[0]?.[0];
+
+      setError(firstError || "Unable to save services.");
+    } else {
+      setError(
+        error.response?.data?.message ||
+          "Unable to save services."
+      );
     }
-
-    setError("");
-    setLoading(true);
-
-    try {
-      const user = JSON.parse(localStorage.getItem("user"));
-
-      await axios.post("/provider/services", {
-        user_id: user.id,
-        service_ids: selectedServices,
-      });
-
-      setStep(2);
-    } catch (error) {
-      console.error(error);
-
-      setError(error.response?.data?.message || "Unable to save services.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ==========================================
   // DOCUMENT UPLOAD
@@ -117,7 +130,7 @@ const ProviderSetup = () => {
 
       formData.append("file", document);
 
-      await axios.post("/provider/documents", formData, {
+      await api.post("/provider/documents", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },

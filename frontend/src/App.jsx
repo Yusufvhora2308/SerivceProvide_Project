@@ -11,6 +11,7 @@ import AdminLogin from "./Pages/AdminLogin";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import GuestRoute from "./components/GuestRoute";
+import ProviderProtectedRoute from "./components/ProviderProtectedRoute";
 
 
 // ==========================================
@@ -53,7 +54,8 @@ import ProviderDocumentEdit from "./Pages/Provider/ProviderDocumentEdit";
 import MyServices from "./Pages/Provider/MyServices";
 import AddService from "./Pages/Provider/AddService";
 import EditService from "./Pages/Provider/EditService";
-
+import ProviderRequests from "./Pages/Provider/ProviderRequests";
+import ProviderRequestDetails from "./Pages/Provider/ProviderRequestDetails";
 
 function App() {
   return (
@@ -146,10 +148,10 @@ function App() {
             element={<ServiceRequest />}
           />
 
-          <Route
-            path="/customer/requests"
-            element={<MyRequests />}
-          />
+        <Route
+    path="/customer/my-requests"
+    element={<MyRequests />}
+/>
 
           <Route
             path="/customer/service-requests/:id"
@@ -191,27 +193,33 @@ function App() {
             PROVIDER VERIFICATION
         ================================================= */}
 
-        <Route
-          path="/provider/verification"
-          element={
-            <ProtectedRoute
-              allowedRoles={["provider"]}
-            >
-              <ProviderVerificationPending />
-            </ProtectedRoute>
-          }
-        />
+{/* provider verification */}
+<Route
+  path="/provider/verification"
+  element={
+    <ProviderProtectedRoute allowUnverified={true}>
+      <ProviderVerificationPending />
+    </ProviderProtectedRoute>
+  }
+/>
 
-        <Route
-          path="/provider/documents/edit"
-          element={
-            <ProtectedRoute
-              allowedRoles={["provider"]}
-            >
-              <ProviderDocumentEdit />
-            </ProtectedRoute>
-          }
-        />
+<Route
+  path="/provider/documents/edit"
+  element={
+    <ProviderProtectedRoute allowUnverified={true}>
+      <ProviderDocumentEdit />
+    </ProviderProtectedRoute>
+  }
+/>
+
+<Route
+  path="/provider/setup"
+  element={
+    <ProviderProtectedRoute allowUnverified={true}>
+      <ProviderSetup />
+    </ProviderProtectedRoute>
+  }
+/>
 
 
         {/* =================================================
@@ -230,17 +238,21 @@ function App() {
 
           {/* Dashboard */}
 
-          <Route
-            path="/provider/dashboard"
-            element={<ProviderDashboard />}
-          />
+        <Route
+  path="/provider/dashboard"
+  element={
+    <ProviderProtectedRoute>
+      <ProviderDashboard />
+    </ProviderProtectedRoute>
+  }
+/>
 
           {/* Provider Services */}
 
-          <Route
+          {/* <Route
             path="/provider/setup"
             element={<ProviderSetup />}
-          />
+          /> */}
 
           <Route
             path="/provider/services"
@@ -257,24 +269,17 @@ function App() {
             element={<EditService />}
           />
 
-          {/* Service Requests */}
+       {/* Service Requests */}
 
-          <Route
-            path="/provider/requests"
-            element={
-              <div className="min-h-[calc(100vh-80px)] bg-slate-50 p-6">
-                <div className="mx-auto max-w-7xl">
-                  <h1 className="text-2xl font-bold text-slate-900">
-                    Service Requests
-                  </h1>
+  <Route
+    path="/provider/requests"
+    element={<ProviderRequests />}
+  />
 
-                  <p className="mt-2 text-sm text-slate-500">
-                    Manage customer service requests here.
-                  </p>
-                </div>
-              </div>
-            }
-          />
+  <Route
+    path="/provider/service-requests/:id"
+    element={<ProviderRequestDetails />}
+  />
 
           {/* Bookings */}
 

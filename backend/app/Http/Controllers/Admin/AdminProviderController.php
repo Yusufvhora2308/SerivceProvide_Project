@@ -8,11 +8,43 @@ use App\Models\Provider;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 
 class AdminProviderController extends Controller
 {
     /**
      * Get all providers with optional filtering
+     */
+     public function show($id)
+    {
+        try {
+            $provider = Provider::with(['user', 'services', 'documents'])->findOrFail($id);
+            
+            // Add full document URLs
+            if ($provider->documents) {
+                foreach ($provider->documents as $document) {
+                    if ($document->document_file) {
+                        // Remove 'public/' if present
+                        $path = str_replace('public/', '', $document->document_file);
+                        $document->document_url = asset('storage/' . $path);
+                    }
+                }
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => $provider,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Provider not found',
+            ], 404);
+        }
+    }
+
+    /**
+     * Get all providers with document URLs
      */
     public function index(Request $request)
     {
@@ -37,6 +69,18 @@ class AdminProviderController extends Controller
             $perPage = $request->input('per_page', 10);
             $providers = $query->paginate($perPage);
 
+            // Add document URLs
+            foreach ($providers as $provider) {
+                if ($provider->documents) {
+                    foreach ($provider->documents as $document) {
+                        if ($document->document_file) {
+                            $path = str_replace('public/', '', $document->document_file);
+                            $document->document_url = asset('storage/' . $path);
+                        }
+                    }
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'data' => $providers,
@@ -48,27 +92,24 @@ class AdminProviderController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }   
+
+    public function viewDocument(Request $request)
+{
+    $file = $request->query('file');
+
+    if (!$file) {
+        return response()->json(['message' => 'No file specified'], 400);
     }
 
-    /**
-     * Get single provider details
-     */
-    public function show($id)
-    {
-        try {
-            $provider = Provider::with(['user', 'services', 'documents'])->findOrFail($id);
-            
-            return response()->json([
-                'success' => true,
-                'data' => $provider,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Provider not found',
-            ], 404);
-        }
+    $path = str_replace('public/', '', $file);
+
+    if (!Storage::disk('public')->exists($path)) {
+        return response()->json(['message' => 'File not found'], 404);
     }
+
+    return Storage::disk('public')->response($path);
+}
 
     /**
      * Approve provider

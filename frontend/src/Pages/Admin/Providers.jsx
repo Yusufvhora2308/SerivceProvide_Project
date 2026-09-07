@@ -20,6 +20,8 @@ import {
   ArrowUp,
   ArrowDown,
   Settings,
+  Download,
+  ExternalLink,
 } from "lucide-react";
 import api from "../../api/axios";
 import Swal from "sweetalert2";
@@ -35,6 +37,7 @@ const Providers = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [showIdColumn, setShowIdColumn] = useState(true);
   const [showColumnMenu, setShowColumnMenu] = useState(false);
+  const [documentLoading, setDocumentLoading] = useState({});
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -51,6 +54,76 @@ const Providers = () => {
   useEffect(() => {
     fetchProviders();
   }, [status, search, currentPage, sortConfig]);
+
+  // Helper function to get document URL
+  const getDocumentUrl = (documentFile) => {
+    if (!documentFile) return null;
+    
+    // If it already starts with http, return as is
+    if (documentFile.startsWith('http')) {
+      return documentFile;
+    }
+    
+    // Remove 'public/' if present
+    let path = documentFile.replace(/^public\//, '');
+    
+    // If the path already includes 'storage/', use it directly
+    if (path.startsWith('storage/')) {
+      return `http://127.0.0.1:8000/${path}`;
+    }
+    
+    // Otherwise, prepend storage/
+    return `http://127.0.0.1:8000/storage/${path}`;
+  };
+
+  // Handle document view with file existence check
+ // In Providers.jsx, update handleViewDocument
+
+const handleViewDocument = async (documentFile, documentType) => {
+  if (!documentFile) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'No File',
+      text: 'This document has no file attached.',
+      confirmButtonColor: '#3b82f6',
+    });
+    return;
+  }
+
+  const docId = documentFile.replace(/[^a-zA-Z0-9]/g, '_');
+  setDocumentLoading(prev => ({ ...prev, [docId]: true }));
+
+  try {
+    const url = `${api.defaults.baseURL}/documents/view?file=${encodeURIComponent(documentFile)}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Access denied or file not found');
+    }
+
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    window.open(blobUrl, '_blank');
+    // thodi der baad revoke kar sakte ho memory free karne ke liye
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60000);
+  } catch (error) {
+    console.error('Error viewing document:', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Unable to open document',
+      text: 'Could not load the file. Please check server logs.',
+      confirmButtonColor: '#3b82f6',
+    });
+  } finally {
+    setDocumentLoading(prev => ({ ...prev, [docId]: false }));
+  }
+};
 
   const fetchProviders = async () => {
     try {
@@ -723,7 +796,7 @@ const Providers = () => {
                 </div>
               </div>
 
-              {/* Documents */}
+              {/* Documents - Updated with improved viewing */}
               <div>
                 <div className="mb-2 flex items-center gap-2">
                   <FileText size={16} className="text-blue-600" />
@@ -733,45 +806,59 @@ const Providers = () => {
                 </div>
                 <div className="space-y-2">
                   {selectedProvider.documents?.length > 0 ? (
-                    selectedProvider.documents.map((document) => (
-                      <div
-                        key={document.id}
-                        className="flex items-center justify-between rounded-xl border border-slate-200 p-3 dark:border-gray-700"
-                      >
-                        <div>
-                          <p className="text-sm font-semibold text-slate-800 dark:text-white">
-                            {document.document_type?.replace('_', ' ') || 'Document'}
-                          </p>
-                          <p className="text-xs text-slate-400 dark:text-gray-500">
-                            {document.document_number || "No document number"}
-                          </p>
-                          {document.document_file && (
-                            <a 
-                              href={`http://127.0.0.1:8000/storage/${document.document_file}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-blue-600 hover:underline dark:text-blue-400"
-                            >
-                              View File
-                            </a>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <span className={`text-xs font-semibold capitalize px-2 py-1 rounded-full ${
-                            document.status === 'approved' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                            document.status === 'rejected' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
-                            'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
-                          }`}>
-                            {document.status || 'pending'}
-                          </span>
-                          {document.rejection_reason && (
-                            <p className="mt-1 text-xs text-red-500 dark:text-red-400">
-                              {document.rejection_reason}
+                    selectedProvider.documents.map((document) => {
+                      const docId = document.document_file?.replace(/[^a-zA-Z0-9]/g, '_') || document.id;
+                      const isLoading = documentLoading[docId];
+                      
+                      return (
+                        <div
+                          key={document.id}
+                          className="flex items-center justify-between rounded-xl border border-slate-200 p-3 dark:border-gray-700"
+                        >
+                          <div>
+                            <p className="text-sm font-semibold text-slate-800 dark:text-white">
+                              {document.document_type?.replace(/_/g, ' ') || 'Document'}
                             </p>
-                          )}
+                            <p className="text-xs text-slate-400 dark:text-gray-500">
+                              {document.document_number || "No document number"}
+                            </p>
+                            {document.document_file && (
+                              <button
+                                onClick={() => handleViewDocument(document.document_file, document.document_type)}
+                                disabled={isLoading}
+                                className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline dark:text-blue-400 disabled:opacity-50"
+                              >
+                                {isLoading ? (
+                                  <>
+                                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+                                    Loading...
+                                  </>
+                                ) : (
+                                  <>
+                                    <ExternalLink size={12} />
+                                    View File
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <span className={`text-xs font-semibold capitalize px-2 py-1 rounded-full ${
+                              document.status === 'approved' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                              document.status === 'rejected' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
+                              'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
+                            }`}>
+                              {document.status || 'pending'}
+                            </span>
+                            {document.rejection_reason && (
+                              <p className="mt-1 text-xs text-red-500 dark:text-red-400">
+                                {document.rejection_reason}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <div className="rounded-xl border border-slate-200 p-4 text-center dark:border-gray-700">
                       <FileText size={24} className="mx-auto text-slate-300 dark:text-gray-600" />

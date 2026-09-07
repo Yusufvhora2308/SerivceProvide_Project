@@ -10,6 +10,8 @@ use App\Http\Controllers\CustomerProfileController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Provider\ProviderServiceController;
+use App\Http\Controllers\Provider\ProviderServiceRequestController;
+
 use App\Http\Controllers\Api\Customer\NearbyProviderController;
 
 /*
@@ -84,6 +86,46 @@ Route::middleware('auth:sanctum')->prefix('customer')->group(function () {
 
 
 Route::middleware('auth:sanctum')->prefix('provider')->group(function () {
+
+/*
+|--------------------------------------------------------------------------
+| Provider Service Requests
+|--------------------------------------------------------------------------
+*/
+
+            // Get all requests
+            Route::get(
+                '/service-requests',
+                [ProviderServiceRequestController::class, 'index']
+            );
+
+            // Get single request
+            Route::get(
+                '/service-requests/{id}',
+                [ProviderServiceRequestController::class, 'show']
+            );
+
+            // Accept request
+            Route::post(
+                '/service-requests/{id}/accept',
+                [ProviderServiceRequestController::class, 'accept']
+            );
+
+           
+/*
+|--------------------------------------------------------------------------
+| Update Service Request Status
+|--------------------------------------------------------------------------
+*/
+
+            Route::put(
+                '/service-requests/{id}/status',
+                [ProviderServiceRequestController::class, 'updateStatus']
+            );
+
+
+
+
 
     /*
     |--------------------------------------------------------------------------
@@ -217,6 +259,7 @@ Route::post('/update-status', [ProviderController::class, 'updateStatus']);
         [AuthController::class, 'me']
     );
 
+
 });
 
 
@@ -290,4 +333,9 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
         '/admin/providers/{id}/reject',
         [AdminProviderController::class, 'reject']
     );
+
+    Route::middleware(['auth:sanctum', 'admin'])->get(
+    '/documents/view',
+    [AdminProviderController::class, 'viewDocument']
+);
 });

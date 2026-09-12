@@ -62,8 +62,8 @@ class ServiceRequestController extends Controller
             'request_type' => [
                 'required',
                 Rule::in([
-                       'now',
-                        'scheduled',
+                    'now',
+                    'scheduled',
                 ]),
             ],
 
@@ -96,9 +96,7 @@ class ServiceRequestController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        if (
-            $validated['request_type'] === 'now'
-        ) {
+        if ($validated['request_type'] === 'now') {
             $validated['scheduled_at'] = null;
         }
 
@@ -108,9 +106,7 @@ class ServiceRequestController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $service = Service::find(
-            $validated['service_id']
-        );
+        $service = Service::find($validated['service_id']);
 
         if (!$service) {
             return response()->json([
@@ -147,7 +143,7 @@ class ServiceRequestController extends Controller
             'scheduled_at' =>
                 $validated['scheduled_at'] ?? null,
 
-           'status' => 'searching',
+            'status' => 'searching',
         ]);
 
         /*
@@ -159,6 +155,7 @@ class ServiceRequestController extends Controller
         $serviceRequest->load([
             'service',
             'customer',
+            'provider',
         ]);
 
         /*
@@ -274,19 +271,20 @@ class ServiceRequestController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Check if already completed
+        | Check if already completed/cancelled
         |--------------------------------------------------------------------------
         */
 
-   if (
-    $serviceRequest->status === 'service_completed'
-    || $serviceRequest->status === 'cancelled'
-) {
-    return response()->json([
-        'success' => false,
-        'message' => 'This request cannot be cancelled.',
-    ], 422);
-}
+        if (
+            $serviceRequest->status === 'service_completed'
+            || $serviceRequest->status === 'cancelled'
+        ) {
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'This request cannot be cancelled.',
+            ], 422);
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -308,4 +306,227 @@ class ServiceRequestController extends Controller
                 $serviceRequest,
         ]);
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | PROVIDER LIVE LOCATION
+    |--------------------------------------------------------------------------
+    */
+
+    public function providerLocation($id)
+    {
+        $customer = Auth::user();
+
+        $serviceRequest = ServiceRequest::with('provider')
+            ->where('id', $id)
+            ->where('customer_id', $customer->id)
+            ->first();
+
+        if (!$serviceRequest) {
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'Service request not found.',
+            ], 404);
+        }
+
+        if (!$serviceRequest->provider) {
+            return response()->json([
+                'success' => true,
+
+                'provider_location' => null,
+
+                'message' =>
+                    'Provider is not assigned yet.',
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+
+            'provider_location' => [
+                'provider_id' =>
+                    $serviceRequest->provider->id,
+
+                'latitude' =>
+                    $serviceRequest->provider->latitude,
+
+                'longitude' =>
+                    $serviceRequest->provider->longitude,
+
+                'is_online' =>
+                    $serviceRequest->provider->is_online,
+
+                'availability_status' =>
+                    $serviceRequest->provider->availability_status,
+            ],
+
+            'request_status' =>
+                $serviceRequest->status,
+        ]);
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | APPROVE FINAL PRICE
+    |--------------------------------------------------------------------------
+    */
+
+    public function approvePrice($id)
+    {
+        $customer = Auth::user();
+
+        /*
+        |----------------------------------------------------------------------
+        | Find customer's request
+        |----------------------------------------------------------------------
+        */
+
+        $serviceRequest = ServiceRequest::where(
+            'id',
+            $id
+        )
+            ->where(
+                'customer_id',
+                $customer->id
+            )
+            ->first();
+
+        if (!$serviceRequest) {
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'Service request not found.',
+            ], 404);
+        }
+
+        /*
+        |----------------------------------------------------------------------
+        | Check price status
+        |----------------------------------------------------------------------
+        */
+
+        if ($serviceRequest->price_status !== 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'There is no pending price for approval.',
+            ], 422);
+        }
+
+        /*
+        |----------------------------------------------------------------------
+        | Approve price
+        |----------------------------------------------------------------------
+        */
+
+        $serviceRequest->update([
+            'price_status' => 'approved',
+        ]);
+
+        /*
+        |----------------------------------------------------------------------
+        | Load relationships
+        |----------------------------------------------------------------------
+        */
+
+        $serviceRequest->load([
+            'service',
+            'provider',
+        ]);
+
+        return response()->json([
+            'success' => true,
+
+            'message' =>
+                'Final price approved successfully.',
+
+            'service_request' =>
+                $serviceRequest,
+        ]);
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | REJECT FINAL PRICE
+    |--------------------------------------------------------------------------
+    */
+
+    public function rejectPrice($id)
+    {
+        $customer = Auth::user();
+
+        /*
+        |----------------------------------------------------------------------
+        | Find customer's request
+        |----------------------------------------------------------------------
+        */
+
+        $serviceRequest = ServiceRequest::where(
+            'id',
+            $id
+        )
+            ->where(
+                'customer_id',
+                $customer->id
+            )
+            ->first();
+
+        if (!$serviceRequest) {
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'Service request not found.',
+            ], 404);
+        }
+
+        /*
+        |----------------------------------------------------------------------
+        | Check price status
+        |----------------------------------------------------------------------
+        */
+
+        if ($serviceRequest->price_status !== 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'There is no pending price to reject.',
+            ], 422);
+        }
+
+        /*
+        |----------------------------------------------------------------------
+        | Reject price
+        |----------------------------------------------------------------------
+        */
+
+        $serviceRequest->update([
+            'price_status' => 'rejected',
+        ]);
+
+        /*
+        |----------------------------------------------------------------------
+        | Load relationships
+        |----------------------------------------------------------------------
+        */
+
+        $serviceRequest->load([
+            'service',
+            'provider',
+        ]);
+
+        return response()->json([
+            'success' => true,
+
+            'message' =>
+                'Final price rejected.',
+
+            'service_request' =>
+                $serviceRequest,
+        ]);
+    }
 }
+

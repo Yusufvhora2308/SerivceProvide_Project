@@ -10,8 +10,11 @@ import {
     XCircle,
     CheckCircle,
     Loader2,
+    IndianRupee,
+    AlertCircle,
 } from "lucide-react";
 import api from "../../api/axios";
+import Swal from "sweetalert2";
 
 const MyRequests = () => {
     const navigate = useNavigate();
@@ -21,6 +24,9 @@ const MyRequests = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState("");
     const [cancellingId, setCancellingId] = useState(null);
+
+    // Price action loading
+    const [priceActionId, setPriceActionId] = useState(null);
 
     // ==========================================
     // FETCH CUSTOMER REQUESTS
@@ -96,7 +102,6 @@ const MyRequests = () => {
                 `/customer/service-requests/${requestId}/cancel`
             );
 
-            // Refresh list after cancellation
             await fetchRequests(true);
 
         } catch (error) {
@@ -114,6 +119,117 @@ const MyRequests = () => {
             setCancellingId(null);
         }
     };
+
+    // ==========================================
+    // APPROVE PRICE
+    // ==========================================
+
+const handleApprovePrice = async (requestId) => {
+    const result = await Swal.fire({
+        title: "Approve Price?",
+        text: "Are you sure you want to approve this final price?",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Yes, Approve",
+        cancelButtonText: "Cancel",
+        reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) {
+        return;
+    }
+
+    try {
+        setPriceActionId(requestId);
+
+        await api.post(
+            `/customer/service-requests/${requestId}/approve-price`
+        );
+
+        await fetchRequests(true);
+
+        await Swal.fire({
+            title: "Price Approved!",
+            text: "The final price has been approved successfully.",
+            icon: "success",
+            confirmButtonText: "OK",
+        });
+
+    } catch (error) {
+        console.error(
+            "Approve Price Error:",
+            error
+        );
+
+        Swal.fire({
+            title: "Error",
+            text:
+                error.response?.data?.message ||
+                "Unable to approve the price.",
+            icon: "error",
+            confirmButtonText: "OK",
+        });
+
+    } finally {
+        setPriceActionId(null);
+    }
+};
+
+    // ==========================================
+    // REJECT PRICE
+    // ==========================================
+
+   const handleRejectPrice = async (requestId) => {
+    const result = await Swal.fire({
+        title: "Reject Price?",
+        text: "Are you sure you want to reject this final price?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Yes, Reject",
+        cancelButtonText: "Cancel",
+        confirmButtonColor: "#dc2626",
+        reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) {
+        return;
+    }
+
+    try {
+        setPriceActionId(requestId);
+
+        await api.post(
+            `/customer/service-requests/${requestId}/reject-price`
+        );
+
+        await fetchRequests(true);
+
+        await Swal.fire({
+            title: "Price Rejected",
+            text: "The provider can now update the price and resend it.",
+            icon: "info",
+            confirmButtonText: "OK",
+        });
+
+    } catch (error) {
+        console.error(
+            "Reject Price Error:",
+            error
+        );
+
+        Swal.fire({
+            title: "Error",
+            text:
+                error.response?.data?.message ||
+                "Unable to reject the price.",
+            icon: "error",
+            confirmButtonText: "OK",
+        });
+
+    } finally {
+        setPriceActionId(null);
+    }
+};
 
     // ==========================================
     // STATUS STYLE
@@ -199,47 +315,104 @@ const MyRequests = () => {
     };
 
     // ==========================================
-    // FORMAT DATE
+// DATE & TIME FORMAT
+// ==========================================
+
+// Format date: 12 Sep 2026
+const formatDate = (date) => {
+    if (!date) return "N/A";
+
+    return new Date(date).toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+    });
+};
+
+// Format time: 02:30 PM
+const formatTime = (date) => {
+    if (!date) return "N/A";
+
+    return new Date(date).toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+    });
+};
+
+// Format date + time: 12 Sep 2026, 02:30 PM
+const formatDateTime = (date) => {
+    if (!date) return "N/A";
+
+    return new Date(date).toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+    });
+};
+
+    // ==========================================
+    // PRICE FORMAT
     // ==========================================
 
-    const formatDate = (date) => {
-        if (!date) {
-            return "Not scheduled";
+    const formatPrice = (price) => {
+        if (
+            price === null ||
+            price === undefined ||
+            price === ""
+        ) {
+            return "0.00";
         }
 
-        try {
-            return new Date(date).toLocaleDateString(
-                "en-IN",
-                {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                }
-            );
-        } catch {
-            return date;
+        return Number(price).toFixed(2);
+    };
+
+    // ==========================================
+    // PRICE STATUS STYLE
+    // ==========================================
+
+    const getPriceStatusStyle = (status) => {
+        switch (status) {
+            case "locked":
+                return "bg-blue-100 text-blue-700";
+
+            case "pending":
+                return "bg-yellow-100 text-yellow-700";
+
+            case "approved":
+                return "bg-green-100 text-green-700";
+
+            case "rejected":
+                return "bg-red-100 text-red-700";
+
+            default:
+                return "bg-gray-100 text-gray-600";
         }
     };
 
     // ==========================================
-    // FORMAT TIME
+    // PRICE STATUS TEXT
     // ==========================================
 
-    const formatTime = (date) => {
-        if (!date) {
-            return "";
-        }
+    const getPriceStatusText = (status) => {
+        switch (status) {
+            case "locked":
+                return "Price Locked";
 
-        try {
-            return new Date(date).toLocaleTimeString(
-                "en-IN",
-                {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                }
-            );
-        } catch {
-            return "";
+            case "pending":
+                return "Waiting for Your Approval";
+
+            case "approved":
+                return "Price Approved";
+
+            case "rejected":
+                return "Price Rejected";
+
+            default:
+                return "Price Not Available";
         }
     };
 
@@ -467,6 +640,244 @@ const MyRequests = () => {
                                         </div>
 
                                     </div>
+
+                                </div>
+                            )}
+
+                            {/* ==================================
+                                PRICE DETAILS
+                            ================================== */}
+
+                            {request.provider_service_price !== null &&
+                                request.provider_service_price !== undefined && (
+
+                                <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+
+                                    {/* Price Header */}
+
+                                    <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+
+                                        <div className="flex items-center gap-3">
+
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50">
+                                                <IndianRupee className="h-5 w-5 text-green-600" />
+                                            </div>
+
+                                            <div>
+                                                <h3 className="font-bold text-gray-900">
+                                                    Price Details
+                                                </h3>
+
+                                                <p className="text-xs text-gray-500">
+                                                    Service charges
+                                                </p>
+                                            </div>
+
+                                        </div>
+
+                                        {/* Price Status */}
+
+                                        <span
+                                            className={`w-fit rounded-full px-3 py-1.5 text-xs font-semibold ${getPriceStatusStyle(
+                                                request.price_status
+                                            )}`}
+                                        >
+                                            {getPriceStatusText(
+                                                request.price_status
+                                            )}
+                                        </span>
+
+                                    </div>
+
+                                    {/* Price Rows */}
+
+                                    <div className="mt-5 space-y-3">
+
+                                        {/* Basic Price */}
+
+                                        <div className="flex items-center justify-between">
+
+                                            <span className="text-sm text-gray-600">
+                                                Basic Visit Price
+                                            </span>
+
+                                            <span className="font-semibold text-gray-900">
+                                                ₹
+                                                {formatPrice(
+                                                    request.provider_service_price
+                                                )}
+                                            </span>
+
+                                        </div>
+
+                                        {/* Extra Charges */}
+
+                                        <div className="flex items-center justify-between">
+
+                                            <span className="text-sm text-gray-600">
+                                                Extra Charges
+                                            </span>
+
+                                            <span className="font-semibold text-gray-900">
+                                                ₹
+                                                {formatPrice(
+                                                    request.extra_charges
+                                                )}
+                                            </span>
+
+                                        </div>
+
+                                        {/* Extra Charge Reason */}
+
+                                        {request.extra_charges_reason && (
+                                            <div className="rounded-xl bg-yellow-50 p-3">
+
+                                                <div className="flex gap-2">
+
+                                                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-600" />
+
+                                                    <div>
+
+                                                        <p className="text-xs font-semibold text-yellow-700">
+                                                            Extra Charge Reason
+                                                        </p>
+
+                                                        <p className="mt-1 text-sm text-yellow-800">
+                                                            {request.extra_charges_reason}
+                                                        </p>
+
+                                                    </div>
+
+                                                </div>
+
+                                            </div>
+                                        )}
+
+                                        {/* Divider */}
+
+                                        <div className="border-t border-dashed border-gray-200 pt-3">
+
+                                            <div className="flex items-center justify-between">
+
+                                                <span className="font-semibold text-gray-800">
+                                                    Final Price
+                                                </span>
+
+                                                <span className="text-xl font-bold text-green-600">
+                                                    ₹
+                                                    {formatPrice(
+                                                        request.final_price
+                                                    )}
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                    {/* Customer Approval */}
+
+                                    {request.price_status === "pending" && (
+
+                                        <div className="mt-5 border-t pt-5">
+
+                                            <p className="mb-4 text-sm text-gray-600">
+                                                The provider has updated the
+                                                final price. Please review and
+                                                approve or reject it.
+                                            </p>
+
+                                            <div className="flex flex-col gap-3 sm:flex-row">
+
+                                                <button
+                                                    onClick={() =>
+                                                        handleApprovePrice(
+                                                            request.id
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        priceActionId ===
+                                                        request.id
+                                                    }
+                                                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-green-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                                >
+
+                                                    {priceActionId ===
+                                                    request.id ? (
+                                                        <>
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                            Processing...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <CheckCircle className="h-4 w-4" />
+                                                            Approve Price
+                                                        </>
+                                                    )}
+
+                                                </button>
+
+                                                <button
+                                                    onClick={() =>
+                                                        handleRejectPrice(
+                                                            request.id
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        priceActionId ===
+                                                        request.id
+                                                    }
+                                                    className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                                >
+
+                                                    {priceActionId ===
+                                                    request.id ? (
+                                                        <>
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                            Processing...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <XCircle className="h-4 w-4" />
+                                                            Reject Price
+                                                        </>
+                                                    )}
+
+                                                </button>
+
+                                            </div>
+
+                                        </div>
+
+                                    )}
+
+                                    {/* Approved Message */}
+
+                                    {request.price_status === "approved" && (
+                                        <div className="mt-5 flex items-center gap-2 rounded-xl bg-green-50 p-3 text-sm font-medium text-green-700">
+                                            <CheckCircle className="h-5 w-5" />
+                                            Final price approved successfully.
+                                        </div>
+                                    )}
+
+                                    {/* Rejected Message */}
+
+                                    {request.price_status === "rejected" && (
+                                        <div className="mt-5 flex items-center gap-2 rounded-xl bg-red-50 p-3 text-sm font-medium text-red-700">
+                                            <XCircle className="h-5 w-5" />
+                                            This price was rejected.
+                                        </div>
+                                    )}
+
+                                    {/* Locked Message */}
+
+                                    {request.price_status === "locked" && (
+                                        <div className="mt-5 flex items-center gap-2 rounded-xl bg-blue-50 p-3 text-sm font-medium text-blue-700">
+                                            <CheckCircle className="h-5 w-5" />
+                                            Basic service price is locked.
+                                        </div>
+                                    )}
 
                                 </div>
                             )}

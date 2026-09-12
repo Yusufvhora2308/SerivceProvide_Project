@@ -5,6 +5,8 @@ import {
   Navigate,
 } from "react-router-dom";
 
+
+import Landing from "./Pages/Landing";
 import Login from "./Pages/Login";
 import Register from "./Pages/Register";
 import AdminLogin from "./Pages/AdminLogin";
@@ -63,18 +65,15 @@ function App() {
 
       <Routes>
 
+
+        {/* ============================================ */}
+        {/* LANDING PAGE - Default Route */}
+        {/* ============================================ */}
+        <Route path="/" element={<Landing />} />
+
         {/* =================================================
             CUSTOMER AUTH
         ================================================= */}
-
-        <Route
-          path="/"
-          element={
-            <GuestRoute>
-              <Login />
-            </GuestRoute>
-          }
-        />
 
         <Route
           path="/login"
@@ -84,6 +83,7 @@ function App() {
             </GuestRoute>
           }
         />
+
 
         <Route
           path="/register"

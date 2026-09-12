@@ -24,6 +24,12 @@ const MyServices = () => {
   const [deleteLoading, setDeleteLoading] = useState(null);
   const [error, setError] = useState("");
 
+  /*
+  |--------------------------------------------------------------------------
+  | Fetch Provider Services
+  |--------------------------------------------------------------------------
+  */
+
   const fetchServices = async () => {
     try {
       setLoading(true);
@@ -47,6 +53,12 @@ const MyServices = () => {
   useEffect(() => {
     fetchServices();
   }, []);
+
+  /*
+  |--------------------------------------------------------------------------
+  | Delete Service
+  |--------------------------------------------------------------------------
+  */
 
   const handleDelete = async (id) => {
     const confirmed = window.confirm(
@@ -75,6 +87,12 @@ const MyServices = () => {
     }
   };
 
+  /*
+  |--------------------------------------------------------------------------
+  | Image URL
+  |--------------------------------------------------------------------------
+  */
+
   const getImageUrl = (image) => {
     if (!image) return null;
 
@@ -84,6 +102,26 @@ const MyServices = () => {
 
     return `${import.meta.env.VITE_API_BASE_URL}/storage/${image}`;
   };
+
+  /*
+  |--------------------------------------------------------------------------
+  | Format Price
+  |--------------------------------------------------------------------------
+  */
+
+  const formatPrice = (price) => {
+    if (price === null || price === undefined || price === "") {
+      return "0.00";
+    }
+
+    return Number(price).toFixed(2);
+  };
+
+  /*
+  |--------------------------------------------------------------------------
+  | Loading State
+  |--------------------------------------------------------------------------
+  */
 
   if (loading) {
     return (
@@ -96,12 +134,18 @@ const MyServices = () => {
     );
   }
 
+  /*
+  |--------------------------------------------------------------------------
+  | UI
+  |--------------------------------------------------------------------------
+  */
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
 
-      {/* Header */}
       <div className="max-w-7xl mx-auto">
 
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
 
           <div>
@@ -179,23 +223,24 @@ const MyServices = () => {
                   {/* Image */}
                   <div className="h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
 
-                 {item.service_image ? (
-  <img
-    src={getImageUrl(item.service_image)}
-    alt={service?.name || "Service"}
-    className="w-full h-full object-cover"
-    onError={(e) => {
-      console.error("Image failed:", e.currentTarget.src);
-    }}
-  />
-) : (
-  <div className="flex flex-col items-center text-gray-400">
-    <Wrench size={42} />
-    <span className="text-sm mt-2">
-      No Image
-    </span>
-  </div>
-)}
+                    {item.service_image ? (
+                      <img
+                        src={getImageUrl(item.service_image)}
+                        alt={service?.name || "Service"}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center text-gray-400">
+                        <Wrench size={42} />
+
+                        <span className="text-sm mt-2">
+                          No Image
+                        </span>
+                      </div>
+                    )}
 
                   </div>
 
@@ -241,21 +286,29 @@ const MyServices = () => {
                     {/* Details */}
                     <div className="mt-5 space-y-3">
 
+                      {/* Basic Price */}
                       <div className="flex items-center gap-3 text-gray-700">
-                        <IndianRupee size={18} className="text-green-600" />
+                        <IndianRupee
+                          size={18}
+                          className="text-green-600"
+                        />
 
-                        <span className="font-semibold">
-                          ₹{item.price}
+                        <span className="text-sm text-gray-500">
+                          Basic Visit Price:
                         </span>
 
-                        <span className="text-sm text-gray-400">
-                          / visit
+                        <span className="font-semibold text-gray-900">
+                          ₹{formatPrice(item.price)}
                         </span>
                       </div>
 
 
+                      {/* Experience */}
                       <div className="flex items-center gap-3 text-gray-600">
-                        <BriefcaseBusiness size={18} className="text-blue-600" />
+                        <BriefcaseBusiness
+                          size={18}
+                          className="text-blue-600"
+                        />
 
                         <span>
                           {item.experience || 0} years experience
@@ -263,11 +316,15 @@ const MyServices = () => {
                       </div>
 
 
+                      {/* Service Area */}
                       <div className="flex items-center gap-3 text-gray-600">
-                        <MapPin size={18} className="text-red-500" />
+                        <MapPin
+                          size={18}
+                          className="text-red-500"
+                        />
 
                         <span>
-                          {item.service_area}
+                          {item.service_area || "Service area not specified"}
                         </span>
                       </div>
 
@@ -324,3 +381,4 @@ const MyServices = () => {
 };
 
 export default MyServices;
+

@@ -300,56 +300,167 @@ const ProviderDashboard = () => {
   };
 
   // =========================================================
-  // LIVE PROVIDER LOCATION TRACKING
+  // LIVE PROVIDER GPS TRACKING
   // =========================================================
   //
   // Provider online:
-  // 1. Get location immediately
-  // 2. Update every 10 seconds
+  // 1. Browser continuously watches GPS position
+  // 2. First position is sent immediately
+  // 3. New position is sent to Laravel when provider moves
+  // 4. API calls are limited to once every 10 seconds
   //
   // Provider offline:
-  // Stop tracking
+  // Stop GPS watcher
   //
   // =========================================================
 
   useEffect(() => {
     if (!provider?.is_online) {
+      console.log(
+        "Provider is OFFLINE - GPS tracking is stopped."
+      );
+
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      const message =
+        "Geolocation is not supported by this browser.";
+
+      console.error(message);
+      setLocationError(message);
+
       return;
     }
 
     console.log(
-      "Provider is ONLINE - starting live location tracking."
+      "Provider is ONLINE - starting live GPS tracking."
     );
 
-    // -------------------------------------------------------
-    // Update location immediately
-    // -------------------------------------------------------
+    let watchId = null;
+    let lastSentAt = 0;
+    let isSending = false;
 
-    trackProviderLocation(false);
+    const sendLocation = async (position) => {
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
 
-    // -------------------------------------------------------
-    // Update location every 10 seconds
-    // -------------------------------------------------------
+      const now = Date.now();
 
-    const locationInterval =
-      setInterval(() => {
+      // Do not send too many API requests.
+      // Maximum: one request every 10 seconds.
+      if (
+        lastSentAt !== 0 &&
+        now - lastSentAt < 10000
+      ) {
+        setProviderLocation({
+          latitude,
+          longitude,
+        });
+
+        return;
+      }
+
+      if (isSending) {
+        return;
+      }
+
+      isSending = true;
+
+      const location = {
+        latitude,
+        longitude,
+      };
+
+      console.log(
+        "📍 Live Provider GPS:",
+        location
+      );
+
+      // Update UI immediately
+      setProviderLocation(location);
+      setLocationError("");
+
+      try {
+        const response =
+          await updateProviderLocation(
+            latitude,
+            longitude
+          );
+
+        lastSentAt = Date.now();
+
         console.log(
-          "Updating provider live location..."
+          "✅ Live location sent to Laravel:",
+          response
+        );
+      } catch (error) {
+        console.error(
+          "❌ Live location update failed:",
+          error.response?.data || error.message
         );
 
-        trackProviderLocation(false);
-      }, 10000);
+        setLocationError(
+          error.response?.data?.message ||
+            "Unable to update your live location."
+        );
+      } finally {
+        isSending = false;
+      }
+    };
 
     // -------------------------------------------------------
-    // Cleanup interval
+    // START CONTINUOUS GPS WATCH
+    // -------------------------------------------------------
+
+    watchId =
+      navigator.geolocation.watchPosition(
+        sendLocation,
+
+        (error) => {
+          console.error(
+            "❌ Live GPS Error:",
+            error
+          );
+
+          let message =
+            "Unable to get your live location.";
+
+          if (error.code === 1) {
+            message =
+              "Location permission denied. Please allow location access.";
+          } else if (error.code === 2) {
+            message =
+              "Location information is unavailable.";
+          } else if (error.code === 3) {
+            message =
+              "Location request timed out.";
+          }
+
+          setLocationError(message);
+        },
+
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 5000,
+        }
+      );
+
+    // -------------------------------------------------------
+    // CLEANUP GPS WATCH
     // -------------------------------------------------------
 
     return () => {
-      console.log(
-        "Stopping provider live location tracking."
-      );
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(
+          watchId
+        );
 
-      clearInterval(locationInterval);
+        console.log(
+          "🛑 Provider live GPS tracking stopped."
+        );
+      }
     };
   }, [provider?.is_online]);
 

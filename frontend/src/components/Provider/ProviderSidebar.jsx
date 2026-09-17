@@ -35,7 +35,11 @@ const ProviderSidebar = ({
 
         setUser(storedUser);
       } catch (error) {
-        console.error("Provider user load error:", error);
+        console.error(
+          "Provider user load error:",
+          error
+        );
+
         setUser({});
       }
     };
@@ -65,19 +69,16 @@ const ProviderSidebar = ({
       path: "/provider/dashboard",
       icon: Home,
     },
-
     {
       name: "My Services",
       path: "/provider/services",
       icon: Wrench,
     },
-
     {
       name: "Service Requests",
       path: "/provider/requests",
       icon: ClipboardList,
     },
-
     {
       name: "My Bookings",
       path: "/provider/bookings",
@@ -95,13 +96,11 @@ const ProviderSidebar = ({
       path: "/provider/verification",
       icon: ShieldCheck,
     },
-
     {
       name: "My Profile",
       path: "/provider/profile",
       icon: User,
     },
-
     {
       name: "Settings",
       path: "/provider/settings",
@@ -145,7 +144,6 @@ const ProviderSidebar = ({
           {({ isActive }) => (
             <>
               <div className="flex items-center gap-3">
-
                 <Icon
                   size={19}
                   strokeWidth={2}
@@ -159,7 +157,6 @@ const ProviderSidebar = ({
                 <span className="tracking-tight">
                   {item.name}
                 </span>
-
               </div>
 
               <ChevronRight
@@ -215,51 +212,37 @@ const ProviderSidebar = ({
             : "-translate-x-full"
         }`}
       >
+      {/* ==========================================
+    HEADER / LOGO
+========================================== */}
 
-        {/* ==========================================
-            HEADER
-        ========================================== */}
+<div className="flex h-20 items-center justify-center border-b border-gray-100 px-5 sm:h-24 sm:px-6">
 
-        <div className="flex h-16 items-center justify-between border-b border-gray-100 px-5 sm:h-20 sm:px-6">
+  {/* CENTER LOGO */}
+  <div className="flex w-full items-center justify-center">
+    <img
+      src="/user_header_logo.png"
+      alt="Quick Service Portal"
+      className="h-14 w-auto max-w-[220px] object-contain"
+    />
+  </div>
 
-          <div className="hidden items-center gap-3 lg:flex">
+  {/* MOBILE CLOSE */}
+  <button
+    type="button"
+    onClick={onClose}
+    className="absolute right-4 flex h-9 w-9 items-center justify-center rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-700 lg:hidden"
+  >
+    <X size={19} />
+  </button>
 
-            <img
-              src="/user_header_logo.png"
-              alt="QuickFix"
-              className="h-10 w-auto object-contain"
-            />
-
-            <div>
-              <p className="text-base font-bold text-gray-900">
-                Provider
-              </p>
-
-              <p className="text-[11px] text-gray-400">
-                Service Portal
-              </p>
-            </div>
-
-          </div>
-
-          {/* Mobile Close */}
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="ml-auto flex h-9 w-9 items-center justify-center rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-700 lg:hidden"
-          >
-            <X size={19} />
-          </button>
-
-        </div>
+</div>
 
         {/* ==========================================
             PROVIDER CARD
         ========================================== */}
 
         <div className="border-b border-gray-100 px-5 py-4">
-
           <div className="flex items-center gap-3 rounded-2xl bg-gray-50/80 p-2.5 ring-1 ring-gray-100">
 
             <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-50 to-blue-100 text-sm font-semibold text-blue-600 ring-1 ring-blue-600/10">
@@ -277,17 +260,15 @@ const ProviderSidebar = ({
             </div>
 
             <div className="min-w-0 flex-1">
-
               <h2 className="truncate text-xs font-semibold text-gray-900 sm:text-sm">
                 {user?.name || "Provider"}
               </h2>
 
               <p className="truncate text-[11px] font-medium text-gray-400">
-                {user?.email || "provider@quickfix.com"}
+                {user?.email ||
+                  "provider@quickfix.com"}
               </p>
-
             </div>
-
           </div>
         </div>
 
@@ -297,6 +278,7 @@ const ProviderSidebar = ({
 
         <nav className="flex-1 overflow-y-auto px-4 py-5">
 
+          {/* MAIN MENU */}
           <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
             Main Menu
           </p>
@@ -305,6 +287,7 @@ const ProviderSidebar = ({
             {renderMenu(mainMenu)}
           </div>
 
+          {/* ACCOUNT */}
           <p className="mb-2 mt-6 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
             Account
           </p>
@@ -313,6 +296,7 @@ const ProviderSidebar = ({
             {renderMenu(accountMenu)}
           </div>
 
+          {/* SUPPORT */}
           <p className="mb-2 mt-6 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
             Support
           </p>
@@ -328,26 +312,21 @@ const ProviderSidebar = ({
         ========================================== */}
 
         <div className="border-t border-gray-100 p-4">
-
           <button
             type="button"
             onClick={onLogout}
             className="group flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-sm font-medium text-red-600 transition-all hover:bg-red-50 active:scale-[0.99]"
           >
             <div className="flex items-center gap-3">
-
               <LogOut
                 size={18}
                 className="transition-transform duration-200 group-hover:-translate-x-0.5"
               />
 
               <span>Sign Out</span>
-
             </div>
           </button>
-
         </div>
-
       </aside>
     </>
   );

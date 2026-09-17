@@ -18,6 +18,12 @@ import { useNavigate } from "react-router-dom";
 const ProviderNavbar = ({
   onMenuClick,
   onLogout,
+
+  // Online / Offline props
+  isOnline = false,
+  onToggleStatus,
+  statusLoading = false,
+  locationLoading = false,
 }) => {
   const navigate = useNavigate();
 
@@ -40,13 +46,19 @@ const ProviderNavbar = ({
 
         setUser(storedUser);
       } catch (error) {
-        console.error(error);
+        console.error(
+          "Unable to load provider user:",
+          error
+        );
+
         setUser({});
       }
     };
 
+    // Initial load
     loadUser();
 
+    // Listen for profile updates
     window.addEventListener(
       "userUpdated",
       loadUser
@@ -61,7 +73,7 @@ const ProviderNavbar = ({
   }, []);
 
   // ==========================================
-  // CLOSE DROPDOWN
+  // CLOSE DROPDOWN WHEN CLICK OUTSIDE
   // ==========================================
 
   useEffect(() => {
@@ -88,7 +100,7 @@ const ProviderNavbar = ({
   }, []);
 
   // ==========================================
-  // INITIAL
+  // GET USER INITIAL
   // ==========================================
 
   const getInitial = () => {
@@ -101,12 +113,23 @@ const ProviderNavbar = ({
     return "P";
   };
 
+  // ==========================================
+  // PROFILE IMAGE
+  // ==========================================
+
+  const profileImage =
+    user?.profile_image ||
+    user?.profile_photo ||
+    null;
+
   return (
     <header className="sticky top-0 z-30 h-16 w-full border-b border-gray-200/80 bg-white/95 backdrop-blur-md sm:h-20">
 
       <div className="relative mx-auto flex h-full items-center justify-between px-3 sm:px-6 lg:px-8">
 
-        {/* Mobile menu */}
+        {/* ======================================
+            MOBILE MENU
+        ====================================== */}
 
         <button
           type="button"
@@ -116,7 +139,9 @@ const ProviderNavbar = ({
           <Menu className="h-5 w-5" />
         </button>
 
-        {/* Mobile Brand */}
+        {/* ======================================
+            MOBILE BRAND
+        ====================================== */}
 
         <div className="pointer-events-none absolute left-1/2 flex -translate-x-1/2 items-center gap-2 lg:hidden">
 
@@ -133,11 +158,15 @@ const ProviderNavbar = ({
 
         </div>
 
-        {/* Right */}
+        {/* ======================================
+            RIGHT SECTION
+        ====================================== */}
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
 
-          {/* Notification */}
+          {/* ====================================
+              NOTIFICATION
+          ==================================== */}
 
           <button
             type="button"
@@ -150,7 +179,9 @@ const ProviderNavbar = ({
 
           <div className="hidden h-6 w-px bg-gray-200 sm:block" />
 
-          {/* Profile */}
+          {/* ====================================
+              PROFILE
+          ==================================== */}
 
           <div
             className="relative"
@@ -167,19 +198,34 @@ const ProviderNavbar = ({
               className="flex items-center gap-2 rounded-xl p-1 hover:bg-gray-100 sm:p-1.5"
             >
 
+              {/* =================================
+                  PROFILE IMAGE
+              ================================= */}
+
               <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-50 to-blue-100 text-xs font-semibold text-blue-600 ring-1 ring-blue-600/10 sm:h-9 sm:w-9 lg:h-10 lg:w-10">
 
-                {user?.profile_photo ? (
+                {profileImage ? (
                   <img
-                    src={user.profile_photo}
-                    alt={user?.name || "Provider"}
+                    src={profileImage}
+                    alt={
+                      user?.name ||
+                      "Provider"
+                    }
                     className="h-full w-full object-cover"
+                    onError={(event) => {
+                      event.currentTarget.style.display =
+                        "none";
+                    }}
                   />
                 ) : (
                   getInitial()
                 )}
 
               </div>
+
+              {/* =================================
+                  USER NAME
+              ================================= */}
 
               <div className="hidden text-left md:block">
 
@@ -193,6 +239,10 @@ const ProviderNavbar = ({
 
               </div>
 
+              {/* =================================
+                  DROPDOWN ICON
+              ================================= */}
+
               <ChevronDown
                 className={`hidden h-4 w-4 text-gray-400 transition-transform sm:block ${
                   isDropdownOpen
@@ -203,48 +253,95 @@ const ProviderNavbar = ({
 
             </button>
 
-            {/* Dropdown */}
+            {/* ====================================
+                DROPDOWN
+            ==================================== */}
 
             {isDropdownOpen && (
               <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-gray-100 bg-white p-1.5 shadow-xl">
 
+                {/* Mobile User Info */}
+
                 <div className="border-b border-gray-100 px-3 py-3 md:hidden">
 
-                  <p className="text-xs font-semibold text-gray-900">
-                    {user?.name || "Provider"}
-                  </p>
+                  <div className="mb-2 flex items-center gap-2">
 
-                  <p className="truncate text-[11px] text-gray-400">
-                    {user?.email || ""}
-                  </p>
+                    <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-blue-50 text-xs font-semibold text-blue-600">
+
+                      {profileImage ? (
+                        <img
+                          src={profileImage}
+                          alt={
+                            user?.name ||
+                            "Provider"
+                          }
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        getInitial()
+                      )}
+
+                    </div>
+
+                    <div className="min-w-0">
+
+                      <p className="truncate text-xs font-semibold text-gray-900">
+                        {user?.name ||
+                          "Provider"}
+                      </p>
+
+                      <p className="truncate text-[11px] text-gray-400">
+                        {user?.email || ""}
+                      </p>
+
+                    </div>
+
+                  </div>
 
                 </div>
 
+                {/* My Profile */}
+
                 <button
+                  type="button"
                   onClick={() => {
                     setIsDropdownOpen(false);
-                    navigate("/provider/profile");
+
+                    navigate(
+                      "/provider/profile"
+                    );
                   }}
                   className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
                 >
                   <User className="h-4 w-4 text-gray-400" />
+
                   My Profile
                 </button>
 
+                {/* Settings */}
+
                 <button
+                  type="button"
                   onClick={() => {
                     setIsDropdownOpen(false);
-                    navigate("/provider/settings");
+
+                    navigate(
+                      "/provider/settings"
+                    );
                   }}
                   className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
                 >
                   <Settings className="h-4 w-4 text-gray-400" />
+
                   Settings
                 </button>
 
                 <div className="my-1 h-px bg-gray-100" />
 
+                {/* Logout */}
+
                 <button
+                  type="button"
                   onClick={() => {
                     setIsDropdownOpen(false);
 
@@ -255,6 +352,7 @@ const ProviderNavbar = ({
                   className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-medium text-red-600 hover:bg-red-50"
                 >
                   <LogOut className="h-4 w-4" />
+
                   Sign Out
                 </button>
 

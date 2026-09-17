@@ -58,6 +58,7 @@ import AddService from "./Pages/Provider/AddService";
 import EditService from "./Pages/Provider/EditService";
 import ProviderRequests from "./Pages/Provider/ProviderRequests";
 import ProviderRequestDetails from "./Pages/Provider/ProviderRequestDetails";
+import ProviderProfile from "./Pages/Provider/ProviderProfile";
 
 function App() {
   return (
@@ -280,6 +281,9 @@ function App() {
     path="/provider/service-requests/:id"
     element={<ProviderRequestDetails />}
   />
+
+    <Route path="/provider/profile" element={<ProviderProfile />} />
+
 
           {/* Bookings */}
 

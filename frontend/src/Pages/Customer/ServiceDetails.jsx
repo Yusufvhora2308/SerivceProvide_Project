@@ -1,5 +1,3 @@
-// PATH: src/Pages/Customer/ServiceDetails.jsx
-
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -13,49 +11,74 @@ import {
   Hammer,
   Sparkles,
   Refrigerator,
-  Users,
   MapPin,
-  Star,
   IndianRupee,
   Loader2,
   AlertCircle,
   CheckCircle,
   Clock,
-  BriefcaseBusiness,
-  Wifi,
 } from "lucide-react";
 
 import api from "../../api/axios";
 
 const ServiceDetails = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
 
-  // ==========================================================
+  /*
+  |--------------------------------------------------------------------------
+  | URL PARAMETER
+  |--------------------------------------------------------------------------
+  |
+  | Supports both:
+  |
+  | /customer/services/:id
+  | /customer/services/:serviceId
+  |
+  */
+
+  const params = useParams();
+
+  const serviceId = params.id || params.serviceId;
+
+  // ------------------------------------------------------------------------
   // SERVICE
-  // ==========================================================
+  // ------------------------------------------------------------------------
 
   const [service, setService] = useState(null);
 
-  // ==========================================================
-  // LOADING / ERROR
-  // ==========================================================
+  // ------------------------------------------------------------------------
+  // PAGE STATE
+  // ------------------------------------------------------------------------
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // ==========================================================
-  // ICON MAPPING
-  // ==========================================================
+  // ------------------------------------------------------------------------
+  // SERVICE ICONS
+  // ------------------------------------------------------------------------
 
   const iconMap = {
     electrician: Zap,
+    electrical: Zap,
+
     "fan repair": Fan,
+
     plumber: Droplets,
+    plumbing: Droplets,
+
+    ac: Wind,
     "ac repair": Wind,
+
     carpenter: Hammer,
+    carpentry: Hammer,
+
     "home cleaning": Sparkles,
+    cleaning: Sparkles,
+
+    appliance: Refrigerator,
     "appliance repair": Refrigerator,
+
+    repair: Wrench,
     "general repair": Wrench,
   };
 
@@ -64,15 +87,23 @@ const ServiceDetails = () => {
       return Wrench;
     }
 
-    return iconMap[name.toLowerCase()] || Wrench;
+    return (
+      iconMap[name.toLowerCase()] ||
+      Wrench
+    );
   };
 
-  // ==========================================================
-  // ICON STYLE
-  // ==========================================================
+  // ------------------------------------------------------------------------
+  // ICON STYLES
+  // ------------------------------------------------------------------------
 
   const iconStyles = {
     electrician: {
+      bg: "bg-yellow-50",
+      color: "text-yellow-600",
+    },
+
+    electrical: {
       bg: "bg-yellow-50",
       color: "text-yellow-600",
     },
@@ -87,6 +118,16 @@ const ServiceDetails = () => {
       color: "text-cyan-600",
     },
 
+    plumbing: {
+      bg: "bg-cyan-50",
+      color: "text-cyan-600",
+    },
+
+    ac: {
+      bg: "bg-indigo-50",
+      color: "text-indigo-600",
+    },
+
     "ac repair": {
       bg: "bg-indigo-50",
       color: "text-indigo-600",
@@ -97,14 +138,34 @@ const ServiceDetails = () => {
       color: "text-orange-600",
     },
 
+    carpentry: {
+      bg: "bg-orange-50",
+      color: "text-orange-600",
+    },
+
     "home cleaning": {
       bg: "bg-purple-50",
       color: "text-purple-600",
     },
 
+    cleaning: {
+      bg: "bg-purple-50",
+      color: "text-purple-600",
+    },
+
+    appliance: {
+      bg: "bg-green-50",
+      color: "text-green-600",
+    },
+
     "appliance repair": {
       bg: "bg-green-50",
       color: "text-green-600",
+    },
+
+    repair: {
+      bg: "bg-rose-50",
+      color: "text-rose-600",
     },
 
     "general repair": {
@@ -124,78 +185,119 @@ const ServiceDetails = () => {
     );
   };
 
-  // ==========================================================
-  // GET SINGLE SERVICE
-  // ==========================================================
+  // ------------------------------------------------------------------------
+  // FETCH SERVICE
+  // ------------------------------------------------------------------------
 
   const fetchService = async () => {
+    if (!serviceId) {
+      setError("Service ID is missing.");
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError("");
 
-      console.log("Fetching Service ID:", id);
+      console.log(
+        "Fetching Service ID:",
+        serviceId
+      );
 
-      const response = await api.get(`/services/${id}`);
+      const response = await api.get(
+        `/services/${serviceId}`
+      );
 
       console.log(
         "Service Details API Response:",
         response.data
       );
 
-      if (response.data.success) {
-        setService(response.data.service);
-      } else {
+      /*
+       * Supports:
+       *
+       * {
+       *   success: true,
+       *   service: {...}
+       * }
+       *
+       * OR
+       *
+       * {
+       *   data: {...}
+       * }
+       */
+
+      const serviceData =
+        response.data?.service ||
+        response.data?.data;
+
+      if (!serviceData) {
         setService(null);
 
         setError(
-          response.data.message ||
-            "Unable to load service details."
+          response.data?.message ||
+            "Service not found."
         );
+
+        return;
       }
+
+      setService(serviceData);
+
     } catch (err) {
       console.error(
         "Service Details API Error:",
-        err
+        err.response?.data || err.message
       );
+
+      setService(null);
 
       setError(
         err.response?.data?.message ||
           "Unable to load service details. Please try again."
       );
+
     } finally {
       setLoading(false);
     }
   };
 
-  // ==========================================================
-  // FETCH ON PAGE LOAD
-  // ==========================================================
+  // ------------------------------------------------------------------------
+  // LOAD SERVICE
+  // ------------------------------------------------------------------------
 
   useEffect(() => {
-    if (id) {
-      fetchService();
-    }
-  }, [id]);
+    fetchService();
+  }, [serviceId]);
 
-  // ==========================================================
+  // ------------------------------------------------------------------------
   // REQUEST SERVICE
-  // ==========================================================
+  // ------------------------------------------------------------------------
 
   const handleRequestService = () => {
+    if (!serviceId) {
+      return;
+    }
+
     navigate(
-      `/customer/services/${id}/request`
+      `/customer/services/${serviceId}/request`
     );
   };
 
-  // ==========================================================
+  // ------------------------------------------------------------------------
   // LOADING
-  // ==========================================================
+  // ------------------------------------------------------------------------
 
   if (loading) {
     return (
-      <div className="min-h-full bg-gray-50/60">
+      <div className="min-h-screen bg-gray-50/60">
+
         <div className="flex min-h-[500px] items-center justify-center">
+
           <div className="text-center">
+
             <Loader2
               size={40}
               className="mx-auto animate-spin text-blue-600"
@@ -204,19 +306,23 @@ const ServiceDetails = () => {
             <p className="mt-4 text-sm font-medium text-gray-500">
               Loading service details...
             </p>
+
           </div>
+
         </div>
+
       </div>
     );
   }
 
-  // ==========================================================
+  // ------------------------------------------------------------------------
   // ERROR
-  // ==========================================================
+  // ------------------------------------------------------------------------
 
   if (error || !service) {
     return (
-      <div className="min-h-full bg-gray-50/60">
+      <div className="min-h-screen bg-gray-50/60">
+
         <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
 
           <button
@@ -234,7 +340,9 @@ const ServiceDetails = () => {
           <div className="rounded-3xl border border-red-200 bg-white px-6 py-16 text-center shadow-sm">
 
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+
               <AlertCircle size={30} />
+
             </div>
 
             <h2 className="mt-5 text-xl font-bold text-gray-900">
@@ -269,35 +377,45 @@ const ServiceDetails = () => {
             </div>
 
           </div>
+
         </main>
+
       </div>
     );
   }
 
-  // ==========================================================
-  // SERVICE DATA
-  // ==========================================================
+  // ------------------------------------------------------------------------
+  // SERVICE INFORMATION
+  // ------------------------------------------------------------------------
 
-  const Icon = getServiceIcon(service.name);
+  const Icon = getServiceIcon(
+    service.name
+  );
 
-  const style = getIconStyle(service.name);
+  const style = getIconStyle(
+    service.name
+  );
 
-  const providers = service.providers || [];
+  const basePrice =
+    service.base_price !== null &&
+    service.base_price !== undefined
+      ? Number(service.base_price)
+      : null;
 
-  // ==========================================================
+  // ------------------------------------------------------------------------
   // PAGE
-  // ==========================================================
+  // ------------------------------------------------------------------------
 
   return (
-    <div className="min-h-full bg-gray-50/60">
+    <div className="min-h-screen bg-gray-50/60">
 
-      {/* =====================================================
+      {/* ================================================================
           HEADER
-      ===================================================== */}
+      ================================================================ */}
 
       <div className="border-b border-gray-200/70 bg-white">
 
-        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
 
           <button
             type="button"
@@ -315,177 +433,188 @@ const ServiceDetails = () => {
 
       </div>
 
-      {/* =====================================================
+      {/* ================================================================
           MAIN
-      ===================================================== */}
+      ================================================================ */}
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
 
-        {/* ===================================================
-            SERVICE HERO
-        =================================================== */}
+        {/* ================================================================
+            SERVICE CARD
+        ================================================================ */}
 
-        <section className="overflow-hidden rounded-3xl border border-gray-200/80 bg-white shadow-sm">
+        <section className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
 
           <div className="p-6 sm:p-8 lg:p-10">
 
-            <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+            {/* TOP */}
 
-              {/* LEFT */}
+            <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
 
-              <div className="flex-1">
+              {/* SERVICE INFO */}
 
-                <div className="flex items-start gap-4">
+              <div className="flex gap-4">
 
-                  {/* ICON */}
+                {/* ICON */}
 
-                  <div
-                    className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl ${style.bg}`}
-                  >
-                    <Icon
-                      size={32}
-                      strokeWidth={2}
-                      className={style.color}
-                    />
-                  </div>
-
-                  {/* NAME */}
-
-                  <div className="min-w-0">
-
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-
-                      <span className="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-600">
-                        {service.category ||
-                          "Service"}
-                      </span>
-
-                      {service.is_active && (
-                        <span className="flex items-center gap-1 rounded-full bg-green-50 px-3 py-1 text-[11px] font-semibold text-green-600">
-                          <CheckCircle size={12} />
-                          Active
-                        </span>
-                      )}
-
-                    </div>
-
-                    <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl lg:text-4xl">
-                      {service.name}
-                    </h1>
-
-                  </div>
-
+                <div
+                  className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl ${style.bg}`}
+                >
+                  <Icon
+                    size={32}
+                    strokeWidth={2}
+                    className={style.color}
+                  />
                 </div>
 
-                {/* DESCRIPTION */}
+                {/* NAME */}
 
-                <p className="mt-6 max-w-3xl text-sm leading-7 text-gray-500 sm:text-base">
-                  {service.description ||
-                    "Professional service available near you. Book a trusted service provider for your home."}
-                </p>
+                <div>
 
-                {/* STATS */}
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
 
-                <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <span className="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-600">
+                      {service.category ||
+                        "Service"}
+                    </span>
 
-                  {/* PRICE */}
+                    {service.is_active && (
+                      <span className="flex items-center gap-1 rounded-full bg-green-50 px-3 py-1 text-[11px] font-semibold text-green-600">
 
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                        <CheckCircle size={12} />
 
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <IndianRupee size={16} />
+                        Active
 
-                      <span className="text-xs font-medium">
-                        Starting Price
                       </span>
-                    </div>
-
-                    <p className="mt-2 text-lg font-bold text-gray-900">
-                      ₹
-                      {service.base_price
-                        ? Number(
-                            service.base_price
-                          ).toLocaleString(
-                            "en-IN"
-                          )
-                        : "N/A"}
-                    </p>
+                    )}
 
                   </div>
 
-                  {/* PROVIDERS */}
-
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <Users size={16} />
-
-                      <span className="text-xs font-medium">
-                        Providers
-                      </span>
-                    </div>
-
-                    <p className="mt-2 text-lg font-bold text-gray-900">
-                      {service.providers_count ||
-                        0}
-                    </p>
-
-                  </div>
-
-                  {/* LOCATION */}
-
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <MapPin size={16} />
-
-                      <span className="text-xs font-medium">
-                        Availability
-                      </span>
-                    </div>
-
-                    <p className="mt-2 text-lg font-bold text-gray-900">
-                      Nearby
-                    </p>
-
-                  </div>
+                  <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl lg:text-4xl">
+                    {service.name}
+                  </h1>
 
                 </div>
 
               </div>
 
-              {/* RIGHT CTA */}
+              {/* PRICE */}
 
-              <div className="w-full lg:max-w-xs">
+              <div className="rounded-2xl bg-blue-50 px-5 py-4 md:min-w-[180px]">
 
-                <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
+                <div className="flex items-center gap-1.5 text-blue-600">
 
-                  <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
-                    Need this service?
-                  </p>
+                  <IndianRupee size={16} />
 
-                  <h3 className="mt-2 text-lg font-bold text-gray-900">
-                    Find a professional near you
-                  </h3>
-
-                  <p className="mt-2 text-sm leading-6 text-gray-500">
-                    Select a provider and send your service request.
-                  </p>
-
-                  <button
-                    type="button"
-                    onClick={handleRequestService}
-                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 active:scale-[0.98]"
-                  >
-                    Request Service
-
-                    <ArrowLeft
-                      size={17}
-                      className="rotate-180"
-                    />
-                  </button>
+                  <span className="text-xs font-semibold">
+                    Starting Price
+                  </span>
 
                 </div>
+
+                <p className="mt-1 text-2xl font-bold text-gray-900">
+
+                  {basePrice !== null
+                    ? `₹${basePrice.toLocaleString(
+                        "en-IN"
+                      )}`
+                    : "N/A"}
+
+                </p>
+
+              </div>
+
+            </div>
+
+            {/* DESCRIPTION */}
+
+            <div className="mt-8">
+
+              <h2 className="text-lg font-bold text-gray-900">
+                About This Service
+              </h2>
+
+              <p className="mt-3 max-w-4xl text-sm leading-7 text-gray-500 sm:text-base">
+
+                {service.description ||
+                  "Professional service for your home. Submit a service request and provide your location and problem details."}
+
+              </p>
+
+            </div>
+
+            {/* SERVICE INFORMATION */}
+
+            <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+
+              {/* CATEGORY */}
+
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+
+                <div className="flex items-center gap-2 text-gray-400">
+
+                  <Wrench size={17} />
+
+                  <span className="text-xs font-medium">
+                    Category
+                  </span>
+
+                </div>
+
+                <p className="mt-2 text-base font-bold text-gray-900">
+
+                  {service.category ||
+                    "General Service"}
+
+                </p>
+
+              </div>
+
+              {/* PRICE */}
+
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+
+                <div className="flex items-center gap-2 text-gray-400">
+
+                  <IndianRupee size={17} />
+
+                  <span className="text-xs font-medium">
+                    Base Cost
+                  </span>
+
+                </div>
+
+                <p className="mt-2 text-base font-bold text-gray-900">
+
+                  {basePrice !== null
+                    ? `₹${basePrice.toLocaleString(
+                        "en-IN"
+                      )}`
+                    : "Not specified"}
+
+                </p>
+
+              </div>
+
+              {/* AVAILABILITY */}
+
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+
+                <div className="flex items-center gap-2 text-gray-400">
+
+                  <Clock size={17} />
+
+                  <span className="text-xs font-medium">
+                    Availability
+                  </span>
+
+                </div>
+
+                <p className="mt-2 text-base font-bold text-gray-900">
+                  {service.is_active
+                    ? "Available"
+                    : "Currently Unavailable"}
+                </p>
 
               </div>
 
@@ -495,310 +624,57 @@ const ServiceDetails = () => {
 
         </section>
 
-        {/* ===================================================
-            PROVIDERS + MAP
-        =================================================== */}
+        {/* ================================================================
+            REQUEST SERVICE SECTION
+        ================================================================ */}
 
-        <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <section className="mt-6 overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-sm">
 
-          {/* =================================================
-              AVAILABLE PROVIDERS
-          ================================================= */}
+          <div className="bg-blue-50/60 p-6 sm:p-8">
 
-          <div className="rounded-3xl border border-gray-200/80 bg-white p-6 shadow-sm sm:p-8 lg:col-span-2">
+            <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
 
-            <div className="flex items-center justify-between">
+              {/* TEXT */}
 
               <div>
-                <h2 className="text-lg font-bold text-gray-900">
-                  Available Providers
-                </h2>
 
-                <p className="mt-1 text-sm text-gray-500">
-                  Professionals offering this service.
-                </p>
-              </div>
+                <div className="flex items-center gap-2 text-blue-600">
 
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                <Users size={19} />
-              </div>
+                  <MapPin size={19} />
 
-            </div>
+                  <span className="text-xs font-bold uppercase tracking-wide">
+                    Ready to request?
+                  </span>
 
-            {/* PROVIDER LIST */}
-
-            {providers.length > 0 ? (
-
-              <div className="mt-6 space-y-4">
-
-                {providers.map((provider) => {
-
-                  const providerName =
-                    provider.user?.name ||
-                    "Service Provider";
-
-                  const rating =
-                    Number(
-                      provider.rating || 0
-                    ).toFixed(1);
-
-                  const experience =
-                    provider.pivot
-                      ?.experience || 0;
-
-                  const price =
-                    provider.pivot?.price;
-
-                  const serviceArea =
-                    provider.pivot
-                      ?.service_area ||
-                    "Nearby";
-
-                  const isOnline =
-                    provider.is_online === true ||
-                    provider.is_online === 1;
-
-                  const profileImage =
-                    provider.profile_image ||
-                    provider.user?.profile_photo;
-
-                  return (
-
-                    <div
-                      key={provider.id}
-                      className="group rounded-2xl border border-gray-200 bg-white p-4 transition-all duration-200 hover:border-blue-200 hover:shadow-lg hover:shadow-gray-900/5 sm:p-5"
-                    >
-
-                      <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-
-                        {/* PROFILE */}
-
-                        <div className="relative shrink-0">
-
-                          <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 text-lg font-bold text-blue-600 ring-1 ring-blue-100">
-
-                            {profileImage ? (
-
-                              <img
-                                src={profileImage}
-                                alt={providerName}
-                                className="h-full w-full object-cover"
-                              />
-
-                            ) : (
-
-                              providerName
-                                .charAt(0)
-                                .toUpperCase()
-
-                            )}
-
-                          </div>
-
-                          {/* ONLINE DOT */}
-
-                          <span
-                            className={`absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white ${
-                              isOnline
-                                ? "bg-green-500"
-                                : "bg-gray-400"
-                            }`}
-                          />
-
-                        </div>
-
-                        {/* PROVIDER INFO */}
-
-                        <div className="min-w-0 flex-1">
-
-                          <div className="flex flex-wrap items-center gap-2">
-
-                            <h3 className="text-base font-bold text-gray-900">
-                              {providerName}
-                            </h3>
-
-                            {isOnline ? (
-
-                              <span className="flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-[10px] font-semibold text-green-600">
-                                <Wifi size={11} />
-                                Online
-                              </span>
-
-                            ) : (
-
-                              <span className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-[10px] font-semibold text-gray-500">
-                                <Clock size={11} />
-                                Offline
-                              </span>
-
-                            )}
-
-                          </div>
-
-                          {/* RATING / JOBS */}
-
-                          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-500">
-
-                            <span className="flex items-center gap-1 font-semibold text-gray-700">
-
-                              <Star
-                                size={14}
-                                className="fill-yellow-400 text-yellow-400"
-                              />
-
-                              {rating}
-
-                            </span>
-
-                            <span className="flex items-center gap-1">
-                              <BriefcaseBusiness size={14} />
-                              {provider.total_jobs || 0} jobs
-                            </span>
-
-                            <span className="flex items-center gap-1">
-                              <Clock size={14} />
-                              {experience}{" "}
-                              {experience === 1
-                                ? "year"
-                                : "years"}{" "}
-                              experience
-                            </span>
-
-                          </div>
-
-                          {/* AREA */}
-
-                          <div className="mt-2 flex items-center gap-1.5 text-xs font-medium text-gray-500">
-
-                            <MapPin
-                              size={14}
-                              className="text-blue-500"
-                            />
-
-                            Service area:
-                            <span className="text-gray-700">
-                              {serviceArea}
-                            </span>
-
-                          </div>
-
-                        </div>
-
-                        {/* PRICE + BUTTON */}
-
-                        <div className="flex shrink-0 flex-row items-center justify-between gap-4 border-t border-gray-100 pt-4 sm:flex-col sm:items-end sm:border-t-0 sm:pt-0">
-
-                          <div className="text-left sm:text-right">
-
-                            <p className="text-[11px] font-medium text-gray-400">
-                              Service Price
-                            </p>
-
-                            <p className="mt-1 text-xl font-bold text-gray-900">
-                              ₹
-                              {price
-                                ? Number(
-                                    price
-                                  ).toLocaleString(
-                                    "en-IN"
-                                  )
-                                : "N/A"}
-                            </p>
-
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              navigate(
-                                `/customer/services/${service.id}/request?provider_id=${provider.id}`
-                              )
-                            }
-                            className="rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 active:scale-[0.98]"
-                          >
-                            Select Provider
-                          </button>
-
-                        </div>
-
-                      </div>
-
-                    </div>
-
-                  );
-
-                })}
-
-              </div>
-
-            ) : (
-
-              /* NO PROVIDERS */
-
-              <div className="mt-6 rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-5 py-12 text-center">
-
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-gray-400 shadow-sm">
-                  <Users size={25} />
                 </div>
 
-                <h3 className="mt-4 text-base font-bold text-gray-900">
-                  No providers available
-                </h3>
-
-                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
-                  There are currently no verified providers offering this service.
-                </p>
-
-              </div>
-
-            )}
-
-          </div>
-
-          {/* =================================================
-              MAP
-          ================================================= */}
-
-          <div className="rounded-3xl border border-gray-200/80 bg-white p-6 shadow-sm sm:p-8">
-
-            <div className="flex items-center gap-3">
-
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                <MapPin size={19} />
-              </div>
-
-              <div>
-                <h2 className="text-base font-bold text-gray-900">
-                  Nearby Providers
+                <h2 className="mt-2 text-xl font-bold text-gray-900 sm:text-2xl">
+                  Request {service.name}
                 </h2>
 
-                <p className="text-xs text-gray-500">
-                  Location-based matching
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
+                  Choose whether you need the service now or want to schedule it for a later date and time.
                 </p>
+
               </div>
 
-            </div>
+              {/* BUTTON */}
 
-            {/* MAP PLACEHOLDER */}
+              <button
+                type="button"
+                onClick={handleRequestService}
+                disabled={
+                  service.is_active === false
+                }
+                className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+              >
+                Request Service
 
-            <div className="mt-5 flex min-h-[280px] items-center justify-center overflow-hidden rounded-2xl border border-gray-200 bg-gray-100">
-
-              <div className="px-5 text-center">
-
-                <MapPin
-                  size={35}
-                  className="mx-auto text-gray-400"
+                <ArrowLeft
+                  size={17}
+                  className="rotate-180"
                 />
-
-                <h3 className="mt-3 text-sm font-bold text-gray-700">
-                  Live Map
-                </h3>
-
-                <p className="mt-1 text-xs leading-5 text-gray-500">
-                  Map integration will be added next.
-                </p>
-
-              </div>
+              </button>
 
             </div>
 
@@ -806,58 +682,68 @@ const ServiceDetails = () => {
 
         </section>
 
-        {/* ===================================================
-            SERVICE INFORMATION
-        =================================================== */}
+        {/* ================================================================
+            WHAT HAPPENS NEXT
+        ================================================================ */}
 
-        <section className="mt-6 rounded-3xl border border-gray-200/80 bg-white p-6 shadow-sm sm:p-8">
+        <section className="mt-6 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
 
           <h2 className="text-lg font-bold text-gray-900">
-            Service Information
+            What happens next?
           </h2>
 
-          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
 
-            <div className="rounded-2xl bg-gray-50 p-4">
+            {/* STEP 1 */}
 
-              <p className="text-xs font-medium text-gray-400">
-                Service Name
-              </p>
+            <div className="rounded-2xl bg-gray-50 p-5">
 
-              <p className="mt-1 text-sm font-semibold text-gray-900">
-                {service.name}
-              </p>
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
+                1
+              </div>
 
-            </div>
+              <h3 className="mt-4 text-sm font-bold text-gray-900">
+                Submit Request
+              </h3>
 
-            <div className="rounded-2xl bg-gray-50 p-4">
-
-              <p className="text-xs font-medium text-gray-400">
-                Category
-              </p>
-
-              <p className="mt-1 text-sm font-semibold text-gray-900">
-                {service.category ||
-                  "Not specified"}
+              <p className="mt-2 text-xs leading-5 text-gray-500">
+                Enter your address, current location and describe your problem.
               </p>
 
             </div>
 
-            <div className="rounded-2xl bg-gray-50 p-4">
+            {/* STEP 2 */}
 
-              <p className="text-xs font-medium text-gray-400">
-                Base Price
+            <div className="rounded-2xl bg-gray-50 p-5">
+
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
+                2
+              </div>
+
+              <h3 className="mt-4 text-sm font-bold text-gray-900">
+                Provider Assignment
+              </h3>
+
+              <p className="mt-2 text-xs leading-5 text-gray-500">
+                QuickFix can assign an appropriate verified provider after your request is submitted.
               </p>
 
-              <p className="mt-1 text-sm font-semibold text-gray-900">
-                ₹
-                {service.base_price
-                  ? Number(
-                      service.base_price
-                    ).toLocaleString(
-                      "en-IN"
-                    )
-                  : "N/A"}
+            </div>
+
+            {/* STEP 3 */}
+
+            <div className="rounded-2xl bg-gray-50 p-5">
+
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
+                3
+              </div>
+
+              <h3 className="mt-4 text-sm font-bold text-gray-900">
+                Service
+              </h3>
+
+              <p className="mt-2 text-xs leading-5 text-gray-500">
+                The assigned provider can visit your selected location and complete the requested service.
               </p>
 
             </div>

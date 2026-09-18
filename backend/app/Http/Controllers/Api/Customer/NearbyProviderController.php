@@ -44,13 +44,7 @@ class NearbyProviderController extends Controller
                 'numeric',
                 'min:1',
                 'max:100',
-            ],
-
-            'service_id' => [
-                'nullable',
-                'integer',
-                'exists:services,id',
-            ],
+            ]
         ]);
 
 

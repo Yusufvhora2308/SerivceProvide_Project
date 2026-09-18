@@ -139,9 +139,9 @@ function App() {
           />
 
           <Route
-  path="/customer/services/:id"
-  element={<ServiceDetails />}
-/>
+            path="/customer/services/:id"
+            element={<ServiceDetails />}
+          />
 
           <Route
             path="/customer/services/:serviceId/request"
@@ -149,9 +149,9 @@ function App() {
           />
 
         <Route
-    path="/customer/my-requests"
-    element={<MyRequests />}
-/>
+            path="/customer/my-requests"
+            element={<MyRequests />}
+        />
 
           <Route
             path="/customer/service-requests/:id"
@@ -159,9 +159,9 @@ function App() {
           />
 
             <Route
-    path="/customer/bookings"
-    element={<MyBookings />}
-  />
+              path="/customer/bookings"
+              element={<MyBookings />}
+            />
 
         </Route>
 

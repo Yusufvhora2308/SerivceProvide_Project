@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ServiceRequest extends Model
 {
@@ -21,7 +22,7 @@ class ServiceRequest extends Model
         // Price fields
         'provider_service_price',
         'extra_charges',
-         'extra_charges_reason',
+        'extra_charges_reason',
         'final_price',
         'price_status',
     ];
@@ -31,7 +32,7 @@ class ServiceRequest extends Model
         'latitude' => 'decimal:7',
         'longitude' => 'decimal:7',
 
-            // Price fields
+        // Price fields
         'provider_service_price' => 'decimal:2',
         'extra_charges' => 'decimal:2',
         'final_price' => 'decimal:2',
@@ -79,5 +80,10 @@ class ServiceRequest extends Model
             Service::class,
             'service_id'
         );
+    }
+
+    public function requestProviders(): HasMany
+    {
+        return $this->hasMany(ServiceRequestProvider::class);
     }
 }

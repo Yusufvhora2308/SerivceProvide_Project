@@ -11,6 +11,7 @@
     use Illuminate\Support\Facades\Route;
     use App\Http\Controllers\Provider\ProviderServiceController;
     use App\Http\Controllers\Provider\ProviderServiceRequestController;
+    use App\Http\Controllers\Provider\ProviderProfileController;
 
     use App\Http\Controllers\Api\Customer\NearbyProviderController;
 
@@ -242,7 +243,17 @@
             '/documents/update',
             [ProviderController::class, 'updateDocument']
         );
+        
+        // New My Profile API
+        Route::get('/my-profile', [
+            ProviderProfileController::class,
+            'show'
+        ]);
 
+        Route::put('/my-profile', [
+            ProviderProfileController::class,
+            'update'
+        ]);
 
         /*
         |--------------------------------------------------------------------------

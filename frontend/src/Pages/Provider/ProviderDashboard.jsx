@@ -1,1589 +1,1560 @@
-// PATH: src/Pages/Provider/ProviderDashboard.jsx
-
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
 import {
-  LogOut,
-  User,
-  Settings,
-  Calendar,
-  ClipboardList,
-  DollarSign,
-  Star,
-  Clock,
+  Activity,
+  AlertCircle,
+  BadgeCheck,
+  Briefcase,
   CheckCircle,
-  XCircle,
-  RefreshCw,
-  ArrowRight,
-  BriefcaseBusiness,
-  TrendingUp,
+  Clock,
+  DollarSign,
   MapPin,
-  Bell,
-  ShieldCheck,
+  Navigation,
+  Phone,
+  RefreshCw,
+  User,
+  X,
+  Zap,
 } from "lucide-react";
-
-import api from "../../api/axios";
 import Swal from "sweetalert2";
+import api from "../../api/axios";
 
 const ProviderDashboard = () => {
   const navigate = useNavigate();
 
-  // =========================================================
-  // STATES
-  // =========================================================
-
+  // =========================
+  // BASIC STATES
+  // =========================
   const [loading, setLoading] = useState(true);
-
   const [user, setUser] = useState(null);
-
   const [provider, setProvider] = useState(null);
 
+  // =========================
+  // PROVIDER STATUS
+  // =========================
   const [statusLoading, setStatusLoading] = useState(false);
 
-  const [locationLoading, setLocationLoading] = useState(false);
-
+  // =========================
+  // PROVIDER LOCATION
+  // =========================
   const [providerLocation, setProviderLocation] = useState(null);
-
+  const [providerLocationName, setProviderLocationName] =
+    useState("Location unavailable");
+  const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState("");
 
-  const [stats, setStats] = useState({
-    totalJobs: 0,
-    pendingJobs: 0,
-    completedJobs: 0,
-    earnings: 0,
-    rating: 0,
-  });
+  // =========================
+  // REQUEST STATES
+  // =========================
+  const [requestLoading, setRequestLoading] = useState(false);
+  const [serviceRequests, setServiceRequests] = useState([]);
+  const [requestProcessingId, setRequestProcessingId] =
+    useState(null);
 
-  // =========================================================
-  // LOAD DASHBOARD
-  // =========================================================
+  // =========================
+  // REQUEST TIMER
+  // =========================
+  const [requestTimers, setRequestTimers] = useState({});
 
-  useEffect(() => {
+  // =========================
+  // REQUEST LOCATIONS
+  // =========================
+  const [requestLocationNames, setRequestLocationNames] =
+    useState({});
+
+  // =========================
+  // IGNORED REQUESTS
+  // =========================
+  const [ignoredRequestIds, setIgnoredRequestIds] = useState(() => {
     try {
-      const storedUser = JSON.parse(
-        localStorage.getItem("user") || "{}"
+      const saved = localStorage.getItem(
+        "provider_ignored_requests"
       );
 
-      setUser(storedUser);
+      return saved ? JSON.parse(saved) : [];
     } catch (error) {
-      console.error("Error loading user:", error);
+      return [];
     }
+  });
 
-    fetchDashboardData();
+  const ignoredRequestIdsRef = useRef([]);
+
+  // =========================
+  // KEEP REF UPDATED
+  // =========================
+  useEffect(() => {
+    ignoredRequestIdsRef.current = ignoredRequestIds;
+  }, [ignoredRequestIds]);
+
+  // =========================
+  // GET USER FROM LOCAL STORAGE
+  // =========================
+  useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem("user");
+
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+    } catch (error) {
+      console.error("User localStorage error:", error);
+    }
   }, []);
 
-  // =========================================================
-  // FETCH DASHBOARD DATA
-  // =========================================================
+  // =========================
+  // SAVE IGNORED REQUESTS
+  // =========================
+  const saveIgnoredRequests = (ids) => {
+    try {
+      localStorage.setItem(
+        "provider_ignored_requests",
+        JSON.stringify(ids)
+      );
+    } catch (error) {
+      console.error(
+        "Unable to save ignored requests:",
+        error
+      );
+    }
+  };
 
-  const fetchDashboardData = async () => {
+  // =========================
+  // REQUEST TIMER STORAGE
+  // =========================
+  const getRequestTimerStorage = () => {
+    try {
+      const saved = localStorage.getItem(
+        "provider_request_timers"
+      );
+
+      return saved ? JSON.parse(saved) : {};
+    } catch (error) {
+      console.error(
+        "Unable to read request timers:",
+        error
+      );
+
+      return {};
+    }
+  };
+
+  const saveRequestTimerStorage = (timers) => {
+    try {
+      localStorage.setItem(
+        "provider_request_timers",
+        JSON.stringify(timers)
+      );
+    } catch (error) {
+      console.error(
+        "Unable to save request timers:",
+        error
+      );
+    }
+  };
+
+  // =========================
+  // FETCH DASHBOARD
+  // =========================
+  const fetchDashboard = async () => {
     try {
       setLoading(true);
 
-      const response = await api.get(
-        "/provider/dashboard"
-      );
+      const response = await api.get("/provider/dashboard");
 
-      console.log(
-        "Dashboard response:",
-        response.data
-      );
+      const data = response.data?.data || response.data;
 
-      if (response.data.success) {
-        const providerData =
-          response.data.provider;
+      setProvider(data?.provider || null);
 
-        setProvider(providerData);
+      // Provider location
+      const latitude = data?.provider?.latitude;
+      const longitude = data?.provider?.longitude;
 
-        setStats({
-          totalJobs:
-            providerData.total_jobs || 0,
+      if (
+        latitude !== null &&
+        latitude !== undefined &&
+        longitude !== null &&
+        longitude !== undefined
+      ) {
+        const location = {
+          latitude: Number(latitude),
+          longitude: Number(longitude),
+        };
 
-          pendingJobs:
-            providerData.pending_jobs || 0,
+        setProviderLocation(location);
 
-          completedJobs:
-            providerData.completed_jobs || 0,
-
-          earnings:
-            providerData.earnings || 0,
-
-          rating:
-            providerData.rating || 0,
-        });
-
-        // -----------------------------------------------------
-        // Existing provider location
-        // -----------------------------------------------------
-
-        if (
-          providerData.latitude !== null &&
-          providerData.latitude !== undefined &&
-          providerData.longitude !== null &&
-          providerData.longitude !== undefined
-        ) {
-          setProviderLocation({
-            latitude: Number(providerData.latitude),
-            longitude: Number(providerData.longitude),
-          });
-        }
+        getLocationName(
+          location.latitude,
+          location.longitude,
+          "provider"
+        );
       }
+
+      setLoading(false);
+    } catch (error) {
+      console.error("Dashboard error:", error);
+
+      setLoading(false);
+
+      Swal.fire({
+        icon: "error",
+        title: "Dashboard Error",
+        text:
+          error?.response?.data?.message ||
+          "Unable to load provider dashboard.",
+      });
+    }
+  };
+
+  // =========================
+  // FETCH SERVICE REQUESTS
+  // =========================
+  const fetchServiceRequests = async () => {
+    try {
+      setRequestLoading(true);
+
+      const response = await api.get(
+        "/provider/service-requests"
+      );
+
+      const responseData = response.data;
+
+      let requests = [];
+
+      if (Array.isArray(responseData)) {
+        requests = responseData;
+      } else if (Array.isArray(responseData?.data)) {
+        requests = responseData.data;
+      } else if (Array.isArray(responseData?.requests)) {
+        requests = responseData.requests;
+      }
+
+      // =========================================
+      // ONLY NEW SEARCHING REQUESTS
+      // =========================================
+      const newRequests = requests.filter((request) => {
+        const requestId = String(request.id);
+
+        return (
+          request.status === "searching" &&
+          !ignoredRequestIdsRef.current.includes(requestId)
+        );
+      });
+
+      // =========================================
+      // TIMER STORAGE
+      // =========================================
+      const savedTimers = getRequestTimerStorage();
+
+      const currentTime = Date.now();
+
+      const updatedTimers = {};
+      const validTimerStorage = {};
+      const validRequests = [];
+
+      const expiredIds = [];
+
+      // =========================================
+      // PROCESS EVERY REQUEST
+      // =========================================
+      newRequests.forEach((request) => {
+        const requestId = String(request.id);
+
+        let startTime = savedTimers[requestId];
+
+        // -----------------------------------------
+        // NEW REQUEST
+        // -----------------------------------------
+        if (!startTime) {
+          startTime = currentTime;
+        }
+
+        // -----------------------------------------
+        // ELAPSED TIME
+        // -----------------------------------------
+        const elapsedSeconds = Math.floor(
+          (currentTime - startTime) / 1000
+        );
+
+        const remainingSeconds = 300 - elapsedSeconds;
+
+        // -----------------------------------------
+        // EXPIRED
+        // -----------------------------------------
+        if (remainingSeconds <= 0) {
+          expiredIds.push(requestId);
+          return;
+        }
+
+        // -----------------------------------------
+        // ACTIVE REQUEST
+        // -----------------------------------------
+        updatedTimers[requestId] = remainingSeconds;
+
+        validTimerStorage[requestId] = startTime;
+
+        validRequests.push(request);
+      });
+
+      // =========================================
+      // SAVE EXPIRED REQUESTS AS IGNORED
+      // =========================================
+      if (expiredIds.length > 0) {
+        const updatedIgnored = [
+          ...new Set([
+            ...ignoredRequestIdsRef.current,
+            ...expiredIds,
+          ]),
+        ];
+
+        ignoredRequestIdsRef.current = updatedIgnored;
+
+        setIgnoredRequestIds(updatedIgnored);
+
+        saveIgnoredRequests(updatedIgnored);
+      }
+
+      // =========================================
+      // SAVE TIMER STORAGE
+      // =========================================
+      saveRequestTimerStorage(validTimerStorage);
+
+      // =========================================
+      // UPDATE STATES
+      // =========================================
+      setServiceRequests(validRequests);
+
+      setRequestTimers(updatedTimers);
+
+      setRequestLoading(false);
     } catch (error) {
       console.error(
-        "Dashboard fetch error:",
+        "Service requests error:",
+        error
+      );
+
+      setRequestLoading(false);
+    }
+  };
+
+  // =========================
+  // INITIAL LOAD
+  // =========================
+  useEffect(() => {
+    fetchDashboard();
+    fetchServiceRequests();
+  }, []);
+
+  // =========================
+  // REQUEST POLLING - 5 SEC
+  // =========================
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchServiceRequests();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // =========================
+  // REQUEST COUNTDOWN
+  // =========================
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const savedTimers = getRequestTimerStorage();
+
+      const currentTime = Date.now();
+
+      setRequestTimers((previousTimers) => {
+        const updatedTimers = {};
+        const expiredIds = [];
+
+        Object.keys(previousTimers).forEach((id) => {
+          const startTime = savedTimers[id];
+
+          if (!startTime) {
+            return;
+          }
+
+          const elapsedSeconds = Math.floor(
+            (currentTime - startTime) / 1000
+          );
+
+          const remainingSeconds =
+            300 - elapsedSeconds;
+
+          if (remainingSeconds <= 0) {
+            expiredIds.push(id);
+          } else {
+            updatedTimers[id] = remainingSeconds;
+          }
+        });
+
+        // =========================================
+        // REMOVE EXPIRED REQUESTS
+        // =========================================
+        if (expiredIds.length > 0) {
+          setServiceRequests((previousRequests) =>
+            previousRequests.filter(
+              (request) =>
+                !expiredIds.includes(
+                  String(request.id)
+                )
+            )
+          );
+
+          const updatedIgnored = [
+            ...new Set([
+              ...ignoredRequestIdsRef.current,
+              ...expiredIds,
+            ]),
+          ];
+
+          ignoredRequestIdsRef.current =
+            updatedIgnored;
+
+          setIgnoredRequestIds(updatedIgnored);
+
+          saveIgnoredRequests(updatedIgnored);
+
+          // Remove expired timer storage
+          expiredIds.forEach((id) => {
+            delete savedTimers[id];
+          });
+
+          saveRequestTimerStorage(savedTimers);
+        }
+
+        return updatedTimers;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // =========================
+  // FORMAT TIMER
+  // =========================
+  const formatTimer = (seconds) => {
+    const safeSeconds = Math.max(
+      0,
+      seconds || 0
+    );
+
+    const minutes = Math.floor(
+      safeSeconds / 60
+    );
+
+    const remainingSeconds =
+      safeSeconds % 60;
+
+    return `${minutes}:${String(
+      remainingSeconds
+    ).padStart(2, "0")}`;
+  };
+
+  // =========================
+  // REMOVE REQUEST
+  // =========================
+  const handleRemoveRequest = (requestId) => {
+    const id = String(requestId);
+
+    // Remove from UI
+    setServiceRequests((previousRequests) =>
+      previousRequests.filter(
+        (request) =>
+          String(request.id) !== id
+      )
+    );
+
+    // Remove timer from state
+    setRequestTimers((previousTimers) => {
+      const updatedTimers = {
+        ...previousTimers,
+      };
+
+      delete updatedTimers[id];
+
+      return updatedTimers;
+    });
+
+    // Remove timer from localStorage
+    const savedTimers =
+      getRequestTimerStorage();
+
+    delete savedTimers[id];
+
+    saveRequestTimerStorage(savedTimers);
+
+    // Add to ignored requests
+    const updatedIgnored = [
+      ...new Set([
+        ...ignoredRequestIdsRef.current,
+        id,
+      ]),
+    ];
+
+    ignoredRequestIdsRef.current =
+      updatedIgnored;
+
+    setIgnoredRequestIds(updatedIgnored);
+
+    saveIgnoredRequests(updatedIgnored);
+  };
+
+  // =========================
+  // ACCEPT REQUEST
+  // =========================
+  const handleAcceptRequest = async (requestId) => {
+    const id = String(requestId);
+
+    try {
+      setRequestProcessingId(requestId);
+
+      await api.post(
+        `/provider/service-requests/${requestId}/accept`
+      );
+
+      // Remove from dashboard
+      setServiceRequests((previousRequests) =>
+        previousRequests.filter(
+          (request) =>
+            String(request.id) !== id
+        )
+      );
+
+      // Remove timer from state
+      setRequestTimers((previousTimers) => {
+        const updatedTimers = {
+          ...previousTimers,
+        };
+
+        delete updatedTimers[id];
+
+        return updatedTimers;
+      });
+
+      // Remove timer from localStorage
+      const savedTimers =
+        getRequestTimerStorage();
+
+      delete savedTimers[id];
+
+      saveRequestTimerStorage(savedTimers);
+
+      // Keep hidden after refresh
+      const updatedIgnored = [
+        ...new Set([
+          ...ignoredRequestIdsRef.current,
+          id,
+        ]),
+      ];
+
+      ignoredRequestIdsRef.current =
+        updatedIgnored;
+
+      setIgnoredRequestIds(updatedIgnored);
+
+      saveIgnoredRequests(updatedIgnored);
+
+      await Swal.fire({
+        icon: "success",
+        title: "Request Accepted",
+        text:
+          "You have accepted this service request.",
+        timer: 1400,
+        showConfirmButton: false,
+      });
+
+      navigate(
+        `/provider/service-requests/${requestId}`
+      );
+    } catch (error) {
+      console.error(
+        "Accept request error:",
         error
       );
 
       Swal.fire({
         icon: "error",
-        title: "Unable to load dashboard",
+        title: "Unable to Accept",
         text:
-          error.response?.data?.message ||
-          "Failed to load dashboard data.",
-        confirmButtonColor: "#2563eb",
+          error?.response?.data?.message ||
+          "Something went wrong while accepting the request.",
       });
     } finally {
-      setLoading(false);
+      setRequestProcessingId(null);
     }
   };
 
-  // =========================================================
-  // GET CURRENT GPS LOCATION
-  // =========================================================
+  // =========================
+  // HAVERSINE DISTANCE
+  // =========================
+  const calculateDistance = (
+    lat1,
+    lon1,
+    lat2,
+    lon2
+  ) => {
+    if (
+      lat1 === null ||
+      lat1 === undefined ||
+      lon1 === null ||
+      lon1 === undefined ||
+      lat2 === null ||
+      lat2 === undefined ||
+      lon2 === null ||
+      lon2 === undefined
+    ) {
+      return null;
+    }
 
-  const getCurrentLocation = () => {
-    return new Promise(
-      (resolve, reject) => {
-        if (!navigator.geolocation) {
-          reject(
-            new Error(
-              "Geolocation is not supported by this browser."
-            )
-          );
+    const latitude1 = Number(lat1);
+    const longitude1 = Number(lon1);
+    const latitude2 = Number(lat2);
+    const longitude2 = Number(lon2);
 
-          return;
-        }
+    if (
+      Number.isNaN(latitude1) ||
+      Number.isNaN(longitude1) ||
+      Number.isNaN(latitude2) ||
+      Number.isNaN(longitude2)
+    ) {
+      return null;
+    }
 
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const location = {
-              latitude:
-                position.coords.latitude,
+    const R = 6371;
 
-              longitude:
-                position.coords.longitude,
-            };
+    const dLat =
+      ((latitude2 - latitude1) *
+        Math.PI) /
+      180;
 
-            console.log(
-              "Current Provider Location:",
-              location
-            );
+    const dLon =
+      ((longitude2 - longitude1) *
+        Math.PI) /
+      180;
 
-            resolve(location);
-          },
+    const a =
+      Math.sin(dLat / 2) *
+        Math.sin(dLat / 2) +
+      Math.cos(
+        (latitude1 * Math.PI) / 180
+      ) *
+        Math.cos(
+          (latitude2 * Math.PI) / 180
+        ) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
 
-          (error) => {
-            console.error(
-              "Location Error:",
-              error
-            );
+    const c =
+      2 *
+      Math.atan2(
+        Math.sqrt(a),
+        Math.sqrt(1 - a)
+      );
 
-            let message =
-              "Unable to get your location.";
+    return R * c;
+  };
 
-            if (error.code === 1) {
-              message =
-                "Location permission denied. Please allow location access.";
-            } else if (error.code === 2) {
-              message =
-                "Location information is unavailable.";
-            } else if (error.code === 3) {
-              message =
-                "Location request timed out.";
-            }
+  // =========================
+  // REVERSE GEOCODING
+  // =========================
+  const getLocationName = async (
+    latitude,
+    longitude,
+    type = "provider",
+    requestId = null
+  ) => {
+    if (
+      latitude === null ||
+      latitude === undefined ||
+      longitude === null ||
+      longitude === undefined
+    ) {
+      return;
+    }
 
-            reject(
-              new Error(message)
-            );
-          },
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+      );
 
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0,
-          }
+      if (!response.ok) {
+        throw new Error(
+          "Unable to fetch location"
         );
       }
-    );
-  };
 
-  // =========================================================
-  // UPDATE PROVIDER LOCATION API
-  // =========================================================
+      const data = await response.json();
 
-  const updateProviderLocation = async (
-    latitude,
-    longitude
-  ) => {
-    try {
-      const response = await api.put(
-        "/provider/location",
-        {
-          latitude,
-          longitude,
-        }
-      );
+      const address = data?.address || {};
 
-      console.log(
-        "Location API Response:",
-        response.data
-      );
+      const locationName =
+        address?.suburb ||
+        address?.neighbourhood ||
+        address?.road ||
+        address?.city_district ||
+        address?.city ||
+        address?.town ||
+        address?.village ||
+        data?.display_name ||
+        "Location unavailable";
 
-      return response.data;
-    } catch (error) {
-      console.error(
-        "Location Update Error:",
-        error.response?.data || error
-      );
-
-      throw error;
-    }
-  };
-
-  // =========================================================
-  // GET GPS + SAVE LOCATION
-  // =========================================================
-
-  const trackProviderLocation = async (
-    showError = false
-  ) => {
-    try {
-      const location =
-        await getCurrentLocation();
-
-      // Update frontend location
-      setProviderLocation(location);
-
-      setLocationError("");
-
-      // Save location in database
-      const response =
-        await updateProviderLocation(
-          location.latitude,
-          location.longitude
+      if (type === "provider") {
+        setProviderLocationName(
+          locationName
         );
+      }
 
-      console.log(
-        "Provider Location Updated:",
-        response
-      );
-
-      return response;
+      if (
+        type === "customer" &&
+        requestId
+      ) {
+        setRequestLocationNames(
+          (previous) => ({
+            ...previous,
+            [requestId]: {
+              customer: locationName,
+            },
+          })
+        );
+      }
     } catch (error) {
       console.error(
-        "Provider Location Tracking Error:",
+        "Reverse geocoding error:",
         error
       );
 
-      setLocationError(
-        error.message ||
-          "Unable to update your location."
-      );
-
-      if (showError) {
-        throw error;
+      if (type === "provider") {
+        setProviderLocationName(
+          "Location unavailable"
+        );
       }
 
-      return null;
+      if (
+        type === "customer" &&
+        requestId
+      ) {
+        setRequestLocationNames(
+          (previous) => ({
+            ...previous,
+            [requestId]: {
+              customer:
+                "Location unavailable",
+            },
+          })
+        );
+      }
     }
   };
 
-  // =========================================================
-  // LIVE PROVIDER GPS TRACKING
-  // =========================================================
-  //
-  // Provider online:
-  // 1. Browser continuously watches GPS position
-  // 2. First position is sent immediately
-  // 3. New position is sent to Laravel when provider moves
-  // 4. API calls are limited to once every 10 seconds
-  //
-  // Provider offline:
-  // Stop GPS watcher
-  //
-  // =========================================================
-
+  // =========================
+  // CUSTOMER LOCATION GEOCODING
+  // =========================
   useEffect(() => {
-    if (!provider?.is_online) {
-      console.log(
-        "Provider is OFFLINE - GPS tracking is stopped."
-      );
+    serviceRequests.forEach((request) => {
+      const latitude = request.latitude;
+      const longitude = request.longitude;
 
-      return;
-    }
-
-    if (!navigator.geolocation) {
-      const message =
-        "Geolocation is not supported by this browser.";
-
-      console.error(message);
-      setLocationError(message);
-
-      return;
-    }
-
-    console.log(
-      "Provider is ONLINE - starting live GPS tracking."
-    );
-
-    let watchId = null;
-    let lastSentAt = 0;
-    let isSending = false;
-
-    const sendLocation = async (position) => {
-      const latitude = position.coords.latitude;
-      const longitude = position.coords.longitude;
-
-      const now = Date.now();
-
-      // Do not send too many API requests.
-      // Maximum: one request every 10 seconds.
       if (
-        lastSentAt !== 0 &&
-        now - lastSentAt < 10000
+        latitude !== null &&
+        latitude !== undefined &&
+        longitude !== null &&
+        longitude !== undefined &&
+        !requestLocationNames?.[request.id]
       ) {
-        setProviderLocation({
+        getLocationName(
           latitude,
           longitude,
-        });
-
-        return;
+          "customer",
+          request.id
+        );
       }
+    });
+  }, [serviceRequests]);
 
-      if (isSending) {
-        return;
-      }
-
-      isSending = true;
-
-      const location = {
-        latitude,
-        longitude,
-      };
-
-      console.log(
-        "📍 Live Provider GPS:",
-        location
+  // =========================
+  // GET CURRENT PROVIDER GPS
+  // =========================
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError(
+        "Geolocation is not supported by this browser."
       );
 
-      // Update UI immediately
-      setProviderLocation(location);
-      setLocationError("");
+      return;
+    }
 
-      try {
-        const response =
-          await updateProviderLocation(
-            latitude,
-            longitude
+    setLocationLoading(true);
+    setLocationError("");
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const latitude =
+          position.coords.latitude;
+
+        const longitude =
+          position.coords.longitude;
+
+        const location = {
+          latitude,
+          longitude,
+        };
+
+        setProviderLocation(location);
+
+        await getLocationName(
+          latitude,
+          longitude,
+          "provider"
+        );
+
+        try {
+          await api.put(
+            "/provider/location",
+            {
+              latitude,
+              longitude,
+            }
           );
-
-        lastSentAt = Date.now();
-
-        console.log(
-          "✅ Live location sent to Laravel:",
-          response
-        );
-      } catch (error) {
-        console.error(
-          "❌ Live location update failed:",
-          error.response?.data || error.message
-        );
-
-        setLocationError(
-          error.response?.data?.message ||
-            "Unable to update your live location."
-        );
-      } finally {
-        isSending = false;
-      }
-    };
-
-    // -------------------------------------------------------
-    // START CONTINUOUS GPS WATCH
-    // -------------------------------------------------------
-
-    watchId =
-      navigator.geolocation.watchPosition(
-        sendLocation,
-
-        (error) => {
+        } catch (error) {
           console.error(
-            "❌ Live GPS Error:",
+            "Provider location update error:",
             error
           );
-
-          let message =
-            "Unable to get your live location.";
-
-          if (error.code === 1) {
-            message =
-              "Location permission denied. Please allow location access.";
-          } else if (error.code === 2) {
-            message =
-              "Location information is unavailable.";
-          } else if (error.code === 3) {
-            message =
-              "Location request timed out.";
-          }
-
-          setLocationError(message);
-        },
-
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 5000,
         }
-      );
 
-    // -------------------------------------------------------
-    // CLEANUP GPS WATCH
-    // -------------------------------------------------------
-
-    return () => {
-      if (watchId !== null) {
-        navigator.geolocation.clearWatch(
-          watchId
+        setLocationLoading(false);
+      },
+      (error) => {
+        console.error(
+          "Geolocation error:",
+          error
         );
 
-        console.log(
-          "🛑 Provider live GPS tracking stopped."
+        setLocationLoading(false);
+
+        setLocationError(
+          "Unable to get your current location."
         );
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
       }
-    };
+    );
+  };
+
+  // =========================
+  // GET LOCATION WHEN ONLINE
+  // =========================
+  useEffect(() => {
+    if (!provider?.is_online) {
+      return;
+    }
+
+    getCurrentLocation();
+
+    const interval = setInterval(() => {
+      getCurrentLocation();
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, [provider?.is_online]);
 
-  // =========================================================
-  // UPDATE PROVIDER ONLINE / OFFLINE STATUS
-  // =========================================================
-
+  // =========================
+  // ONLINE / OFFLINE STATUS
+  // =========================
   const updateProviderStatus = async () => {
     if (!provider) return;
 
     try {
       setStatusLoading(true);
 
-      // Current status reverse
       const newStatus =
         !provider.is_online;
-
-      // =====================================================
-      // GOING ONLINE
-      // FIRST GET GPS LOCATION
-      // =====================================================
-
-      if (newStatus) {
-        setLocationLoading(true);
-
-        setLocationError("");
-
-        // Get current location
-        const location =
-          await getCurrentLocation();
-
-        // Save location in database
-        await updateProviderLocation(
-          location.latitude,
-          location.longitude
-        );
-
-        // Update frontend location
-        setProviderLocation(location);
-
-        setLocationLoading(false);
-      }
-
-      // =====================================================
-      // UPDATE ONLINE / OFFLINE STATUS
-      // =====================================================
 
       const response = await api.post(
         "/provider/update-status",
         {
           is_online: newStatus,
+          availability_status: newStatus
+            ? "online"
+            : "offline",
         }
       );
 
-      console.log(
-        "Status API Response:",
-        response.data
-      );
+      const updatedProvider =
+        response.data?.provider ||
+        response.data?.data?.provider ||
+        response.data?.data || {
+          ...provider,
+          is_online: newStatus,
+          availability_status: newStatus
+            ? "online"
+            : "offline",
+        };
 
-      // =====================================================
-      // UPDATE LOCAL STATE
-      // =====================================================
+      setProvider(updatedProvider);
 
-      if (response.data.success) {
-        setProvider(
-          (previousProvider) => ({
-            ...previousProvider,
-
-            is_online:
-              response.data.provider
-                .is_online,
-
-            availability_status:
-              response.data.provider
-                .availability_status,
-          })
-        );
-
-        // =================================================
-        // SUCCESS MESSAGE
-        // =================================================
-
-        Swal.fire({
-          icon: "success",
-
-          title:
-            response.data.provider
-              .is_online
-              ? "You are Online"
-              : "You are Offline",
-
-          text:
-            response.data.message,
-
-          timer: 1500,
-
-          showConfirmButton: false,
-
-          confirmButtonColor: "#2563eb",
-        });
+      if (newStatus) {
+        getCurrentLocation();
       }
+
+      Swal.fire({
+        icon: "success",
+        title: newStatus
+          ? "You are Online"
+          : "You are Offline",
+        text: newStatus
+          ? "You can now receive new service requests."
+          : "You will not receive new service requests.",
+        timer: 1300,
+        showConfirmButton: false,
+      });
     } catch (error) {
       console.error(
-        "Provider Status Error:",
-        error.response?.data || error
+        "Provider status update error:",
+        error
       );
 
       Swal.fire({
         icon: "error",
-
-        title:
-          "Unable to Update Status",
-
+        title: "Status Update Failed",
         text:
-          error.response?.data?.message ||
-          error.message ||
-          "Something went wrong.",
-
-        confirmButtonColor:
-          "#2563eb",
+          error?.response?.data?.message ||
+          "Unable to update your online status.",
       });
     } finally {
       setStatusLoading(false);
-
-      setLocationLoading(false);
     }
   };
 
-  // =========================================================
-  // LOGOUT
-  // =========================================================
-
-  const handleLogout = async () => {
-    const result =
-      await Swal.fire({
-        title: "Logout?",
-
-        text:
-          "Are you sure you want to logout?",
-
-        icon: "question",
-
-        showCancelButton: true,
-
-        confirmButtonColor:
-          "#ef4444",
-
-        cancelButtonColor:
-          "#64748b",
-
-        confirmButtonText:
-          "Yes, Logout",
-
-        cancelButtonText:
-          "Cancel",
-      });
-
-    if (!result.isConfirmed) return;
-
-    try {
-      await api.post(
-        "/provider/logout"
-      );
-    } catch (error) {
-      console.error(
-        "Logout API error:",
-        error
-      );
-    } finally {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      localStorage.removeItem("role");
-      localStorage.removeItem("refresh_token");
-      localStorage.removeItem("provider");
-      localStorage.removeItem("remember");
-      localStorage.removeItem("loginMessage");
-      localStorage.removeItem("loginIsError");
-      localStorage.removeItem("loginSuccess");
-
-      sessionStorage.clear();
-
-      navigate(
-        "/provider/login",
-        {
-          replace: true,
-        }
-      );
-    }
+  // =========================
+  // REFRESH
+  // =========================
+  const handleRefresh = async () => {
+    await Promise.all([
+      fetchDashboard(),
+      fetchServiceRequests(),
+    ]);
   };
 
-  // =========================================================
-  // HELPERS
-  // =========================================================
-
-  const getUserInitial = () => {
-    if (user?.name) {
-      return user.name
-        .charAt(0)
-        .toUpperCase();
-    }
-
-    return "P";
-  };
-
-  // =========================================================
-  // VERIFICATION STATUS BADGE
-  // =========================================================
-
-  const getStatusBadge = (
-    status
-  ) => {
-    const styles = {
-      approved: {
-        bg: "bg-emerald-50",
-        text: "text-emerald-700",
-        border:
-          "border-emerald-200",
-
-        icon:
-          <CheckCircle size={15} />,
-
-        label:
-          "Verified Provider",
-      },
-
-      pending: {
-        bg: "bg-amber-50",
-        text: "text-amber-700",
-        border:
-          "border-amber-200",
-
-        icon:
-          <Clock size={15} />,
-
-        label:
-          "Verification Pending",
-      },
-
-      rejected: {
-        bg: "bg-red-50",
-        text: "text-red-700",
-        border:
-          "border-red-200",
-
-        icon:
-          <XCircle size={15} />,
-
-        label:
-          "Verification Rejected",
-      },
-    };
-
-    return (
-      styles[status] ||
-      styles.pending
-    );
-  };
-
-  const verificationStatus =
-    provider?.verification_status ||
-    "pending";
-
-  const statusStyle =
-    getStatusBadge(
-      verificationStatus
-    );
-
-  // =========================================================
-  // LOADING
-  // =========================================================
-
+  // =========================
+  // INITIAL LOADING
+  // =========================
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600"></div>
+          <RefreshCw
+            size={32}
+            className="animate-spin text-blue-600 mx-auto"
+          />
 
-          <h3 className="text-lg font-semibold text-slate-800">
-            Loading Dashboard
-          </h3>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Please wait...
+          <p className="mt-3 text-gray-500 text-sm">
+            Loading dashboard...
           </p>
         </div>
       </div>
     );
   }
 
-  // =========================================================
-  // DASHBOARD UI
-  // =========================================================
-
+  // =========================
+  // UI
+  // =========================
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* =====================================================
-          MAIN
-      ===================================================== */}
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+      <div className="max-w-7xl mx-auto">
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        {/* =========================================
+            HEADER
+        ========================================= */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
 
-        {/* =================================================
-            WELCOME SECTION
-        ================================================= */}
+            {/* LEFT SIDE */}
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl md:text-2xl font-bold text-gray-800">
+                  Welcome,{" "}
+                  {user?.name || "Provider"}
+                </h1>
 
-        <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
+                {provider?.verification_status ===
+                  "approved" && (
+                  <BadgeCheck
+                    size={21}
+                    className="text-blue-600"
+                  />
+                )}
+              </div>
 
-          <div>
+              <p className="text-gray-500 text-sm mt-1">
+                Manage your services and incoming requests
+              </p>
+            </div>
 
-            <p className="mb-1 text-sm font-medium text-blue-600">
-              Provider Dashboard
-            </p>
+            {/* RIGHT SIDE */}
+            <div className="flex items-center gap-3">
 
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-
-              Welcome back,{" "}
-              {user?.name || "Provider"} 👋
-
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Manage your services, bookings and earnings from one place.
-            </p>
-
-          </div>
-
-          <button
-            onClick={fetchDashboardData}
-            disabled={loading}
-            className="flex w-fit items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-600 disabled:opacity-50"
-          >
-
-            <RefreshCw
-              size={16}
-              className={
-                loading
-                  ? "animate-spin"
-                  : ""
-              }
-            />
-
-            Refresh
-
-          </button>
-
-        </div>
-
-        {/* =================================================
-            ONLINE / OFFLINE STATUS CARD
-        ================================================= */}
-
-        <div className="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-
-          <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-
-            {/* Left Side */}
-
-            <div className="flex items-center gap-4">
-
-              <div
-                className={`flex h-14 w-14 items-center justify-center rounded-2xl ${
-                  provider?.is_online
-                    ? "bg-emerald-50"
-                    : "bg-red-50"
-                }`}
+              {/* REFRESH */}
+              <button
+                onClick={handleRefresh}
+                className="p-3 rounded-xl border border-gray-200 hover:bg-blue-50 hover:border-blue-200 transition"
+                title="Refresh"
               >
-
-                <MapPin
-                  size={26}
+                <RefreshCw
+                  size={19}
                   className={
-                    provider?.is_online
-                      ? "text-emerald-600"
-                      : "text-red-500"
+                    requestLoading
+                      ? "animate-spin text-blue-600"
+                      : "text-gray-600"
                   }
                 />
+              </button>
 
+              {/* ONLINE / OFFLINE TOGGLE */}
+              <button
+                onClick={updateProviderStatus}
+                disabled={statusLoading}
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition disabled:opacity-60"
+              >
+                <span className="text-sm font-semibold text-gray-700">
+                  {statusLoading
+                    ? "Updating..."
+                    : provider?.is_online
+                    ? "Online"
+                    : "Offline"}
+                </span>
+
+                <span
+                  className={`relative w-11 h-6 rounded-full transition-colors ${
+                    provider?.is_online
+                      ? "bg-green-500"
+                      : "bg-black"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${
+                      provider?.is_online
+                        ? "translate-x-6"
+                        : "translate-x-1"
+                    }`}
+                  />
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* =========================================
+            PROVIDER LOCATION
+        ========================================= */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                <Navigation
+                  size={19}
+                  className="text-blue-600"
+                />
               </div>
 
               <div>
-
-                <p className="text-sm font-medium text-slate-500">
-                  Provider Availability
+                <p className="text-xs text-gray-400 uppercase tracking-wide">
+                  Your Current Location
                 </p>
 
-                <div className="mt-1 flex items-center gap-2">
-
-                  <span
-                    className={`h-2.5 w-2.5 rounded-full ${
-                      provider?.is_online
-                        ? "bg-emerald-500 animate-pulse"
-                        : "bg-red-500"
-                    }`}
-                  ></span>
-
-                  <h3
-                    className={`text-xl font-bold ${
-                      provider?.is_online
-                        ? "text-emerald-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {provider?.is_online
-                      ? "You are Online"
-                      : "You are Offline"}
-                  </h3>
-
-                </div>
-
-                <p className="mt-1 text-sm text-slate-500">
-
-                  {provider?.is_online
-                    ? "Customers can now find you nearby."
-                    : "You are currently not visible to customers."}
-
+                <p className="text-sm font-semibold text-gray-800 mt-1">
+                  {providerLocationName}
                 </p>
 
-                {/* Live Location Information */}
+                {providerLocation && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    {providerLocation.latitude.toFixed(
+                      5
+                    )}
+                    ,{" "}
+                    {providerLocation.longitude.toFixed(
+                      5
+                    )}
+                  </p>
+                )}
 
-                {provider?.is_online &&
-                  providerLocation && (
-                    <div className="mt-2">
-
-                      <p className="text-xs text-emerald-600">
-                        📍 Live location active
-                      </p>
-
-                      <p className="mt-0.5 text-[10px] text-slate-400">
-                        {providerLocation.latitude.toFixed(
-                          6
-                        )}
-                        ,{" "}
-                        {providerLocation.longitude.toFixed(
-                          6
-                        )}
-                      </p>
-
-                    </div>
-                  )}
-
-                {/* Location Error */}
-
-                {provider?.is_online &&
-                  locationError && (
-                    <p className="mt-2 text-xs font-medium text-red-500">
-                      {locationError}
-                    </p>
-                  )}
-
+                {locationError && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {locationError}
+                  </p>
+                )}
               </div>
-
             </div>
-
-            {/* Online Offline Button */}
 
             <button
-              onClick={updateProviderStatus}
-              disabled={
-                statusLoading ||
-                locationLoading
-              }
-              className={`flex min-w-[170px] items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                provider?.is_online
-                  ? "bg-red-500 hover:bg-red-600"
-                  : "bg-emerald-600 hover:bg-emerald-700"
-              }`}
+              onClick={getCurrentLocation}
+              disabled={locationLoading}
+              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition flex items-center justify-center gap-2 disabled:opacity-60"
             >
+              <Navigation
+                size={16}
+                className={
+                  locationLoading
+                    ? "animate-pulse"
+                    : ""
+                }
+              />
 
-              {statusLoading ||
-              locationLoading ? (
-                <>
-                  <RefreshCw
-                    size={17}
-                    className="animate-spin"
-                  />
-
-                  Updating...
-                </>
-              ) : provider?.is_online ? (
-                <>
-                  <XCircle size={18} />
-
-                  Go Offline
-                </>
-              ) : (
-                <>
-                  <CheckCircle size={18} />
-
-                  Go Online
-                </>
-              )}
-
+              {locationLoading
+                ? "Updating..."
+                : "Update Location"}
             </button>
-
           </div>
-
         </div>
 
-        {/* =================================================
-            PROVIDER PROFILE CARD
-        ================================================= */}
-
-        <div className="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-
-          <div className="h-2 bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600"></div>
-
-          <div className="p-5 sm:p-6">
-
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-
-              {/* Profile */}
-
-              <div className="flex items-center gap-4">
-
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-2xl font-bold text-blue-600 ring-4 ring-blue-50">
-
-                  {getUserInitial()}
-
-                </div>
-
-                <div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-
-                    <h3 className="text-xl font-bold text-slate-900">
-                      {user?.name || "Provider"}
-                    </h3>
-
-                    {verificationStatus ===
-                      "approved" && (
-                      <ShieldCheck
-                        size={19}
-                        className="text-blue-600"
-                      />
-                    )}
-
-                  </div>
-
-                  <p className="mt-1 text-sm text-slate-500">
-                    {user?.email ||
-                      "No email available"}
-                  </p>
-
-                  <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
-
-                    <span className="flex items-center gap-1">
-                      <User size={13} />
-                      Service Provider
-                    </span>
-
-                    {user?.phone && (
-                      <span>
-                        📞 {user.phone}
-                      </span>
-                    )}
-
-                  </div>
-
-                </div>
-
-              </div>
-
-              {/* Verification Status */}
-
-              <div
-                className={`inline-flex w-fit items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold ${statusStyle.bg} ${statusStyle.text} ${statusStyle.border}`}
-              >
-
-                {statusStyle.icon}
-
-                {statusStyle.label}
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-        {/* =================================================
-            STATS
-        ================================================= */}
-
-        <div className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-
-          {/* Total Jobs */}
-
-          <div className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg">
-
-            <div className="flex items-start justify-between">
-
-              <div>
-
-                <p className="text-sm font-medium text-slate-500">
-                  Total Jobs
-                </p>
-
-                <p className="mt-2 text-3xl font-bold text-slate-900">
-                  {stats.totalJobs}
-                </p>
-
-                <p className="mt-2 flex items-center gap-1 text-xs font-medium text-blue-600">
-
-                  <TrendingUp size={13} />
-
-                  All service requests
-
-                </p>
-
-              </div>
-
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50">
-
-                <ClipboardList
-                  size={23}
+        {/* =========================================
+            NEW SERVICE REQUESTS
+        ========================================= */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <Briefcase
+                  size={20}
                   className="text-blue-600"
                 />
 
+                <h2 className="text-lg md:text-xl font-bold text-gray-800">
+                  New Service Requests
+                </h2>
               </div>
 
+              <p className="text-sm text-gray-500 mt-1">
+                New customer requests available for you
+              </p>
             </div>
 
+            {serviceRequests.length > 0 && (
+              <span className="px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 text-xs font-bold">
+                {serviceRequests.length} New
+              </span>
+            )}
           </div>
-
-          {/* Pending Jobs */}
-
-          <div className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg">
-
-            <div className="flex items-start justify-between">
-
-              <div>
-
-                <p className="text-sm font-medium text-slate-500">
-                  Pending Jobs
-                </p>
-
-                <p className="mt-2 text-3xl font-bold text-slate-900">
-                  {stats.pendingJobs}
-                </p>
-
-                <p className="mt-2 text-xs font-medium text-amber-600">
-                  Need your attention
-                </p>
-
-              </div>
-
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50">
-
-                <Clock
-                  size={23}
-                  className="text-amber-600"
-                />
-
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* Completed */}
-
-          <div className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg">
-
-            <div className="flex items-start justify-between">
-
-              <div>
-
-                <p className="text-sm font-medium text-slate-500">
-                  Completed
-                </p>
-
-                <p className="mt-2 text-3xl font-bold text-slate-900">
-                  {stats.completedJobs}
-                </p>
-
-                <p className="mt-2 text-xs font-medium text-emerald-600">
-                  Successfully completed
-                </p>
-
-              </div>
-
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50">
-
-                <CheckCircle
-                  size={23}
-                  className="text-emerald-600"
-                />
-
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* Earnings */}
-
-          <div className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg">
-
-            <div className="flex items-start justify-between">
-
-              <div>
-
-                <p className="text-sm font-medium text-slate-500">
-                  Total Earnings
-                </p>
-
-                <p className="mt-2 text-3xl font-bold text-slate-900">
-
-                  ₹
-                  {Number(
-                    stats.earnings || 0
-                  ).toLocaleString("en-IN")}
-
-                </p>
-
-                <p className="mt-2 flex items-center gap-1 text-xs font-medium text-purple-600">
-
-                  <DollarSign size={13} />
-
-                  Service income
-
-                </p>
-
-              </div>
-
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50">
-
-                <DollarSign
-                  size={23}
-                  className="text-purple-600"
-                />
-
-              </div>
-
-            </div>
-
-          </div>
-
         </div>
 
-        {/* =================================================
-            CONTENT GRID
-        ================================================= */}
+        {/* =========================================
+            NO REQUESTS
+        ========================================= */}
+        {serviceRequests.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-
-          {/* Quick Actions */}
-
-          <div className="lg:col-span-2">
-
-            <div className="mb-4">
-
-              <h3 className="text-lg font-bold text-slate-900">
-                Quick Actions
-              </h3>
-
-              <p className="text-sm text-slate-500">
-                Manage your provider account
-              </p>
-
+            <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto">
+              <Briefcase
+                size={28}
+                className="text-blue-600"
+              />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-
-              {/* My Services */}
-
-              <button
-                onClick={() =>
-                  navigate(
-                    "/provider/services"
-                  )
-                }
-                className="group flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-lg"
-              >
-
-                <div className="flex items-center gap-4">
-
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50">
-
-                    <ClipboardList
-                      size={21}
-                      className="text-blue-600"
-                    />
-
-                  </div>
-
-                  <div>
-
-                    <h4 className="font-bold text-slate-900 group-hover:text-blue-600">
-                      My Services
-                    </h4>
-
-                    <p className="mt-1 text-xs text-slate-500">
-                      Manage your offered services
-                    </p>
-
-                  </div>
-
-                </div>
-
-                <ArrowRight
-                  size={18}
-                  className="text-slate-400 transition group-hover:translate-x-1 group-hover:text-blue-600"
-                />
-
-              </button>
-
-              {/* Bookings */}
-
-              <button
-                onClick={() =>
-                  navigate(
-                    "/provider/bookings"
-                  )
-                }
-                className="group flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-lg"
-              >
-
-                <div className="flex items-center gap-4">
-
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50">
-
-                    <Calendar
-                      size={21}
-                      className="text-emerald-600"
-                    />
-
-                  </div>
-
-                  <div>
-
-                    <h4 className="font-bold text-slate-900 group-hover:text-emerald-600">
-                      Bookings
-                    </h4>
-
-                    <p className="mt-1 text-xs text-slate-500">
-                      View and manage bookings
-                    </p>
-
-                  </div>
-
-                </div>
-
-                <ArrowRight
-                  size={18}
-                  className="text-slate-400 transition group-hover:translate-x-1 group-hover:text-emerald-600"
-                />
-
-              </button>
-
-              {/* Profile */}
-
-              <button
-                onClick={() =>
-                  navigate(
-                    "/provider/profile"
-                  )
-                }
-                className="group flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:border-purple-200 hover:shadow-lg"
-              >
-
-                <div className="flex items-center gap-4">
-
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50">
-
-                    <Settings
-                      size={21}
-                      className="text-purple-600"
-                    />
-
-                  </div>
-
-                  <div>
-
-                    <h4 className="font-bold text-slate-900 group-hover:text-purple-600">
-                      Profile Settings
-                    </h4>
-
-                    <p className="mt-1 text-xs text-slate-500">
-                      Update your provider profile
-                    </p>
-
-                  </div>
-
-                </div>
-
-                <ArrowRight
-                  size={18}
-                  className="text-slate-400 transition group-hover:translate-x-1 group-hover:text-purple-600"
-                />
-
-              </button>
-
-              {/* Earnings */}
-
-              <button
-                onClick={() =>
-                  navigate(
-                    "/provider/earnings"
-                  )
-                }
-                className="group flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:border-orange-200 hover:shadow-lg"
-              >
-
-                <div className="flex items-center gap-4">
-
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50">
-
-                    <DollarSign
-                      size={21}
-                      className="text-orange-600"
-                    />
-
-                  </div>
-
-                  <div>
-
-                    <h4 className="font-bold text-slate-900 group-hover:text-orange-600">
-                      Earnings
-                    </h4>
-
-                    <p className="mt-1 text-xs text-slate-500">
-                      Track your service income
-                    </p>
-
-                  </div>
-
-                </div>
-
-                <ArrowRight
-                  size={18}
-                  className="text-slate-400 transition group-hover:translate-x-1 group-hover:text-orange-600"
-                />
-
-              </button>
-
-            </div>
-
-          </div>
-
-          {/* Provider Performance */}
-
-          <div>
-
-            <h3 className="mb-4 text-lg font-bold text-slate-900">
-              Provider Performance
+            <h3 className="text-lg font-bold text-gray-800 mt-4">
+              No New Requests
             </h3>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">
+              New customer service requests will appear here
+              when you are online.
+            </p>
 
-              <div className="text-center">
+            <button
+              onClick={handleRefresh}
+              className="mt-5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition inline-flex items-center gap-2"
+            >
+              <RefreshCw size={16} />
+              Refresh
+            </button>
+          </div>
+        ) : (
+          /* =========================================
+             REQUEST CARDS
+          ========================================= */
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
 
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50">
+            {serviceRequests.map((request) => {
+              const requestId =
+                String(request.id);
 
-                  <Star
-                    size={30}
-                    className="fill-amber-400 text-amber-400"
-                  />
+              const timer =
+                requestTimers[requestId] ?? 300;
 
-                </div>
+              const customerLatitude =
+                request.latitude;
 
-                <p className="mt-4 text-sm font-medium text-slate-500">
-                  Average Rating
-                </p>
+              const customerLongitude =
+                request.longitude;
 
-                <p className="mt-1 text-4xl font-bold text-slate-900">
+              const distance =
+                calculateDistance(
+                  providerLocation?.latitude,
+                  providerLocation?.longitude,
+                  customerLatitude,
+                  customerLongitude
+                );
 
-                  {Number(
-                    stats.rating || 0
-                  ).toFixed(1)}
+              const customerLocation =
+                requestLocationNames?.[
+                  request.id
+                ]?.customer ||
+                "Finding location...";
 
-                </p>
+              const customerName =
+                request.customer?.name ||
+                request.user?.name ||
+                "Customer";
 
-                <div className="mt-2 flex justify-center gap-1">
+              const customerPhone =
+                request.customer?.phone ||
+                request.user?.phone ||
+                null;
 
-                  {[1, 2, 3, 4, 5].map(
-                    (star) => (
-                      <Star
-                        key={star}
-                        size={16}
-                        className={
-                          star <=
-                          Math.round(
-                            stats.rating || 0
+              const serviceName =
+                request.service?.name ||
+                "Service";
+
+              const basePrice = Number(
+                request.service?.base_price || 0
+              );
+
+              return (
+                <div
+                  key={request.id}
+                  className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition overflow-hidden"
+                >
+
+                  {/* CARD HEADER */}
+                  <div className="px-4 py-3.5 border-b border-gray-100">
+                    <div className="flex items-center justify-between gap-3">
+
+                      {/* SERVICE */}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                          <Zap
+                            size={19}
+                            className="text-blue-600"
+                          />
+                        </div>
+
+                        <div className="min-w-0">
+                          <h3 className="font-bold text-gray-800 truncate">
+                            {serviceName}
+                          </h3>
+
+                          <p className="text-[11px] text-gray-400 mt-0.5">
+                            Request #{request.id}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* TIMER */}
+                      <div
+                        className={`px-2.5 py-1.5 rounded-lg text-center flex-shrink-0 ${
+                          timer <= 60
+                            ? "bg-red-50 text-red-600"
+                            : "bg-blue-50 text-blue-600"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1">
+                          <Clock size={13} />
+
+                          <span className="font-bold text-xs">
+                            {formatTimer(timer)}
+                          </span>
+                        </div>
+
+                        <p className="text-[9px] mt-0.5">
+                          response
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CARD BODY */}
+                  <div className="p-4">
+
+                    {/* CUSTOMER */}
+                    <div className="flex items-center justify-between mb-4">
+
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
+                          <User
+                            size={17}
+                            className="text-gray-700"
+                          />
+                        </div>
+
+                        <div>
+                          <p className="text-[11px] text-gray-400">
+                            Customer
+                          </p>
+
+                          <p className="text-sm font-semibold text-gray-800">
+                            {customerName}
+                          </p>
+                        </div>
+                      </div>
+
+                      {customerPhone && (
+                        <a
+                          href={`tel:${customerPhone}`}
+                          className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center text-gray-700 hover:bg-gray-200 transition"
+                          title="Call Customer"
+                        >
+                          <Phone size={16} />
+                        </a>
+                      )}
+                    </div>
+
+                    {/* PRICE + DISTANCE */}
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+
+                      {/* PRICE */}
+                      <div className="bg-blue-50 rounded-xl px-3.5 py-3">
+                        <div className="flex items-center gap-2">
+                          <DollarSign
+                            size={16}
+                            className="text-blue-600"
+                          />
+
+                          <span className="text-[11px] text-gray-500">
+                            Service Price
+                          </span>
+                        </div>
+
+                        <p className="text-lg font-bold text-blue-700 mt-1">
+                          ₹
+                          {basePrice.toLocaleString(
+                            "en-IN"
+                          )}
+                        </p>
+                      </div>
+
+                      {/* DISTANCE */}
+                      <div className="bg-green-50 rounded-xl px-3.5 py-3">
+                        <div className="flex items-center gap-2">
+                          <Activity
+                            size={16}
+                            className="text-green-600"
+                          />
+
+                          <span className="text-[11px] text-gray-500">
+                            Distance
+                          </span>
+                        </div>
+
+                        <p className="text-lg font-bold text-green-700 mt-1">
+                          {distance !== null
+                            ? `${distance.toFixed(
+                                2
+                              )} km`
+                            : "Calculating..."}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* LOCATIONS */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+
+                      {/* CUSTOMER LOCATION */}
+                      <div className="border border-gray-100 rounded-xl p-3">
+                        <div className="flex items-start gap-2.5">
+
+                          <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                            <MapPin
+                              size={16}
+                              className="text-blue-600"
+                            />
+                          </div>
+
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-gray-400 uppercase tracking-wide">
+                              Customer Location
+                            </p>
+
+                            <p className="text-xs font-medium text-gray-700 mt-1 line-clamp-2">
+                              {customerLocation}
+                            </p>
+
+                            {customerLatitude !==
+                              null &&
+                              customerLatitude !==
+                                undefined &&
+                              customerLongitude !==
+                                null &&
+                              customerLongitude !==
+                                undefined && (
+                                <p className="text-[10px] text-gray-400 mt-1">
+                                  {Number(
+                                    customerLatitude
+                                  ).toFixed(5)}
+                                  ,{" "}
+                                  {Number(
+                                    customerLongitude
+                                  ).toFixed(5)}
+                                </p>
+                              )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* PROVIDER LOCATION */}
+                      <div className="border border-gray-100 rounded-xl p-3">
+                        <div className="flex items-start gap-2.5">
+
+                          <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <Navigation
+                              size={16}
+                              className="text-gray-700"
+                            />
+                          </div>
+
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-gray-400 uppercase tracking-wide">
+                              Your Location
+                            </p>
+
+                            <p className="text-xs font-medium text-gray-700 mt-1 line-clamp-2">
+                              {providerLocationName ||
+                                "Location unavailable"}
+                            </p>
+
+                            {providerLocation && (
+                              <p className="text-[10px] text-gray-400 mt-1">
+                                {providerLocation.latitude.toFixed(
+                                  5
+                                )}
+                                ,{" "}
+                                {providerLocation.longitude.toFixed(
+                                  5
+                                )}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* PROBLEM */}
+                    {(request.problem_description ||
+                      request.problem) && (
+                      <div className="mb-4 bg-gray-50 rounded-xl px-3.5 py-3">
+
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <AlertCircle
+                            size={15}
+                            className="text-red-500"
+                          />
+
+                          <p className="text-xs font-semibold text-gray-700">
+                            Problem
+                          </p>
+                        </div>
+
+                        <p className="text-xs text-gray-600 line-clamp-2">
+                          {request.problem_description ||
+                            request.problem}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* SCHEDULE */}
+                    {request.scheduled_at && (
+                      <div className="flex items-center gap-2 bg-blue-50 rounded-xl px-3.5 py-2.5 mb-4">
+
+                        <Clock
+                          size={15}
+                          className="text-blue-600"
+                        />
+
+                        <div>
+                          <p className="text-[10px] text-blue-500">
+                            Scheduled For
+                          </p>
+
+                          <p className="text-xs font-semibold text-blue-700">
+                            {new Date(
+                              request.scheduled_at
+                            ).toLocaleString(
+                              "en-IN",
+                              {
+                                dateStyle:
+                                  "medium",
+                                timeStyle:
+                                  "short",
+                              }
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* BUTTONS */}
+                    <div className="grid grid-cols-2 gap-3">
+
+                      {/* REMOVE */}
+                      <button
+                        onClick={() =>
+                          handleRemoveRequest(
+                            request.id
                           )
-                            ? "fill-amber-400 text-amber-400"
-                            : "text-slate-200"
                         }
-                      />
-                    )
-                  )}
+                        disabled={
+                          requestProcessingId ===
+                          request.id
+                        }
+                        className="py-2.5 rounded-xl bg-black hover:bg-gray-800 text-white font-semibold text-sm transition flex items-center justify-center gap-2 disabled:opacity-60 shadow-sm"
+                      >
+                        <X size={16} />
+                        Remove
+                      </button>
 
+                      {/* ACCEPT */}
+                      <button
+                        onClick={() =>
+                          handleAcceptRequest(
+                            request.id
+                          )
+                        }
+                        disabled={
+                          requestProcessingId ===
+                          request.id
+                        }
+                        className="py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold text-sm transition flex items-center justify-center gap-2 disabled:opacity-60 shadow-sm"
+                      >
+                        {requestProcessingId ===
+                        request.id ? (
+                          <>
+                            <RefreshCw
+                              size={16}
+                              className="animate-spin"
+                            />
+                            Accepting...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle size={16} />
+                            Accept
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-
-              </div>
-
-              <div className="my-6 border-t border-slate-100"></div>
-
-              <div className="space-y-4">
-
-                <div className="flex items-center justify-between">
-
-                  <span className="text-sm text-slate-500">
-                    Completed Jobs
-                  </span>
-
-                  <span className="font-semibold text-slate-800">
-                    {stats.completedJobs}
-                  </span>
-
-                </div>
-
-                <div className="flex items-center justify-between">
-
-                  <span className="text-sm text-slate-500">
-                    Pending Jobs
-                  </span>
-
-                  <span className="font-semibold text-slate-800">
-                    {stats.pendingJobs}
-                  </span>
-
-                </div>
-
-                <div className="flex items-center justify-between">
-
-                  <span className="text-sm text-slate-500">
-                    Total Jobs
-                  </span>
-
-                  <span className="font-semibold text-slate-800">
-                    {stats.totalJobs}
-                  </span>
-
-                </div>
-
-              </div>
-
-            </div>
-
+              );
+            })}
           </div>
-
-        </div>
-
-        {/* =================================================
-            VERIFICATION INFORMATION
-        ================================================= */}
-
-        <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
-
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
-            <div className="flex items-start gap-3">
-
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-blue-600 shadow-sm">
-
-                <ShieldCheck size={20} />
-
-              </div>
-
-              <div>
-
-                <h4 className="font-bold text-slate-900">
-                  Provider Verification
-                </h4>
-
-                <p className="mt-1 text-sm text-slate-600">
-
-                  Your provider account status is{" "}
-
-                  <strong>
-                    {statusStyle.label}
-                  </strong>
-                  .
-
-                </p>
-
-              </div>
-
-            </div>
-
-            {verificationStatus !==
-              "approved" && (
-              <button
-                onClick={() =>
-                  navigate(
-                    "/provider/documents/edit"
-                  )
-                }
-                className="flex w-fit items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
-              >
-
-                Update Documents
-
-                <ArrowRight size={16} />
-
-              </button>
-            )}
-
-          </div>
-
-        </div>
-
-        {/* =================================================
-            FOOTER
-        ================================================= */}
-
-        <div className="mt-8 border-t border-slate-200 pt-5 text-center">
-
-          <p className="text-xs text-slate-400">
-
-            © {new Date().getFullYear()}{" "}
-            Service Portal. Provider Panel.
-
-          </p>
-
-        </div>
-
-      </main>
-
+        )}
+      </div>
     </div>
   );
 };
 
 export default ProviderDashboard;
-

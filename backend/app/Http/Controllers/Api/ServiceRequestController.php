@@ -30,7 +30,7 @@ class ServiceRequestController extends Controller
     */
 
     public function store(Request $request)
-    {
+   {
         $customer = Auth::user();
 
         /*
@@ -124,97 +124,31 @@ class ServiceRequestController extends Controller
         */
 
         $providers = Provider::query()
+            ->where('verification_status', 'verified')
+            ->where('is_online', true)
+            ->where('availability_status', 'available')
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
 
-            /*
-            |--------------------------------------------------------------------------
-            | VERIFIED PROVIDER
-            |--------------------------------------------------------------------------
-            */
+            // Provider provides selected service
+            ->whereHas('services', function ($query) use ($validated) {
+                $query
+                    ->where('services.id', $validated['service_id'])
+                    ->where('provider_services.is_active', true);
+            })
 
-            ->where(
-                'verification_status',
-                'verified'
-            )
-
-            /*
-            |--------------------------------------------------------------------------
-            | ONLINE
-            |--------------------------------------------------------------------------
-            */
-
-            ->where(
-                'is_online',
-                true
-            )
-
-            /*
-            |--------------------------------------------------------------------------
-            | AVAILABLE
-            |--------------------------------------------------------------------------
-            */
-
-            ->where(
-                'availability_status',
-                'available'
-            )
-
-            /*
-            |--------------------------------------------------------------------------
-            | PROVIDER LOCATION REQUIRED
-            |--------------------------------------------------------------------------
-            */
-
-            ->whereNotNull(
-                'latitude'
-            )
-
-            ->whereNotNull(
-                'longitude'
-            )
-
-            /*
-            |--------------------------------------------------------------------------
-            | PROVIDER MUST OFFER SELECTED SERVICE
-            |--------------------------------------------------------------------------
-            */
-
-            ->whereHas(
-                'services',
-                function ($query) use ($validated) {
-
-                    $query
-                        ->where(
-                            'services.id',
-                            $validated['service_id']
-                        )
-                        ->where(
-                            'provider_services.is_active',
-                            true
-                        );
-                }
-            )
-
-            /*
-            |--------------------------------------------------------------------------
-            | DISTANCE CALCULATION
-            |--------------------------------------------------------------------------
-            */
-
-            ->select(
-                'providers.*'
-            )
-
+            // Calculate distance in KM
+            ->select('providers.*')
             ->selectRaw(
                 '(6371 * acos(
+                LEAST(1, GREATEST(-1,
                     cos(radians(?))
                     * cos(radians(latitude))
-                    * cos(
-                        radians(longitude)
-                        - radians(?)
-                    )
+                    * cos(radians(longitude) - radians(?))
                     + sin(radians(?))
                     * sin(radians(latitude))
-                )) AS distance',
+                ))
+            )) AS distance',
                 [
                     $validated['latitude'],
                     $validated['longitude'],
@@ -222,58 +156,31 @@ class ServiceRequestController extends Controller
                 ]
             )
 
-            /*
-            |--------------------------------------------------------------------------
-            | NEARBY RADIUS
-            |--------------------------------------------------------------------------
-            |
-            | Current radius = 5 KM
-            |
-            */
+            // Only providers within 5 KM
+            ->having('distance', '<=', 5)
 
-            ->having(
-                'distance',
-                '<=',
-                5
-            )
-
-            ->orderBy(
-                'distance',
-                'asc'
-            )
+            // Nearest providers first
+            ->orderBy('distance', 'asc')
 
             ->get();
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | CREATE CUSTOMER REQUEST
-        |--------------------------------------------------------------------------
-        */
+        // ---------------------------------------------
+        // CREATE SERVICE REQUEST
+        // ---------------------------------------------
 
         $serviceRequest = ServiceRequest::create([
+            'customer_id' => $customer->id,
 
-            'customer_id' =>
-                $customer->id,
-
-            /*
-            | Provider is NULL initially.
-            | It will be assigned when a provider accepts.
-            */
-
+            // No provider selected initially
             'provider_id' => null,
 
-            'service_id' =>
-                $validated['service_id'],
+            'service_id' => $validated['service_id'],
 
-            'address' =>
-                $validated['address'],
+            'address' => $validated['address'],
 
-            'latitude' =>
-                $validated['latitude'],
+            'latitude' => $validated['latitude'],
 
-            'longitude' =>
-                $validated['longitude'],
+            'longitude' => $validated['longitude'],
 
             'problem_description' =>
                 $validated['problem_description'] ?? null,
@@ -284,69 +191,50 @@ class ServiceRequestController extends Controller
             'scheduled_at' =>
                 $validated['scheduled_at'],
 
-            /*
-            | Request is waiting for provider.
-            */
-
             'status' => 'searching',
         ]);
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | SEND REQUEST TO NEARBY PROVIDERS
-        |--------------------------------------------------------------------------
-        */
+        // ---------------------------------------------
+        // SEND REQUEST TO MATCHING PROVIDERS
+        // ---------------------------------------------
 
         foreach ($providers as $provider) {
-
             ServiceRequestProvider::create([
-
-                'service_request_id' =>
-                    $serviceRequest->id,
-
-                'provider_id' =>
-                    $provider->id,
-
-                'status' =>
-                    'pending',
+                'service_request_id' => $serviceRequest->id,
+                'provider_id' => $provider->id,
+                'status' => 'pending',
             ]);
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | LOAD SERVICE
-        |--------------------------------------------------------------------------
-        */
+        // ---------------------------------------------
+        // LOAD RELATED DATA
+        // ---------------------------------------------
 
         $serviceRequest->load([
             'service',
             'customer',
         ]);
 
+        // ---------------------------------------------
+        // RESPONSE
+        // ---------------------------------------------
 
-        /*
-        |--------------------------------------------------------------------------
-        | RESPONSE
-        |--------------------------------------------------------------------------
-        */
+        if ($providers->count() === 0) {
+            return response()->json([
+                'success' => true,
+                'message' =>
+                    'Request created, but no nearby providers are currently available.',
+                'service_request' => $serviceRequest,
+                'nearby_providers_count' => 0,
+            ], 201);
+        }
 
         return response()->json([
-
             'success' => true,
-
             'message' =>
-                $providers->count() > 0
-                    ? 'Service request sent to nearby providers.'
-                    : 'Service request created, but no nearby providers are currently available.',
-
-            'service_request' =>
-                $serviceRequest,
-
-            'nearby_providers_count' =>
-                $providers->count(),
-
+                'Service request sent to nearby providers.',
+            'service_request' => $serviceRequest,
+            'nearby_providers_count' => $providers->count(),
         ], 201);
     }
 
@@ -399,11 +287,11 @@ class ServiceRequestController extends Controller
                 'customer',
                 'provider',
             ])
-            ->where(
-                'customer_id',
-                $customer->id
-            )
-            ->find($id);
+                ->where(
+                    'customer_id',
+                    $customer->id
+                )
+                ->find($id);
 
         if (!$serviceRequest) {
 
@@ -443,7 +331,7 @@ class ServiceRequestController extends Controller
                 'customer_id',
                 $customer->id
             )
-            ->find($id);
+                ->find($id);
 
         if (!$serviceRequest) {
 
@@ -466,10 +354,10 @@ class ServiceRequestController extends Controller
 
         if (
             $serviceRequest->status ===
-                'service_completed'
+            'service_completed'
             ||
             $serviceRequest->status ===
-                'cancelled'
+            'cancelled'
         ) {
 
             return response()->json([
@@ -523,15 +411,15 @@ class ServiceRequestController extends Controller
 
         $serviceRequest =
             ServiceRequest::with('provider')
-            ->where(
-                'id',
-                $id
-            )
-            ->where(
-                'customer_id',
-                $customer->id
-            )
-            ->first();
+                ->where(
+                    'id',
+                    $id
+                )
+                ->where(
+                    'customer_id',
+                    $customer->id
+                )
+                ->first();
 
         if (!$serviceRequest) {
 
@@ -612,11 +500,11 @@ class ServiceRequestController extends Controller
                 'id',
                 $id
             )
-            ->where(
-                'customer_id',
-                $customer->id
-            )
-            ->first();
+                ->where(
+                    'customer_id',
+                    $customer->id
+                )
+                ->first();
 
         if (!$serviceRequest) {
 
@@ -690,11 +578,11 @@ class ServiceRequestController extends Controller
                 'id',
                 $id
             )
-            ->where(
-                'customer_id',
-                $customer->id
-            )
-            ->first();
+                ->where(
+                    'customer_id',
+                    $customer->id
+                )
+                ->first();
 
         if (!$serviceRequest) {
 

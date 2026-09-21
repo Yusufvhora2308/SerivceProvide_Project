@@ -1,80 +1,80 @@
-    <?php
+<?php
 
-    use App\Http\Controllers\Admin\AdminUserController;
-    use App\Http\Controllers\Admin\AdminProviderController;
-    use App\Http\Controllers\ProviderController;
-    use App\Http\Controllers\Api\ServiceController;
-    use App\Http\Controllers\Api\Customer\ServiceRequestController;
-    use App\Http\Controllers\AuthController;
-    use App\Http\Controllers\CustomerProfileController;
-    use Illuminate\Http\Request;
-    use Illuminate\Support\Facades\Route;
-    use App\Http\Controllers\Provider\ProviderServiceController;
-    use App\Http\Controllers\Provider\ProviderServiceRequestController;
-    use App\Http\Controllers\Provider\ProviderProfileController;
+use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\Admin\AdminProviderController;
+use App\Http\Controllers\ProviderController;
+use App\Http\Controllers\Api\ServiceController;
+use App\Http\Controllers\Api\Customer\ServiceRequestController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CustomerProfileController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Provider\ProviderServiceController;
+use App\Http\Controllers\Provider\ProviderServiceRequestController;
+use App\Http\Controllers\Provider\ProviderProfileController;
 
-    use App\Http\Controllers\Api\Customer\NearbyProviderController;
+use App\Http\Controllers\Api\Customer\NearbyProviderController;
 
-    /*
-    |--------------------------------------------------------------------------
-    | Public Routes
-    |--------------------------------------------------------------------------
-    */
+/*
+|--------------------------------------------------------------------------
+| Public Routes
+|--------------------------------------------------------------------------
+*/
 
-    // Test authenticated user
-    Route::get('/user', function (Request $request) {
-        return $request->user();
-    })->middleware('auth:sanctum');
-
-
-    // Customer Authentication
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login', [AuthController::class, 'login']);
+// Test authenticated user
+Route::get('/user', function (Request $request) {
+    return $request->user();
+})->middleware('auth:sanctum');
 
 
-    // Admin Authentication
-    Route::post('/admin/login', [AuthController::class, 'adminLogin']);
+// Customer Authentication
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
 
 
-    // Provider Authentication
-    Route::post('/provider/register', [AuthController::class, 'registerProvider']);
-    Route::post('/provider/login', [AuthController::class, 'loginProvider']);
+// Admin Authentication
+Route::post('/admin/login', [AuthController::class, 'adminLogin']);
 
-    Route::get('/services', [ServiceController::class, 'index']);
-    Route::get('/services/{id}', [ServiceController::class, 'show']);
-    /*
-    |--------------------------------------------------------------------------
-    | Authenticated Routes
-    |--------------------------------------------------------------------------
-    */
 
-    Route::middleware('auth:sanctum')->prefix('customer')->group(function () {
+// Provider Authentication
+Route::post('/provider/register', [AuthController::class, 'registerProvider']);
+Route::post('/provider/login', [AuthController::class, 'loginProvider']);
 
-        // Nearby providers
-        Route::get(
+Route::get('/services', [ServiceController::class, 'index']);
+Route::get('/services/{id}', [ServiceController::class, 'show']);
+/*
+|--------------------------------------------------------------------------
+| Authenticated Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth:sanctum')->prefix('customer')->group(function () {
+
+    // Nearby providers
+    Route::get(
             '/nearby-providers',[NearbyProviderController::class, 'nearbyProviders']
-        );
+    );
 
 
-        // Create booking
-        Route::post(
-            '/service-requests',
-            [ServiceRequestController::class, 'store']
-        );
+    // Create booking
+    Route::post(
+        '/service-requests',
+        [ServiceRequestController::class, 'store']
+    );
 
-        // Customer bookings
-        Route::get(
-            '/service-requests',
-            [ServiceRequestController::class, 'index']
-        );
+    // Customer bookings
+    Route::get(
+        '/service-requests',
+        [ServiceRequestController::class, 'index']
+    );
 
-        // Booking detail
-        Route::get(
-            '/service-requests/{id}',
-            [ServiceRequestController::class, 'show']
-        );
+    // Booking detail
+    Route::get(
+        '/service-requests/{id}',
+        [ServiceRequestController::class, 'show']
+    );
 
-        Route::post(
+    Route::post(
         '/service-requests/{id}/approve-price',
         [ServiceRequestController::class, 'approvePrice']
     );
@@ -84,28 +84,28 @@
         [ServiceRequestController::class, 'rejectPrice']
     );
 
-        
-        // Provider Live Location
-        Route::get(
-            '/service-requests/{id}/provider-location',
-            [ServiceRequestController::class, 'providerLocation']
-        );
+
+    // Provider Live Location
+    Route::get(
+        '/service-requests/{id}/provider-location',
+        [ServiceRequestController::class, 'providerLocation']
+    );
 
 
 
-        // Cancel booking
-        Route::post(
-            '/service-requests/{id}/cancel',
-            [ServiceRequestController::class, 'cancel']
-        );
+    // Cancel booking
+    Route::post(
+        '/service-requests/{id}/cancel',
+        [ServiceRequestController::class, 'cancel']
+    );
 
-    });
-
-
+});
 
 
 
-    Route::middleware('auth:sanctum')->prefix('provider')->group(function () {
+
+
+Route::middleware('auth:sanctum')->prefix('provider')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
@@ -113,164 +113,175 @@
     |--------------------------------------------------------------------------
     */
 
-                // Get all requests
-                Route::get(
-                    '/service-requests',
-                    [ProviderServiceRequestController::class, 'index']
-                );
+    // Get all requests
+    Route::get(
+        '/service-requests',
+        [ProviderServiceRequestController::class, 'index']
+    );
 
-                // Get single request
-                Route::get(
-                    '/service-requests/{id}',
-                    [ProviderServiceRequestController::class, 'show']
-                );
+    // Get single request
+    Route::get(
+        '/service-requests/{id}',
+        [ProviderServiceRequestController::class, 'show']
+    );
 
-                // Accept request
-                Route::post(
-                    '/service-requests/{id}/accept',
-                    [ProviderServiceRequestController::class, 'accept']
-                );
+    // Accept request
+    Route::post(
+        '/service-requests/{id}/accept',
+        [ProviderServiceRequestController::class, 'accept']
+    );
 
-            
+
+    Route::post(
+        '/service-requests/{id}/reject',
+        [ProviderServiceRequestController::class, 'reject']
+    );
+
+
+    Route::post(
+        '/service-requests/{id}/expire',
+        [ProviderServiceRequestController::class, 'expire']
+    );
+
     /*
     |--------------------------------------------------------------------------
     | Update Service Request Status
     |--------------------------------------------------------------------------
     */
 
-                Route::put(
-                    '/service-requests/{id}/status',
-                    [ProviderServiceRequestController::class, 'updateStatus']
-                );
+    Route::put(
+        '/service-requests/{id}/status',
+        [ProviderServiceRequestController::class, 'updateStatus']
+    );
 
-                Route::put(
-                    '/service-requests/{id}/price',
-                    [ProviderServiceRequestController::class, 'updatePrice']
-                );
-
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Provider Service Selection - Registration
-        |--------------------------------------------------------------------------
-        */
-
-        Route::post(
-            '/select-services',
-            [ProviderController::class, 'selectServices']
-        );
+    Route::put(
+        '/service-requests/{id}/price',
+        [ProviderServiceRequestController::class, 'updatePrice']
+    );
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Provider My Services
-        |--------------------------------------------------------------------------
-        */
-        
-        // Get available master services
-        Route::get(
-            '/available-services',
-            [ProviderServiceController::class, 'availableServices']
-        );
 
-        // Get provider's own services
-        Route::get(
-            '/services',
-            [ProviderServiceController::class, 'index']
-        );
+    /*
+    |--------------------------------------------------------------------------
+    | Provider Service Selection - Registration
+    |--------------------------------------------------------------------------
+    */
 
-        // Add provider service
-        Route::post(
-            '/services',
-            [ProviderServiceController::class, 'store']
-        );
+    Route::post(
+        '/select-services',
+        [ProviderController::class, 'selectServices']
+    );
 
-        // Get single provider service
-        Route::get(
-            '/services/{id}',
-            [ProviderServiceController::class, 'show']
-        );
 
-        // Provider Live Location
+    /*
+    |--------------------------------------------------------------------------
+    | Provider My Services
+    |--------------------------------------------------------------------------
+    */
+
+    // Get available master services
+    Route::get(
+        '/available-services',
+        [ProviderServiceController::class, 'availableServices']
+    );
+
+    // Get provider's own services
+    Route::get(
+        '/services',
+        [ProviderServiceController::class, 'index']
+    );
+
+    // Add provider service
+    Route::post(
+        '/services',
+        [ProviderServiceController::class, 'store']
+    );
+
+    // Get single provider service
+    Route::get(
+        '/services/{id}',
+        [ProviderServiceController::class, 'show']
+    );
+
+    // Provider Live Location
     Route::get(
         '/service-requests/{id}/live-location',
         [ProviderServiceRequestController::class, 'liveLocation']
     );
 
-        // Update provider service
-        Route::put(
-            '/services/{id}',
-            [ProviderServiceController::class, 'update']
-        );
+    // Update provider service
+    Route::put(
+        '/services/{id}',
+        [ProviderServiceController::class, 'update']
+    );
 
-        // Delete provider service
-        Route::delete(
-            '/services/{id}',
-            [ProviderServiceController::class, 'destroy']
-        );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Provider Documents
-        |--------------------------------------------------------------------------
-        */
-
-        Route::post(
-            '/documents',
-            [ProviderController::class, 'uploadDocuments']
-        );
-
-        Route::get(
-            '/documents',
-            [ProviderController::class, 'documents']
-        );
+    // Delete provider service
+    Route::delete(
+        '/services/{id}',
+        [ProviderServiceController::class, 'destroy']
+    );
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Provider Profile
-        |--------------------------------------------------------------------------
-        */
-
-        Route::get(
-            '/profile',
-            [ProviderController::class, 'profile']
-        );
-
-        Route::post(
-            '/documents/update',
-            [ProviderController::class, 'updateDocument']
-        );
-        
-        // New My Profile API
-        Route::get('/my-profile', [
-            ProviderProfileController::class,
-            'show'
-        ]);
-
-        Route::put('/my-profile', [
-            ProviderProfileController::class,
-            'update'
-        ]);
-
-        /*
-        |--------------------------------------------------------------------------
-        | Provider Dashboard
-        |--------------------------------------------------------------------------
-        */
-
-        Route::get(
-            '/dashboard',
-            [ProviderController::class, 'dashboard']
-        );
-
-        /*
+    /*
     |--------------------------------------------------------------------------
-    | Provider Location
+    | Provider Documents
     |--------------------------------------------------------------------------
     */
+
+    Route::post(
+        '/documents',
+        [ProviderController::class, 'uploadDocuments']
+    );
+
+    Route::get(
+        '/documents',
+        [ProviderController::class, 'documents']
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Provider Profile
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/profile',
+        [ProviderController::class, 'profile']
+    );
+
+    Route::post(
+        '/documents/update',
+        [ProviderController::class, 'updateDocument']
+    );
+
+    // New My Profile API
+    Route::get('/my-profile', [
+        ProviderProfileController::class,
+        'show'
+    ]);
+
+    Route::put('/my-profile', [
+        ProviderProfileController::class,
+        'update'
+    ]);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Provider Dashboard
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/dashboard',
+        [ProviderController::class, 'dashboard']
+    );
+
+    /*
+|--------------------------------------------------------------------------
+| Provider Location
+|--------------------------------------------------------------------------
+*/
 
     Route::put(
         '/location',
@@ -282,99 +293,99 @@
     */
     Route::post('/update-status', [ProviderController::class, 'updateStatus']);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Logout / User
-        |--------------------------------------------------------------------------
-        */
+    /*
+    |--------------------------------------------------------------------------
+    | Logout / User
+    |--------------------------------------------------------------------------
+    */
 
-        Route::post(
-            '/logout',
-            [AuthController::class, 'logout']
-        );
+    Route::post(
+        '/logout',
+        [AuthController::class, 'logout']
+    );
 
-        Route::get(
-            '/user',
-            [AuthController::class, 'me']
-        );
+    Route::get(
+        '/user',
+        [AuthController::class, 'me']
+    );
 
 
-    });
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| Admin Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Users
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/admin/users',
+        [AdminUserController::class, 'index']
+    );
+
+    Route::get(
+        '/admin/users/stats',
+        [AdminUserController::class, 'stats']
+    );
+
+    Route::get(
+        '/admin/users/{id}',
+        [AdminUserController::class, 'show']
+    );
+
+    Route::put(
+        '/admin/users/{id}/status',
+        [AdminUserController::class, 'updateStatus']
+    );
+
+    Route::put(
+        '/admin/users/{id}/verify',
+        [AdminUserController::class, 'updateVerification']
+    );
+
+    Route::delete(
+        '/admin/users/{id}',
+        [AdminUserController::class, 'destroy']
+    );
 
 
     /*
     |--------------------------------------------------------------------------
-    | Admin Routes
+    | Admin Providers
     |--------------------------------------------------------------------------
     */
 
-    Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+    Route::get(
+        '/admin/providers',
+        [AdminProviderController::class, 'index']
+    );
 
-        /*
-        |--------------------------------------------------------------------------
-        | Admin Users
-        |--------------------------------------------------------------------------
-        */
+    Route::get(
+        '/admin/providers/{id}',
+        [AdminProviderController::class, 'show']
+    );
 
-        Route::get(
-            '/admin/users',
-            [AdminUserController::class, 'index']
-        );
+    Route::post(
+        '/admin/providers/{id}/approve',
+        [AdminProviderController::class, 'approve']
+    );
 
-        Route::get(
-            '/admin/users/stats',
-            [AdminUserController::class, 'stats']
-        );
+    Route::post(
+        '/admin/providers/{id}/reject',
+        [AdminProviderController::class, 'reject']
+    );
 
-        Route::get(
-            '/admin/users/{id}',
-            [AdminUserController::class, 'show']
-        );
-
-        Route::put(
-            '/admin/users/{id}/status',
-            [AdminUserController::class, 'updateStatus']
-        );
-
-        Route::put(
-            '/admin/users/{id}/verify',
-            [AdminUserController::class, 'updateVerification']
-        );
-
-        Route::delete(
-            '/admin/users/{id}',
-            [AdminUserController::class, 'destroy']
-        );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Admin Providers
-        |--------------------------------------------------------------------------
-        */
-
-        Route::get(
-            '/admin/providers',
-            [AdminProviderController::class, 'index']
-        );
-
-        Route::get(
-            '/admin/providers/{id}',
-            [AdminProviderController::class, 'show']
-        );
-
-        Route::post(
-            '/admin/providers/{id}/approve',
-            [AdminProviderController::class, 'approve']
-        );
-
-        Route::post(
-            '/admin/providers/{id}/reject',
-            [AdminProviderController::class, 'reject']
-        );
-
-        Route::middleware(['auth:sanctum', 'admin'])->get(
+    Route::middleware(['auth:sanctum', 'admin'])->get(
         '/documents/view',
         [AdminProviderController::class, 'viewDocument']
     );
-    });
+});

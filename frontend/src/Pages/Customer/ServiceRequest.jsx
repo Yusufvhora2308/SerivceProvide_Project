@@ -36,18 +36,6 @@ const ServiceRequest = () => {
   const [service, setService] = useState(null);
 
   // --------------------------------------------------
-  // PROVIDERS
-  // --------------------------------------------------
-
-  const [providers, setProviders] = useState([]);
-
-  const [selectedProvider, setSelectedProvider] =
-    useState(null);
-
-  const [loadingProviders, setLoadingProviders] =
-    useState(false);
-
-  // --------------------------------------------------
   // FORM
   // --------------------------------------------------
 
@@ -93,25 +81,7 @@ const ServiceRequest = () => {
         `/services/${serviceId}`
       );
 
-      console.log(
-        "Service Details API:",
-        response.data
-      );
-
-      /*
-       * Supports:
-       *
-       * {
-       *   success: true,
-       *   service: {...}
-       * }
-       *
-       * OR
-       *
-       * {
-       *   data: {...}
-       * }
-       */
+      console.log("Service Details API:", response.data);
 
       const serviceData =
         response.data?.service ||
@@ -155,86 +125,6 @@ const ServiceRequest = () => {
   };
 
   // --------------------------------------------------
-  // FETCH NEARBY PROVIDERS
-  // --------------------------------------------------
-
-  const fetchNearbyProviders = async (
-    latitude,
-    longitude
-  ) => {
-    if (!latitude || !longitude || !serviceId) {
-      return;
-    }
-
-    try {
-      setLoadingProviders(true);
-
-      setError("");
-
-      setSelectedProvider(null);
-
-      /*
-       * Current project nearby provider API:
-       *
-       * /customer/nearby-providers
-       *
-       * Params:
-       * latitude
-       * longitude
-       * radius
-       * service_id
-       */
-
-      const response = await api.get(
-        "/customer/nearby-providers",
-        {
-          params: {
-            latitude,
-            longitude,
-            radius: 10,
-            service_id: serviceId,
-          },
-        }
-      );
-
-      console.log(
-        "Nearby Providers API:",
-        response.data
-      );
-
-      /*
-       * Supports multiple possible response formats.
-       */
-
-      const providerData =
-        response.data?.providers ||
-        response.data?.data ||
-        response.data?.nearby_providers ||
-        [];
-
-      if (Array.isArray(providerData)) {
-        setProviders(providerData);
-      } else {
-        setProviders([]);
-      }
-    } catch (err) {
-      console.error(
-        "Nearby Providers Error:",
-        err.response?.data || err.message
-      );
-
-      setProviders([]);
-
-      setError(
-        err.response?.data?.message ||
-          "Unable to find nearby providers."
-      );
-    } finally {
-      setLoadingProviders(false);
-    }
-  };
-
-  // --------------------------------------------------
   // LOCATION CHANGE
   // --------------------------------------------------
 
@@ -249,115 +139,6 @@ const ServiceRequest = () => {
       longitude,
       address: address || prev.address,
     }));
-
-    /*
-     * After GPS location is selected,
-     * find nearby providers.
-     */
-
-    if (latitude && longitude) {
-      fetchNearbyProviders(
-        latitude,
-        longitude
-      );
-    }
-  };
-
-  // --------------------------------------------------
-  // SELECT PROVIDER
-  // --------------------------------------------------
-
-  const handleSelectProvider = (provider) => {
-    setSelectedProvider(provider);
-  };
-
-  // --------------------------------------------------
-  // GET PROVIDER ID
-  // --------------------------------------------------
-
-  const getProviderId = (provider) => {
-    return (
-      provider?.provider_id ||
-      provider?.id ||
-      provider?.provider?.id
-    );
-  };
-
-  // --------------------------------------------------
-  // GET PROVIDER NAME
-  // --------------------------------------------------
-
-  const getProviderName = (provider) => {
-    return (
-      provider?.name ||
-      provider?.user?.name ||
-      provider?.provider?.name ||
-      provider?.provider?.user?.name ||
-      "Service Provider"
-    );
-  };
-
-  // --------------------------------------------------
-  // GET PROVIDER PRICE
-  // --------------------------------------------------
-
-  const getProviderPrice = (provider) => {
-    const price =
-      provider?.price ??
-      provider?.provider_service_price ??
-      provider?.service_price ??
-      provider?.provider_service?.price;
-
-    if (
-      price === null ||
-      price === undefined ||
-      price === ""
-    ) {
-      return null;
-    }
-
-    return Number(price);
-  };
-
-  // --------------------------------------------------
-  // GET PROVIDER RATING
-  // --------------------------------------------------
-
-  const getProviderRating = (provider) => {
-    const rating =
-      provider?.rating ??
-      provider?.average_rating ??
-      provider?.provider?.rating;
-
-    if (
-      rating === null ||
-      rating === undefined ||
-      rating === ""
-    ) {
-      return null;
-    }
-
-    return Number(rating);
-  };
-
-  // --------------------------------------------------
-  // GET PROVIDER DISTANCE
-  // --------------------------------------------------
-
-  const getProviderDistance = (provider) => {
-    const distance =
-      provider?.distance ??
-      provider?.distance_km;
-
-    if (
-      distance === null ||
-      distance === undefined ||
-      distance === ""
-    ) {
-      return null;
-    }
-
-    return Number(distance);
   };
 
   // --------------------------------------------------
@@ -403,35 +184,6 @@ const ServiceRequest = () => {
     }
 
     // -----------------------------------------------
-    // PROVIDER VALIDATION
-    // -----------------------------------------------
-
-    if (!selectedProvider) {
-      await Swal.fire({
-        title: "Select Provider",
-        text: "Please select a nearby service provider.",
-        icon: "warning",
-        confirmButtonText: "OK",
-      });
-
-      return;
-    }
-
-    const providerId =
-      getProviderId(selectedProvider);
-
-    if (!providerId) {
-      await Swal.fire({
-        title: "Provider Error",
-        text: "Selected provider information is invalid.",
-        icon: "error",
-        confirmButtonText: "OK",
-      });
-
-      return;
-    }
-
-    // -----------------------------------------------
     // SCHEDULE VALIDATION
     // -----------------------------------------------
 
@@ -452,29 +204,28 @@ const ServiceRequest = () => {
     try {
       setSubmitting(true);
 
-      /*
-       * Backend:
-       *
-       * POST /api/customer/service-requests
-       */
+      // -----------------------------------------------
+      // REQUEST PAYLOAD
+      // -----------------------------------------------
+      // IMPORTANT:
+      // No provider_id is sent from customer side.
+      //
+      // Backend will automatically find the nearest
+      // valid provider who provides this service.
 
       const payload = {
         service_id: Number(serviceId),
 
-        provider_id: Number(providerId),
-
-        address: formData.address,
+        address: formData.address.trim(),
 
         latitude: Number(formData.latitude),
 
         longitude: Number(formData.longitude),
 
         problem_description:
-          formData.problem_description.trim() ||
-          null,
+          formData.problem_description.trim() || null,
 
-        request_type:
-          formData.request_type,
+        request_type: formData.request_type,
 
         scheduled_at:
           formData.request_type === "scheduled"
@@ -484,7 +235,7 @@ const ServiceRequest = () => {
 
       console.log(
         "Creating Service Request:",
-        payload
+        payload 
       );
 
       const response = await api.post(
@@ -503,7 +254,8 @@ const ServiceRequest = () => {
 
       await Swal.fire({
         title: "Request Created Successfully!",
-        text: "Your service request has been sent to the provider.",
+        text:
+          "We are finding a nearby service provider for you.",
         icon: "success",
         confirmButtonText: "View My Requests",
         confirmButtonColor: "#2563eb",
@@ -515,6 +267,10 @@ const ServiceRequest = () => {
         "Create Service Request Error:",
         err.response?.data || err.message
       );
+
+      // -----------------------------------------------
+      // VALIDATION ERRORS
+      // -----------------------------------------------
 
       const validationErrors =
         err.response?.data?.errors;
@@ -560,17 +316,11 @@ const ServiceRequest = () => {
   if (loading) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50/50">
-
         <div className="flex items-center gap-2 text-xs font-medium text-slate-500 sm:text-sm">
-
-          <Loader2
-            className="h-4 w-4 animate-spin text-blue-600"
-          />
+          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
 
           Loading service details...
-
         </div>
-
       </div>
     );
   }
@@ -582,15 +332,10 @@ const ServiceRequest = () => {
   if (!service) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center bg-slate-50/50 p-4">
-
-        <AlertCircle
-          className="h-10 w-10 text-red-400"
-        />
+        <AlertCircle className="h-10 w-10 text-red-400" />
 
         <p className="mt-3 text-xs font-medium text-red-500 sm:text-sm">
-
           {error || "Service not found."}
-
         </p>
 
         <button
@@ -600,7 +345,6 @@ const ServiceRequest = () => {
         >
           Go Back
         </button>
-
       </div>
     );
   }
@@ -611,42 +355,32 @@ const ServiceRequest = () => {
 
   return (
     <main className="relative min-h-[calc(100vh-4rem)] w-full overflow-x-hidden bg-slate-50/50 px-3.5 py-4 sm:px-6 sm:py-6 lg:px-8">
-
       <div className="mx-auto flex w-full max-w-7xl flex-col">
 
-        {/* ==================================================
-            TOP BAR
-        ================================================== */}
+        {/* TOP BAR */}
 
         <div className="mb-4 flex items-center justify-between">
-
           <button
             type="button"
             onClick={() => navigate(-1)}
             className="group inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-slate-900 sm:text-sm"
           >
-
             <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
 
             Back
-
           </button>
 
           <div className="hidden items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-[11px] font-medium text-blue-700 sm:flex">
-
             <ShieldCheck className="h-3.5 w-3.5" />
 
             Verified & Protected Booking
-
           </div>
-
         </div>
 
         <form
           onSubmit={handleSubmit}
           className="w-full"
         >
-
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-start">
 
             {/* ==================================================
@@ -658,357 +392,50 @@ const ServiceRequest = () => {
               {/* SERVICE SUMMARY */}
 
               <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs sm:p-5">
-
                 <div className="flex items-start justify-between gap-3">
 
                   <div>
-
                     <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-blue-600">
-
                       <Sparkles className="h-3 w-3" />
 
                       Service Request
-
                     </span>
 
                     <h1 className="mt-0.5 text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
-
                       {service.name}
-
                     </h1>
 
                     <p className="mt-0.5 text-xs text-slate-400">
-
                       {service.category ||
                         "Home Care & Maintenance"}
-
                     </p>
-
                   </div>
 
                   <div className="text-right">
-
                     <span className="block text-[10px] font-medium uppercase text-slate-400">
-
                       Starting at
-
                     </span>
 
                     <span className="text-base font-bold text-slate-900 sm:text-lg">
-
                       ₹
                       {Number(
                         service.base_price || 0
                       ).toLocaleString("en-IN")}
-
                     </span>
-
                   </div>
 
                 </div>
-
               </div>
 
               {/* ERROR */}
 
               {error && (
                 <div className="flex items-start gap-2 rounded-xl border border-red-100 bg-red-50 p-3.5 text-xs font-medium text-red-600">
-
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
 
                   <span>{error}</span>
-
                 </div>
               )}
-
-              {/* ==================================================
-                  PROVIDERS
-              ================================================== */}
-
-              <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs sm:p-5">
-
-                <div className="mb-4 flex items-center justify-between">
-
-                  <div>
-
-                    <div className="flex items-center gap-1.5">
-
-                      <UsersIcon />
-
-                      <h2 className="text-xs font-bold text-slate-800 sm:text-sm">
-
-                        Nearby Service Providers
-
-                      </h2>
-
-                    </div>
-
-                    <p className="mt-1 text-[10px] text-slate-400 sm:text-xs">
-
-                      Select a provider for your service request.
-
-                    </p>
-
-                  </div>
-
-                  {providers.length > 0 && (
-                    <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-blue-600">
-
-                      {providers.length} available
-
-                    </span>
-                  )}
-
-                </div>
-
-                {/* Loading Providers */}
-
-                {loadingProviders && (
-                  <div className="flex items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8">
-
-                    <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-
-                      Finding nearby providers...
-
-                    </div>
-
-                  </div>
-                )}
-
-                {/* No Location */}
-
-                {!loadingProviders &&
-                  !formData.latitude &&
-                  !formData.longitude && (
-                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
-
-                      <Navigation className="mx-auto h-7 w-7 text-slate-300" />
-
-                      <p className="mt-2 text-xs font-semibold text-slate-600">
-
-                        Select your location first
-
-                      </p>
-
-                      <p className="mt-1 text-[10px] text-slate-400">
-
-                        Nearby providers will appear automatically.
-
-                      </p>
-
-                    </div>
-                  )}
-
-                {/* No Providers */}
-
-                {!loadingProviders &&
-                  formData.latitude &&
-                  formData.longitude &&
-                  providers.length === 0 && (
-                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
-
-                      <User className="mx-auto h-7 w-7 text-slate-300" />
-
-                      <p className="mt-2 text-xs font-semibold text-slate-600">
-
-                        No nearby providers found
-
-                      </p>
-
-                      <p className="mt-1 text-[10px] text-slate-400">
-
-                        Try selecting another location or try again later.
-
-                      </p>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          fetchNearbyProviders(
-                            formData.latitude,
-                            formData.longitude
-                          )
-                        }
-                        className="mt-3 rounded-lg bg-blue-600 px-3 py-2 text-[10px] font-semibold text-white hover:bg-blue-700"
-                      >
-                        Search Again
-                      </button>
-
-                    </div>
-                  )}
-
-                {/* Provider Cards */}
-
-                {!loadingProviders &&
-                  providers.length > 0 && (
-                    <div className="space-y-2.5">
-
-                      {providers.map(
-                        (provider, index) => {
-
-                          const providerId =
-                            getProviderId(
-                              provider
-                            );
-
-                          const providerName =
-                            getProviderName(
-                              provider
-                            );
-
-                          const price =
-                            getProviderPrice(
-                              provider
-                            );
-
-                          const rating =
-                            getProviderRating(
-                              provider
-                            );
-
-                          const distance =
-                            getProviderDistance(
-                              provider
-                            );
-
-                          const isSelected =
-                            getProviderId(
-                              selectedProvider
-                            ) ===
-                            providerId;
-
-                          return (
-                            <button
-                              type="button"
-                              key={
-                                providerId ||
-                                index
-                              }
-                              onClick={() =>
-                                handleSelectProvider(
-                                  provider
-                                )
-                              }
-                              className={`w-full rounded-xl border p-3 text-left transition-all sm:p-4 ${
-                                isSelected
-                                  ? "border-blue-600 bg-blue-50/60 ring-1 ring-blue-600"
-                                  : "border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50/30"
-                              }`}
-                            >
-
-                              <div className="flex items-center gap-3">
-
-                                {/* Avatar */}
-
-                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-
-                                  <User size={18} />
-
-                                </div>
-
-                                {/* Details */}
-
-                                <div className="min-w-0 flex-1">
-
-                                  <div className="flex items-center gap-2">
-
-                                    <h3 className="truncate text-xs font-bold text-slate-900 sm:text-sm">
-
-                                      {providerName}
-
-                                    </h3>
-
-                                    {isSelected && (
-                                      <CheckCircle2
-                                        size={16}
-                                        className="shrink-0 text-blue-600"
-                                      />
-                                    )}
-
-                                  </div>
-
-                                  <div className="mt-1 flex flex-wrap items-center gap-2">
-
-                                    {rating !== null && (
-                                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-500">
-
-                                        <Star
-                                          size={11}
-                                          className="fill-yellow-400 text-yellow-400"
-                                        />
-
-                                        {rating.toFixed(
-                                          1
-                                        )}
-
-                                      </span>
-                                    )}
-
-                                    {distance !==
-                                      null && (
-                                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-500">
-
-                                        <MapPin
-                                          size={11}
-                                        />
-
-                                        {distance.toFixed(
-                                          1
-                                        )}{" "}
-                                        km
-
-                                      </span>
-                                    )}
-
-                                  </div>
-
-                                </div>
-
-                                {/* Price */}
-
-                                <div className="shrink-0 text-right">
-
-                                  {price !==
-                                  null ? (
-                                    <>
-                                      <p className="text-[9px] text-slate-400">
-
-                                        Visit Price
-
-                                      </p>
-
-                                      <p className="text-sm font-bold text-slate-900">
-
-                                        ₹
-                                        {price.toLocaleString(
-                                          "en-IN"
-                                        )}
-
-                                      </p>
-                                    </>
-                                  ) : (
-                                    <p className="text-[10px] font-semibold text-slate-400">
-
-                                      Price on request
-
-                                    </p>
-                                  )}
-
-                                </div>
-
-                              </div>
-
-                            </button>
-                          );
-                        }
-                      )}
-
-                    </div>
-                  )}
-
-              </div>
 
               {/* ==================================================
                   ADDRESS
@@ -1017,11 +444,9 @@ const ServiceRequest = () => {
               <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs sm:p-5">
 
                 <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 sm:text-sm">
-
                   <MapPin className="h-4 w-4 text-blue-600" />
 
                   Complete Address
-
                 </label>
 
                 <textarea
@@ -1043,18 +468,14 @@ const ServiceRequest = () => {
               <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs sm:p-5">
 
                 <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 sm:text-sm">
-
                   <FileText className="h-4 w-4 text-blue-600" />
 
                   Describe Problem / Requirements
-
                 </label>
 
                 <textarea
                   name="problem_description"
-                  value={
-                    formData.problem_description
-                  }
+                  value={formData.problem_description}
                   onChange={handleChange}
                   placeholder="E.g., AC is making rattling noise and cooling is weak..."
                   rows="3"
@@ -1070,11 +491,9 @@ const ServiceRequest = () => {
               <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs sm:p-5">
 
                 <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 sm:text-sm">
-
                   <Clock className="h-4 w-4 text-blue-600" />
 
                   When do you need the service?
-
                 </label>
 
                 <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
@@ -1083,40 +502,29 @@ const ServiceRequest = () => {
 
                   <label
                     className={`flex cursor-pointer items-center justify-between rounded-xl border p-3 transition-all ${
-                      formData.request_type ===
-                      "now"
+                      formData.request_type === "now"
                         ? "border-blue-600 bg-blue-50/60 text-blue-900 ring-1 ring-blue-600"
                         : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                     }`}
                   >
-
                     <div className="flex items-center gap-2">
-
                       <Zap
                         className={`h-4 w-4 ${
-                          formData.request_type ===
-                          "now"
+                          formData.request_type === "now"
                             ? "text-blue-600"
                             : "text-slate-400"
                         }`}
                       />
 
                       <div>
-
                         <span className="block text-xs font-semibold sm:text-sm">
-
                           Immediate
-
                         </span>
 
                         <span className="block text-[10px] text-slate-400">
-
                           Available expert
-
                         </span>
-
                       </div>
-
                     </div>
 
                     <input
@@ -1124,53 +532,40 @@ const ServiceRequest = () => {
                       name="request_type"
                       value="now"
                       checked={
-                        formData.request_type ===
-                        "now"
+                        formData.request_type === "now"
                       }
                       onChange={handleChange}
                       className="hidden"
                     />
-
                   </label>
 
                   {/* SCHEDULE */}
 
                   <label
                     className={`flex cursor-pointer items-center justify-between rounded-xl border p-3 transition-all ${
-                      formData.request_type ===
-                      "scheduled"
+                      formData.request_type === "scheduled"
                         ? "border-blue-600 bg-blue-50/60 text-blue-900 ring-1 ring-blue-600"
                         : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                     }`}
                   >
-
                     <div className="flex items-center gap-2">
-
                       <Calendar
                         className={`h-4 w-4 ${
-                          formData.request_type ===
-                          "scheduled"
+                          formData.request_type === "scheduled"
                             ? "text-blue-600"
                             : "text-slate-400"
                         }`}
                       />
 
                       <div>
-
                         <span className="block text-xs font-semibold sm:text-sm">
-
                           Schedule
-
                         </span>
 
                         <span className="block text-[10px] text-slate-400">
-
                           Pick date & time
-
                         </span>
-
                       </div>
-
                     </div>
 
                     <input
@@ -1178,32 +573,27 @@ const ServiceRequest = () => {
                       name="request_type"
                       value="scheduled"
                       checked={
-                        formData.request_type ===
-                        "scheduled"
+                        formData.request_type === "scheduled"
                       }
                       onChange={handleChange}
                       className="hidden"
                     />
-
                   </label>
 
                 </div>
 
-                {formData.request_type ===
-                  "scheduled" && (
-                  <div className="pt-2">
+                {/* SCHEDULE DATE/TIME */}
 
+                {formData.request_type === "scheduled" && (
+                  <div className="pt-2">
                     <input
                       type="datetime-local"
                       name="scheduled_at"
-                      value={
-                        formData.scheduled_at
-                      }
+                      value={formData.scheduled_at}
                       onChange={handleChange}
                       required
                       className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 text-xs text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10 sm:text-sm"
                     />
-
                   </div>
                 )}
 
@@ -1217,33 +607,24 @@ const ServiceRequest = () => {
 
                 <button
                   type="submit"
-                  disabled={
-                    submitting ||
-                    loadingProviders
-                  }
+                  disabled={submitting}
                   className="flex h-11 w-full items-center justify-center rounded-xl bg-blue-600 text-xs font-semibold text-white shadow-sm shadow-blue-600/20 transition-all hover:bg-blue-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 sm:h-12 sm:text-sm"
                 >
-
                   {submitting ? (
                     <div className="flex items-center gap-2">
-
                       <Loader2 className="h-4 w-4 animate-spin" />
 
-                      Creating Request...
-
+                      Finding Service Provider...
                     </div>
                   ) : (
                     <>
                       Confirm & Request Service
                     </>
                   )}
-
                 </button>
 
                 <p className="mt-2 text-center text-[10px] text-slate-400">
-
                   No advance payment required. Pay after service completion.
-
                 </p>
 
               </div>
@@ -1261,17 +642,13 @@ const ServiceRequest = () => {
                 <div className="mb-3 flex items-center justify-between">
 
                   <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 sm:text-sm">
-
                     <MapPin className="h-4 w-4 text-blue-600" />
 
                     Pin Exact Location
-
                   </span>
 
                   <span className="text-[10px] font-medium text-slate-400">
-
                     GPS Accurate
-
                   </span>
 
                 </div>
@@ -1279,20 +656,14 @@ const ServiceRequest = () => {
                 <div className="min-h-[220px] overflow-hidden rounded-xl border border-slate-100 bg-slate-50 sm:min-h-[280px]">
 
                   <LocationPicker
-                    latitude={
-                      formData.latitude
-                    }
-                    longitude={
-                      formData.longitude
-                    }
-                    onLocationChange={
-                      handleLocationChange
-                    }
+                    latitude={formData.latitude}
+                    longitude={formData.longitude}
+                    onLocationChange={handleLocationChange}
                   />
 
                 </div>
 
-                {/* Coordinates */}
+                {/* COORDINATES */}
 
                 {formData.latitude &&
                   formData.longitude && (
@@ -1306,23 +677,15 @@ const ServiceRequest = () => {
                         />
 
                         <span className="text-[10px] font-semibold text-slate-600">
-
                           Location selected
-
                         </span>
 
                       </div>
 
                       <p className="mt-1 text-[9px] text-slate-400">
-
-                        Lat:{" "}
-                        {formData.latitude}
-
+                        Lat: {formData.latitude}
                         {" • "}
-
-                        Lng:{" "}
-                        {formData.longitude}
-
+                        Lng: {formData.longitude}
                       </p>
 
                     </div>
@@ -1330,66 +693,40 @@ const ServiceRequest = () => {
 
               </div>
 
-              {/* SELECTED PROVIDER */}
+              {/* AUTOMATIC PROVIDER MESSAGE */}
 
-              {selectedProvider && (
-                <div className="rounded-2xl border border-green-200 bg-green-50/70 p-4">
+              <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
 
-                  <div className="flex items-center gap-2">
+                <div className="flex items-start gap-3">
 
-                    <CheckCircle2
-                      size={18}
-                      className="text-green-600"
-                    />
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                    <MapPin size={17} />
+                  </div>
 
-                    <div>
+                  <div>
+                    <p className="text-xs font-bold text-blue-900">
+                      We'll Find a Provider for You
+                    </p>
 
-                      <p className="text-xs font-bold text-green-800">
-
-                        Provider Selected
-
-                      </p>
-
-                      <p className="text-xs text-green-700">
-
-                        {getProviderName(
-                          selectedProvider
-                        )}
-
-                      </p>
-
-                    </div>
-
+                    <p className="mt-1 text-[10px] leading-5 text-blue-700">
+                      After you submit the request, QuickFix will
+                      automatically find nearby verified providers
+                      who offer this service.
+                    </p>
                   </div>
 
                 </div>
-              )}
+
+              </div>
 
             </div>
 
           </div>
-
         </form>
 
       </div>
-
     </main>
   );
 };
 
-// --------------------------------------------------
-// SMALL ICON COMPONENT
-// --------------------------------------------------
-
-const UsersIcon = () => {
-  return (
-    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-
-      <User size={14} />
-
-    </div>
-  );
-};
-
 export default ServiceRequest;
-

@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
-use App\Models\Service;
+use App\Models\Provider;
 use App\Models\ServiceRequest;
+use App\Models\ServiceRequestProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -15,24 +16,33 @@ class ServiceRequestController extends Controller
     |--------------------------------------------------------------------------
     | CREATE SERVICE REQUEST
     |--------------------------------------------------------------------------
+    |
+    | Customer creates a request without selecting a provider.
+    |
+    | QuickFix automatically finds nearby providers who:
+    |
+    | 1. Provide the selected service
+    | 2. Are verified
+    | 3. Are online
+    | 4. Are available
+    | 5. Are within 5 KM
+    |
     */
 
     public function store(Request $request)
     {
+
         $customer = Auth::user();
 
-        // Validation
+        // ---------------------------------------------
+        // VALIDATION
+        // ---------------------------------------------
+
         $validated = $request->validate([
             'service_id' => [
                 'required',
                 'integer',
                 'exists:services,id',
-            ],
-
-            'provider_id' => [
-                'required',
-                'integer',
-                'exists:providers,id',
             ],
 
             'address' => [
@@ -74,15 +84,13 @@ class ServiceRequestController extends Controller
             ],
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Scheduled validation
-        |--------------------------------------------------------------------------
-        */
+        // ---------------------------------------------
+        // SCHEDULE VALIDATION
+        // ---------------------------------------------
 
         if (
-            $validated['request_type'] === 'scheduled'
-            && empty($validated['scheduled_at'])
+            $validated['request_type'] === 'scheduled' &&
+            empty($validated['scheduled_at'])
         ) {
             return response()->json([
                 'success' => false,
@@ -90,41 +98,66 @@ class ServiceRequestController extends Controller
             ], 422);
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Instant request
-        |--------------------------------------------------------------------------
-        */
-
+        // For immediate request, scheduled_at is NULL
         if ($validated['request_type'] === 'now') {
             $validated['scheduled_at'] = null;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Check Service
-        |--------------------------------------------------------------------------
-        */
-
-        $service = Service::find($validated['service_id']);
-
-        if (!$service) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Service not found.',
-            ], 404);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Create Request
-        |--------------------------------------------------------------------------
-        */
+        // ---------------------------------------------
+        // FIND MATCHING PROVIDERS
+        // ---------------------------------------------
+        //
+        // Provider must:
+        // 1. Provide selected service
+        // 2. Have active provider-service mapping
+        // 3. Be verified
+        // 4. Be online
+        // 5. Be available
+        // 6. Have a location
+        // 7. Be within 5 KM
+        //
+        $providers = Provider::query()
+            ->where('verification_status', 'approved')
+            ->where('is_online', true)
+            ->where('availability_status', 'available')
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->whereHas('services', function ($query) use ($validated) {
+                $query->where('services.id', $validated['service_id'])
+                    ->where('provider_services.is_active', true);
+            })
+            ->select('providers.*')
+            ->selectRaw(
+                '(6371 * acos(
+            LEAST(1, GREATEST(-1,
+                cos(radians(?))
+                * cos(radians(latitude))
+                * cos(radians(longitude) - radians(?))
+                + sin(radians(?))
+                * sin(radians(latitude))
+            ))
+        )) AS distance',
+                [
+                    $validated['latitude'],
+                    $validated['longitude'],
+                    $validated['latitude'],
+                ]
+            )
+            ->orderBy('distance', 'asc')
+            ->get()
+            ->filter(function ($provider) {
+                return $provider->distance <= 5;
+            })
+            ->values();
+        // ---------------------------------------------
+        // CREATE SERVICE REQUEST
+        // ---------------------------------------------
 
         $serviceRequest = ServiceRequest::create([
             'customer_id' => $customer->id,
 
-            'provider_id' => $validated['provider_id'],
+            // No provider selected initially
+            'provider_id' => null,
 
             'service_id' => $validated['service_id'],
 
@@ -141,37 +174,52 @@ class ServiceRequestController extends Controller
                 $validated['request_type'],
 
             'scheduled_at' =>
-                $validated['scheduled_at'] ?? null,
+                $validated['scheduled_at'],
 
             'status' => 'searching',
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Load relationships
-        |--------------------------------------------------------------------------
-        */
+        // ---------------------------------------------
+        // SEND REQUEST TO MATCHING PROVIDERS
+        // ---------------------------------------------
+
+        foreach ($providers as $provider) {
+            ServiceRequestProvider::create([
+                'service_request_id' => $serviceRequest->id,
+                'provider_id' => $provider->id,
+                'status' => 'pending',
+            ]);
+        }
+
+        // ---------------------------------------------
+        // LOAD RELATED DATA
+        // ---------------------------------------------
 
         $serviceRequest->load([
             'service',
             'customer',
-            'provider',
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Response
-        |--------------------------------------------------------------------------
-        */
+        // ---------------------------------------------
+        // RESPONSE
+        // ---------------------------------------------
+
+        if ($providers->count() === 0) {
+            return response()->json([
+                'success' => true,
+                'message' =>
+                    'Request created, but no nearby providers are currently available.',
+                'service_request' => $serviceRequest,
+                'nearby_providers_count' => 0,
+            ], 201);
+        }
 
         return response()->json([
             'success' => true,
-
             'message' =>
-                'Service request created successfully.',
-
-            'service_request' =>
-                $serviceRequest,
+                'Service request sent to nearby providers.',
+            'service_request' => $serviceRequest,
+            'nearby_providers_count' => $providers->count(),
         ], 201);
     }
 
@@ -198,10 +246,12 @@ class ServiceRequestController extends Controller
             ->get();
 
         return response()->json([
+
             'success' => true,
 
             'service_requests' =>
                 $requests,
+
         ]);
     }
 
@@ -222,25 +272,31 @@ class ServiceRequestController extends Controller
                 'customer',
                 'provider',
             ])
-            ->where(
-                'customer_id',
-                $customer->id
-            )
-            ->find($id);
+                ->where(
+                    'customer_id',
+                    $customer->id
+                )
+                ->find($id);
 
         if (!$serviceRequest) {
+
             return response()->json([
+
                 'success' => false,
+
                 'message' =>
                     'Service request not found.',
+
             ], 404);
         }
 
         return response()->json([
+
             'success' => true,
 
             'service_request' =>
                 $serviceRequest,
+
         ]);
     }
 
@@ -259,44 +315,63 @@ class ServiceRequestController extends Controller
             ServiceRequest::where(
                 'customer_id',
                 $customer->id
-            )->find($id);
+            )
+                ->find($id);
 
         if (!$serviceRequest) {
+
             return response()->json([
+
                 'success' => false,
+
                 'message' =>
                     'Service request not found.',
+
             ], 404);
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | Check if already completed/cancelled
+        | CHECK STATUS
         |--------------------------------------------------------------------------
         */
 
         if (
-            $serviceRequest->status === 'service_completed'
-            || $serviceRequest->status === 'cancelled'
+            $serviceRequest->status ===
+            'service_completed'
+            ||
+            $serviceRequest->status ===
+            'cancelled'
         ) {
+
             return response()->json([
+
                 'success' => false,
+
                 'message' =>
                     'This request cannot be cancelled.',
+
             ], 422);
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | Cancel
+        | CANCEL
         |--------------------------------------------------------------------------
         */
 
         $serviceRequest->update([
-            'status' => 'cancelled',
+
+            'status' =>
+                'cancelled',
+
         ]);
 
+
         return response()->json([
+
             'success' => true,
 
             'message' =>
@@ -304,6 +379,7 @@ class ServiceRequestController extends Controller
 
             'service_request' =>
                 $serviceRequest,
+
         ]);
     }
 
@@ -318,34 +394,58 @@ class ServiceRequestController extends Controller
     {
         $customer = Auth::user();
 
-        $serviceRequest = ServiceRequest::with('provider')
-            ->where('id', $id)
-            ->where('customer_id', $customer->id)
-            ->first();
+        $serviceRequest =
+            ServiceRequest::with('provider')
+                ->where(
+                    'id',
+                    $id
+                )
+                ->where(
+                    'customer_id',
+                    $customer->id
+                )
+                ->first();
 
         if (!$serviceRequest) {
+
             return response()->json([
+
                 'success' => false,
+
                 'message' =>
                     'Service request not found.',
+
             ], 404);
         }
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | PROVIDER NOT ASSIGNED
+        |--------------------------------------------------------------------------
+        */
+
         if (!$serviceRequest->provider) {
+
             return response()->json([
+
                 'success' => true,
 
                 'provider_location' => null,
 
                 'message' =>
                     'Provider is not assigned yet.',
+
             ]);
         }
 
+
         return response()->json([
+
             'success' => true,
 
             'provider_location' => [
+
                 'provider_id' =>
                     $serviceRequest->provider->id,
 
@@ -360,10 +460,12 @@ class ServiceRequestController extends Controller
 
                 'availability_status' =>
                     $serviceRequest->provider->availability_status,
+
             ],
 
             'request_status' =>
                 $serviceRequest->status,
+
         ]);
     }
 
@@ -378,66 +480,62 @@ class ServiceRequestController extends Controller
     {
         $customer = Auth::user();
 
-        /*
-        |----------------------------------------------------------------------
-        | Find customer's request
-        |----------------------------------------------------------------------
-        */
-
-        $serviceRequest = ServiceRequest::where(
-            'id',
-            $id
-        )
-            ->where(
-                'customer_id',
-                $customer->id
+        $serviceRequest =
+            ServiceRequest::where(
+                'id',
+                $id
             )
-            ->first();
+                ->where(
+                    'customer_id',
+                    $customer->id
+                )
+                ->first();
 
         if (!$serviceRequest) {
+
             return response()->json([
+
                 'success' => false,
+
                 'message' =>
                     'Service request not found.',
+
             ], 404);
         }
 
-        /*
-        |----------------------------------------------------------------------
-        | Check price status
-        |----------------------------------------------------------------------
-        */
 
-        if ($serviceRequest->price_status !== 'pending') {
+        if (
+            $serviceRequest->price_status !==
+            'pending'
+        ) {
+
             return response()->json([
+
                 'success' => false,
+
                 'message' =>
                     'There is no pending price for approval.',
+
             ], 422);
         }
 
-        /*
-        |----------------------------------------------------------------------
-        | Approve price
-        |----------------------------------------------------------------------
-        */
 
         $serviceRequest->update([
-            'price_status' => 'approved',
+
+            'price_status' =>
+                'approved',
+
         ]);
 
-        /*
-        |----------------------------------------------------------------------
-        | Load relationships
-        |----------------------------------------------------------------------
-        */
 
         $serviceRequest->load([
             'service',
             'provider',
         ]);
 
+
         return response()->json([
+
             'success' => true,
 
             'message' =>
@@ -445,6 +543,7 @@ class ServiceRequestController extends Controller
 
             'service_request' =>
                 $serviceRequest,
+
         ]);
     }
 
@@ -459,66 +558,62 @@ class ServiceRequestController extends Controller
     {
         $customer = Auth::user();
 
-        /*
-        |----------------------------------------------------------------------
-        | Find customer's request
-        |----------------------------------------------------------------------
-        */
-
-        $serviceRequest = ServiceRequest::where(
-            'id',
-            $id
-        )
-            ->where(
-                'customer_id',
-                $customer->id
+        $serviceRequest =
+            ServiceRequest::where(
+                'id',
+                $id
             )
-            ->first();
+                ->where(
+                    'customer_id',
+                    $customer->id
+                )
+                ->first();
 
         if (!$serviceRequest) {
+
             return response()->json([
+
                 'success' => false,
+
                 'message' =>
                     'Service request not found.',
+
             ], 404);
         }
 
-        /*
-        |----------------------------------------------------------------------
-        | Check price status
-        |----------------------------------------------------------------------
-        */
 
-        if ($serviceRequest->price_status !== 'pending') {
+        if (
+            $serviceRequest->price_status !==
+            'pending'
+        ) {
+
             return response()->json([
+
                 'success' => false,
+
                 'message' =>
                     'There is no pending price to reject.',
+
             ], 422);
         }
 
-        /*
-        |----------------------------------------------------------------------
-        | Reject price
-        |----------------------------------------------------------------------
-        */
 
         $serviceRequest->update([
-            'price_status' => 'rejected',
+
+            'price_status' =>
+                'rejected',
+
         ]);
 
-        /*
-        |----------------------------------------------------------------------
-        | Load relationships
-        |----------------------------------------------------------------------
-        */
 
         $serviceRequest->load([
             'service',
             'provider',
         ]);
 
+
         return response()->json([
+
             'success' => true,
 
             'message' =>
@@ -526,7 +621,7 @@ class ServiceRequestController extends Controller
 
             'service_request' =>
                 $serviceRequest,
+
         ]);
     }
 }
-

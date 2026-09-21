@@ -38,8 +38,9 @@ const ProviderDashboard = () => {
   // PROVIDER LOCATION
   // =========================
   const [providerLocation, setProviderLocation] = useState(null);
-  const [providerLocationName, setProviderLocationName] =
-    useState("Location unavailable");
+  const [providerLocationName, setProviderLocationName] = useState(
+    "Location unavailable",
+  );
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState("");
 
@@ -48,8 +49,7 @@ const ProviderDashboard = () => {
   // =========================
   const [requestLoading, setRequestLoading] = useState(false);
   const [serviceRequests, setServiceRequests] = useState([]);
-  const [requestProcessingId, setRequestProcessingId] =
-    useState(null);
+  const [requestProcessingId, setRequestProcessingId] = useState(null);
 
   // =========================
   // REQUEST TIMER
@@ -59,17 +59,14 @@ const ProviderDashboard = () => {
   // =========================
   // REQUEST LOCATIONS
   // =========================
-  const [requestLocationNames, setRequestLocationNames] =
-    useState({});
+  const [requestLocationNames, setRequestLocationNames] = useState({});
 
   // =========================
   // IGNORED REQUESTS
   // =========================
   const [ignoredRequestIds, setIgnoredRequestIds] = useState(() => {
     try {
-      const saved = localStorage.getItem(
-        "provider_ignored_requests"
-      );
+      const saved = localStorage.getItem("provider_ignored_requests");
 
       return saved ? JSON.parse(saved) : [];
     } catch (error) {
@@ -106,15 +103,9 @@ const ProviderDashboard = () => {
   // =========================
   const saveIgnoredRequests = (ids) => {
     try {
-      localStorage.setItem(
-        "provider_ignored_requests",
-        JSON.stringify(ids)
-      );
+      localStorage.setItem("provider_ignored_requests", JSON.stringify(ids));
     } catch (error) {
-      console.error(
-        "Unable to save ignored requests:",
-        error
-      );
+      console.error("Unable to save ignored requests:", error);
     }
   };
 
@@ -123,16 +114,11 @@ const ProviderDashboard = () => {
   // =========================
   const getRequestTimerStorage = () => {
     try {
-      const saved = localStorage.getItem(
-        "provider_request_timers"
-      );
+      const saved = localStorage.getItem("provider_request_timers");
 
       return saved ? JSON.parse(saved) : {};
     } catch (error) {
-      console.error(
-        "Unable to read request timers:",
-        error
-      );
+      console.error("Unable to read request timers:", error);
 
       return {};
     }
@@ -140,15 +126,9 @@ const ProviderDashboard = () => {
 
   const saveRequestTimerStorage = (timers) => {
     try {
-      localStorage.setItem(
-        "provider_request_timers",
-        JSON.stringify(timers)
-      );
+      localStorage.setItem("provider_request_timers", JSON.stringify(timers));
     } catch (error) {
-      console.error(
-        "Unable to save request timers:",
-        error
-      );
+      console.error("Unable to save request timers:", error);
     }
   };
 
@@ -182,11 +162,7 @@ const ProviderDashboard = () => {
 
         setProviderLocation(location);
 
-        getLocationName(
-          location.latitude,
-          location.longitude,
-          "provider"
-        );
+        getLocationName(location.latitude, location.longitude, "provider");
       }
 
       setLoading(false);
@@ -212,9 +188,7 @@ const ProviderDashboard = () => {
     try {
       setRequestLoading(true);
 
-      const response = await api.get(
-        "/provider/service-requests"
-      );
+      const response = await api.get("/provider/service-requests");
 
       const responseData = response.data;
 
@@ -271,9 +245,7 @@ const ProviderDashboard = () => {
         // -----------------------------------------
         // ELAPSED TIME
         // -----------------------------------------
-        const elapsedSeconds = Math.floor(
-          (currentTime - startTime) / 1000
-        );
+        const elapsedSeconds = Math.floor((currentTime - startTime) / 1000);
 
         const remainingSeconds = 300 - elapsedSeconds;
 
@@ -300,10 +272,7 @@ const ProviderDashboard = () => {
       // =========================================
       if (expiredIds.length > 0) {
         const updatedIgnored = [
-          ...new Set([
-            ...ignoredRequestIdsRef.current,
-            ...expiredIds,
-          ]),
+          ...new Set([...ignoredRequestIdsRef.current, ...expiredIds]),
         ];
 
         ignoredRequestIdsRef.current = updatedIgnored;
@@ -327,10 +296,7 @@ const ProviderDashboard = () => {
 
       setRequestLoading(false);
     } catch (error) {
-      console.error(
-        "Service requests error:",
-        error
-      );
+      console.error("Service requests error:", error);
 
       setRequestLoading(false);
     }
@@ -361,71 +327,74 @@ const ProviderDashboard = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       const savedTimers = getRequestTimerStorage();
-
       const currentTime = Date.now();
 
-      setRequestTimers((previousTimers) => {
-        const updatedTimers = {};
-        const expiredIds = [];
+      const updatedTimers = {};
+      const expiredIds = [];
 
-        Object.keys(previousTimers).forEach((id) => {
-          const startTime = savedTimers[id];
+      Object.keys(savedTimers).forEach((id) => {
+        const startTime = savedTimers[id];
 
-          if (!startTime) {
-            return;
-          }
+        if (!startTime) {
+          return;
+        }
 
-          const elapsedSeconds = Math.floor(
-            (currentTime - startTime) / 1000
-          );
+        const elapsedSeconds = Math.floor((currentTime - startTime) / 1000);
 
-          const remainingSeconds =
-            300 - elapsedSeconds;
+        const remainingSeconds = 300 - elapsedSeconds;
 
-          if (remainingSeconds <= 0) {
-            expiredIds.push(id);
-          } else {
-            updatedTimers[id] = remainingSeconds;
+        if (remainingSeconds <= 0) {
+          expiredIds.push(id);
+        } else {
+          updatedTimers[id] = remainingSeconds;
+        }
+      });
+
+      // Update timer UI
+      setRequestTimers(updatedTimers);
+
+      // =========================================
+      // HANDLE EXPIRED REQUESTS
+      // =========================================
+      if (expiredIds.length > 0) {
+        expiredIds.forEach(async (id) => {
+          try {
+            await api.post(`/provider/service-requests/${id}/expire`);
+
+            console.log(`Request ${id} expired successfully.`);
+          } catch (error) {
+            console.log(
+              `Request ${id} expiry failed or request is already unavailable.`,
+              error?.response?.data?.message,
+            );
           }
         });
 
-        // =========================================
-        // REMOVE EXPIRED REQUESTS
-        // =========================================
-        if (expiredIds.length > 0) {
-          setServiceRequests((previousRequests) =>
-            previousRequests.filter(
-              (request) =>
-                !expiredIds.includes(
-                  String(request.id)
-                )
-            )
-          );
+        // Remove expired requests from UI
+        setServiceRequests((previousRequests) =>
+          previousRequests.filter(
+            (request) => !expiredIds.includes(String(request.id)),
+          ),
+        );
 
-          const updatedIgnored = [
-            ...new Set([
-              ...ignoredRequestIdsRef.current,
-              ...expiredIds,
-            ]),
-          ];
+        // Add expired requests to ignored list
+        const updatedIgnored = [
+          ...new Set([...ignoredRequestIdsRef.current, ...expiredIds]),
+        ];
 
-          ignoredRequestIdsRef.current =
-            updatedIgnored;
+        ignoredRequestIdsRef.current = updatedIgnored;
 
-          setIgnoredRequestIds(updatedIgnored);
+        setIgnoredRequestIds(updatedIgnored);
 
-          saveIgnoredRequests(updatedIgnored);
+        saveIgnoredRequests(updatedIgnored);
 
-          // Remove expired timer storage
-          expiredIds.forEach((id) => {
-            delete savedTimers[id];
-          });
+        // Remove expired timers
+        expiredIds.forEach((id) => {
+          delete savedTimers[id];
+        });
 
-          saveRequestTimerStorage(savedTimers);
-        }
-
-        return updatedTimers;
-      });
+        saveRequestTimerStorage(savedTimers);
+      }
     }, 1000);
 
     return () => clearInterval(interval);
@@ -435,70 +404,78 @@ const ProviderDashboard = () => {
   // FORMAT TIMER
   // =========================
   const formatTimer = (seconds) => {
-    const safeSeconds = Math.max(
-      0,
-      seconds || 0
-    );
+    const safeSeconds = Math.max(0, seconds || 0);
 
-    const minutes = Math.floor(
-      safeSeconds / 60
-    );
+    const minutes = Math.floor(safeSeconds / 60);
 
-    const remainingSeconds =
-      safeSeconds % 60;
+    const remainingSeconds = safeSeconds % 60;
 
-    return `${minutes}:${String(
-      remainingSeconds
-    ).padStart(2, "0")}`;
+    return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
   };
 
   // =========================
   // REMOVE REQUEST
   // =========================
-  const handleRemoveRequest = (requestId) => {
+
+  const handleRemoveRequest = async (requestId) => {
     const id = String(requestId);
 
-    // Remove from UI
-    setServiceRequests((previousRequests) =>
-      previousRequests.filter(
-        (request) =>
-          String(request.id) !== id
-      )
-    );
+    try {
+      setRequestProcessingId(requestId);
 
-    // Remove timer from state
-    setRequestTimers((previousTimers) => {
-      const updatedTimers = {
-        ...previousTimers,
-      };
+      // Reject this provider's request in backend
+      await api.post(`/provider/service-requests/${id}/reject`);
 
-      delete updatedTimers[id];
+      // Remove request from UI
+      setServiceRequests((prev) =>
+        prev.filter((request) => String(request.id) !== id),
+      );
 
-      return updatedTimers;
-    });
+      // Remove timer from state
+      setRequestTimers((prev) => {
+        const updated = { ...prev };
+        delete updated[id];
+        return updated;
+      });
 
-    // Remove timer from localStorage
-    const savedTimers =
-      getRequestTimerStorage();
+      // Remove timer from localStorage
+      const savedTimers = getRequestTimerStorage();
 
-    delete savedTimers[id];
+      delete savedTimers[id];
 
-    saveRequestTimerStorage(savedTimers);
+      saveRequestTimerStorage(savedTimers);
 
-    // Add to ignored requests
-    const updatedIgnored = [
-      ...new Set([
-        ...ignoredRequestIdsRef.current,
-        id,
-      ]),
-    ];
+      // Keep hidden after refresh
+      const updatedIgnored = [
+        ...new Set([...ignoredRequestIdsRef.current, id]),
+      ];
 
-    ignoredRequestIdsRef.current =
-      updatedIgnored;
+      ignoredRequestIdsRef.current = updatedIgnored;
 
-    setIgnoredRequestIds(updatedIgnored);
+      setIgnoredRequestIds(updatedIgnored);
 
-    saveIgnoredRequests(updatedIgnored);
+      saveIgnoredRequests(updatedIgnored);
+
+      await Swal.fire({
+        icon: "success",
+        title: "Request Cancelled",
+        text: "You have cancelled this service request.",
+        timer: 1200,
+        showConfirmButton: false,
+      });
+    } catch (error) {
+      console.error("Cancel request error:", error);
+
+      Swal.fire({
+        icon: "error",
+        title: "Unable to Cancel",
+        text:
+          error?.response?.data?.message ||
+          "This request is no longer available.",
+      });
+    } finally {
+      setRequestProcessingId(null);
+    }
   };
 
   // =========================
@@ -510,16 +487,11 @@ const ProviderDashboard = () => {
     try {
       setRequestProcessingId(requestId);
 
-      await api.post(
-        `/provider/service-requests/${requestId}/accept`
-      );
+      await api.post(`/provider/service-requests/${requestId}/accept`);
 
       // Remove from dashboard
       setServiceRequests((previousRequests) =>
-        previousRequests.filter(
-          (request) =>
-            String(request.id) !== id
-        )
+        previousRequests.filter((request) => String(request.id) !== id),
       );
 
       // Remove timer from state
@@ -534,8 +506,7 @@ const ProviderDashboard = () => {
       });
 
       // Remove timer from localStorage
-      const savedTimers =
-        getRequestTimerStorage();
+      const savedTimers = getRequestTimerStorage();
 
       delete savedTimers[id];
 
@@ -543,14 +514,10 @@ const ProviderDashboard = () => {
 
       // Keep hidden after refresh
       const updatedIgnored = [
-        ...new Set([
-          ...ignoredRequestIdsRef.current,
-          id,
-        ]),
+        ...new Set([...ignoredRequestIdsRef.current, id]),
       ];
 
-      ignoredRequestIdsRef.current =
-        updatedIgnored;
+      ignoredRequestIdsRef.current = updatedIgnored;
 
       setIgnoredRequestIds(updatedIgnored);
 
@@ -559,20 +526,14 @@ const ProviderDashboard = () => {
       await Swal.fire({
         icon: "success",
         title: "Request Accepted",
-        text:
-          "You have accepted this service request.",
+        text: "You have accepted this service request.",
         timer: 1400,
         showConfirmButton: false,
       });
 
-      navigate(
-        `/provider/service-requests/${requestId}`
-      );
+      navigate(`/provider/service-requests/${requestId}`);
     } catch (error) {
-      console.error(
-        "Accept request error:",
-        error
-      );
+      console.error("Accept request error:", error);
 
       Swal.fire({
         icon: "error",
@@ -589,12 +550,7 @@ const ProviderDashboard = () => {
   // =========================
   // HAVERSINE DISTANCE
   // =========================
-  const calculateDistance = (
-    lat1,
-    lon1,
-    lat2,
-    lon2
-  ) => {
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
     if (
       lat1 === null ||
       lat1 === undefined ||
@@ -624,34 +580,18 @@ const ProviderDashboard = () => {
 
     const R = 6371;
 
-    const dLat =
-      ((latitude2 - latitude1) *
-        Math.PI) /
-      180;
+    const dLat = ((latitude2 - latitude1) * Math.PI) / 180;
 
-    const dLon =
-      ((longitude2 - longitude1) *
-        Math.PI) /
-      180;
+    const dLon = ((longitude2 - longitude1) * Math.PI) / 180;
 
     const a =
-      Math.sin(dLat / 2) *
-        Math.sin(dLat / 2) +
-      Math.cos(
-        (latitude1 * Math.PI) / 180
-      ) *
-        Math.cos(
-          (latitude2 * Math.PI) / 180
-        ) *
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((latitude1 * Math.PI) / 180) *
+        Math.cos((latitude2 * Math.PI) / 180) *
         Math.sin(dLon / 2) *
         Math.sin(dLon / 2);
 
-    const c =
-      2 *
-      Math.atan2(
-        Math.sqrt(a),
-        Math.sqrt(1 - a)
-      );
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return R * c;
   };
@@ -663,7 +603,7 @@ const ProviderDashboard = () => {
     latitude,
     longitude,
     type = "provider",
-    requestId = null
+    requestId = null,
   ) => {
     if (
       latitude === null ||
@@ -676,13 +616,11 @@ const ProviderDashboard = () => {
 
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`,
       );
 
       if (!response.ok) {
-        throw new Error(
-          "Unable to fetch location"
-        );
+        throw new Error("Unable to fetch location");
       }
 
       const data = await response.json();
@@ -701,49 +639,31 @@ const ProviderDashboard = () => {
         "Location unavailable";
 
       if (type === "provider") {
-        setProviderLocationName(
-          locationName
-        );
+        setProviderLocationName(locationName);
       }
 
-      if (
-        type === "customer" &&
-        requestId
-      ) {
-        setRequestLocationNames(
-          (previous) => ({
-            ...previous,
-            [requestId]: {
-              customer: locationName,
-            },
-          })
-        );
+      if (type === "customer" && requestId) {
+        setRequestLocationNames((previous) => ({
+          ...previous,
+          [requestId]: {
+            customer: locationName,
+          },
+        }));
       }
     } catch (error) {
-      console.error(
-        "Reverse geocoding error:",
-        error
-      );
+      console.error("Reverse geocoding error:", error);
 
       if (type === "provider") {
-        setProviderLocationName(
-          "Location unavailable"
-        );
+        setProviderLocationName("Location unavailable");
       }
 
-      if (
-        type === "customer" &&
-        requestId
-      ) {
-        setRequestLocationNames(
-          (previous) => ({
-            ...previous,
-            [requestId]: {
-              customer:
-                "Location unavailable",
-            },
-          })
-        );
+      if (type === "customer" && requestId) {
+        setRequestLocationNames((previous) => ({
+          ...previous,
+          [requestId]: {
+            customer: "Location unavailable",
+          },
+        }));
       }
     }
   };
@@ -763,12 +683,7 @@ const ProviderDashboard = () => {
         longitude !== undefined &&
         !requestLocationNames?.[request.id]
       ) {
-        getLocationName(
-          latitude,
-          longitude,
-          "customer",
-          request.id
-        );
+        getLocationName(latitude, longitude, "customer", request.id);
       }
     });
   }, [serviceRequests]);
@@ -778,9 +693,7 @@ const ProviderDashboard = () => {
   // =========================
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setLocationError(
-        "Geolocation is not supported by this browser."
-      );
+      setLocationError("Geolocation is not supported by this browser.");
 
       return;
     }
@@ -790,11 +703,9 @@ const ProviderDashboard = () => {
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const latitude =
-          position.coords.latitude;
+        const latitude = position.coords.latitude;
 
-        const longitude =
-          position.coords.longitude;
+        const longitude = position.coords.longitude;
 
         const location = {
           latitude,
@@ -803,46 +714,31 @@ const ProviderDashboard = () => {
 
         setProviderLocation(location);
 
-        await getLocationName(
-          latitude,
-          longitude,
-          "provider"
-        );
+        await getLocationName(latitude, longitude, "provider");
 
         try {
-          await api.put(
-            "/provider/location",
-            {
-              latitude,
-              longitude,
-            }
-          );
+          await api.put("/provider/location", {
+            latitude,
+            longitude,
+          });
         } catch (error) {
-          console.error(
-            "Provider location update error:",
-            error
-          );
+          console.error("Provider location update error:", error);
         }
 
         setLocationLoading(false);
       },
       (error) => {
-        console.error(
-          "Geolocation error:",
-          error
-        );
+        console.error("Geolocation error:", error);
 
         setLocationLoading(false);
 
-        setLocationError(
-          "Unable to get your current location."
-        );
+        setLocationError("Unable to get your current location.");
       },
       {
         enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 0,
-      }
+      },
     );
   };
 
@@ -872,28 +768,19 @@ const ProviderDashboard = () => {
     try {
       setStatusLoading(true);
 
-      const newStatus =
-        !provider.is_online;
+      const newStatus = !provider.is_online;
 
-      const response = await api.post(
-        "/provider/update-status",
-        {
-          is_online: newStatus,
-          availability_status: newStatus
-            ? "online"
-            : "offline",
-        }
-      );
+      const response = await api.post("/provider/update-status", {
+        is_online: newStatus,
+        availability_status: newStatus ? "online" : "offline",
+      });
 
-      const updatedProvider =
-        response.data?.provider ||
+      const updatedProvider = response.data?.provider ||
         response.data?.data?.provider ||
         response.data?.data || {
           ...provider,
           is_online: newStatus,
-          availability_status: newStatus
-            ? "online"
-            : "offline",
+          availability_status: newStatus ? "online" : "offline",
         };
 
       setProvider(updatedProvider);
@@ -904,9 +791,7 @@ const ProviderDashboard = () => {
 
       Swal.fire({
         icon: "success",
-        title: newStatus
-          ? "You are Online"
-          : "You are Offline",
+        title: newStatus ? "You are Online" : "You are Offline",
         text: newStatus
           ? "You can now receive new service requests."
           : "You will not receive new service requests.",
@@ -914,10 +799,7 @@ const ProviderDashboard = () => {
         showConfirmButton: false,
       });
     } catch (error) {
-      console.error(
-        "Provider status update error:",
-        error
-      );
+      console.error("Provider status update error:", error);
 
       Swal.fire({
         icon: "error",
@@ -935,10 +817,7 @@ const ProviderDashboard = () => {
   // REFRESH
   // =========================
   const handleRefresh = async () => {
-    await Promise.all([
-      fetchDashboard(),
-      fetchServiceRequests(),
-    ]);
+    await Promise.all([fetchDashboard(), fetchServiceRequests()]);
   };
 
   // =========================
@@ -948,14 +827,9 @@ const ProviderDashboard = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <RefreshCw
-            size={32}
-            className="animate-spin text-blue-600 mx-auto"
-          />
+          <RefreshCw size={32} className="animate-spin text-blue-600 mx-auto" />
 
-          <p className="mt-3 text-gray-500 text-sm">
-            Loading dashboard...
-          </p>
+          <p className="mt-3 text-gray-500 text-sm">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -967,27 +841,20 @@ const ProviderDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
-
         {/* =========================================
             HEADER
         ========================================= */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-
             {/* LEFT SIDE */}
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl md:text-2xl font-bold text-gray-800">
-                  Welcome,{" "}
-                  {user?.name || "Provider"}
+                  Welcome, {user?.name || "Provider"}
                 </h1>
 
-                {provider?.verification_status ===
-                  "approved" && (
-                  <BadgeCheck
-                    size={21}
-                    className="text-blue-600"
-                  />
+                {provider?.verification_status === "approved" && (
+                  <BadgeCheck size={21} className="text-blue-600" />
                 )}
               </div>
 
@@ -998,7 +865,6 @@ const ProviderDashboard = () => {
 
             {/* RIGHT SIDE */}
             <div className="flex items-center gap-3">
-
               {/* REFRESH */}
               <button
                 onClick={handleRefresh}
@@ -1025,22 +891,18 @@ const ProviderDashboard = () => {
                   {statusLoading
                     ? "Updating..."
                     : provider?.is_online
-                    ? "Online"
-                    : "Offline"}
+                      ? "Online"
+                      : "Offline"}
                 </span>
 
                 <span
                   className={`relative w-11 h-6 rounded-full transition-colors ${
-                    provider?.is_online
-                      ? "bg-green-500"
-                      : "bg-black"
+                    provider?.is_online ? "bg-green-500" : "bg-black"
                   }`}
                 >
                   <span
                     className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${
-                      provider?.is_online
-                        ? "translate-x-6"
-                        : "translate-x-1"
+                      provider?.is_online ? "translate-x-6" : "translate-x-1"
                     }`}
                   />
                 </span>
@@ -1054,13 +916,9 @@ const ProviderDashboard = () => {
         ========================================= */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                <Navigation
-                  size={19}
-                  className="text-blue-600"
-                />
+                <Navigation size={19} className="text-blue-600" />
               </div>
 
               <div>
@@ -1074,20 +932,13 @@ const ProviderDashboard = () => {
 
                 {providerLocation && (
                   <p className="text-xs text-gray-400 mt-1">
-                    {providerLocation.latitude.toFixed(
-                      5
-                    )}
-                    ,{" "}
-                    {providerLocation.longitude.toFixed(
-                      5
-                    )}
+                    {providerLocation.latitude.toFixed(5)},{" "}
+                    {providerLocation.longitude.toFixed(5)}
                   </p>
                 )}
 
                 {locationError && (
-                  <p className="text-xs text-red-500 mt-1">
-                    {locationError}
-                  </p>
+                  <p className="text-xs text-red-500 mt-1">{locationError}</p>
                 )}
               </div>
             </div>
@@ -1099,16 +950,10 @@ const ProviderDashboard = () => {
             >
               <Navigation
                 size={16}
-                className={
-                  locationLoading
-                    ? "animate-pulse"
-                    : ""
-                }
+                className={locationLoading ? "animate-pulse" : ""}
               />
 
-              {locationLoading
-                ? "Updating..."
-                : "Update Location"}
+              {locationLoading ? "Updating..." : "Update Location"}
             </button>
           </div>
         </div>
@@ -1120,10 +965,7 @@ const ProviderDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <Briefcase
-                  size={20}
-                  className="text-blue-600"
-                />
+                <Briefcase size={20} className="text-blue-600" />
 
                 <h2 className="text-lg md:text-xl font-bold text-gray-800">
                   New Service Requests
@@ -1148,12 +990,8 @@ const ProviderDashboard = () => {
         ========================================= */}
         {serviceRequests.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
-
             <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto">
-              <Briefcase
-                size={28}
-                className="text-blue-600"
-              />
+              <Briefcase size={28} className="text-blue-600" />
             </div>
 
             <h3 className="text-lg font-bold text-gray-800 mt-4">
@@ -1161,8 +999,8 @@ const ProviderDashboard = () => {
             </h3>
 
             <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">
-              New customer service requests will appear here
-              when you are online.
+              New customer service requests will appear here when you are
+              online.
             </p>
 
             <button
@@ -1178,69 +1016,48 @@ const ProviderDashboard = () => {
              REQUEST CARDS
           ========================================= */
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-
             {serviceRequests.map((request) => {
-              const requestId =
-                String(request.id);
+              const requestId = String(request.id);
 
-              const timer =
-                requestTimers[requestId] ?? 300;
+              const timer = requestTimers[requestId] ?? 300;
 
-              const customerLatitude =
-                request.latitude;
+              const customerLatitude = request.latitude;
 
-              const customerLongitude =
-                request.longitude;
+              const customerLongitude = request.longitude;
 
-              const distance =
-                calculateDistance(
-                  providerLocation?.latitude,
-                  providerLocation?.longitude,
-                  customerLatitude,
-                  customerLongitude
-                );
+              const distance = calculateDistance(
+                providerLocation?.latitude,
+                providerLocation?.longitude,
+                customerLatitude,
+                customerLongitude,
+              );
 
               const customerLocation =
-                requestLocationNames?.[
-                  request.id
-                ]?.customer ||
+                requestLocationNames?.[request.id]?.customer ||
                 "Finding location...";
 
               const customerName =
-                request.customer?.name ||
-                request.user?.name ||
-                "Customer";
+                request.customer?.name || request.user?.name || "Customer";
 
               const customerPhone =
-                request.customer?.phone ||
-                request.user?.phone ||
-                null;
+                request.customer?.phone || request.user?.phone || null;
 
-              const serviceName =
-                request.service?.name ||
-                "Service";
+              const serviceName = request.service?.name || "Service";
 
-              const basePrice = Number(
-                request.service?.base_price || 0
-              );
+              const basePrice = Number(request.service?.base_price || 0);
 
               return (
                 <div
                   key={request.id}
                   className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition overflow-hidden"
                 >
-
                   {/* CARD HEADER */}
                   <div className="px-4 py-3.5 border-b border-gray-100">
                     <div className="flex items-center justify-between gap-3">
-
                       {/* SERVICE */}
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-                          <Zap
-                            size={19}
-                            className="text-blue-600"
-                          />
+                          <Zap size={19} className="text-blue-600" />
                         </div>
 
                         <div className="min-w-0">
@@ -1270,31 +1087,22 @@ const ProviderDashboard = () => {
                           </span>
                         </div>
 
-                        <p className="text-[9px] mt-0.5">
-                          response
-                        </p>
+                        <p className="text-[9px] mt-0.5">response</p>
                       </div>
                     </div>
                   </div>
 
                   {/* CARD BODY */}
                   <div className="p-4">
-
                     {/* CUSTOMER */}
                     <div className="flex items-center justify-between mb-4">
-
                       <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
-                          <User
-                            size={17}
-                            className="text-gray-700"
-                          />
+                          <User size={17} className="text-gray-700" />
                         </div>
 
                         <div>
-                          <p className="text-[11px] text-gray-400">
-                            Customer
-                          </p>
+                          <p className="text-[11px] text-gray-400">Customer</p>
 
                           <p className="text-sm font-semibold text-gray-800">
                             {customerName}
@@ -1315,14 +1123,10 @@ const ProviderDashboard = () => {
 
                     {/* PRICE + DISTANCE */}
                     <div className="grid grid-cols-2 gap-3 mb-4">
-
                       {/* PRICE */}
                       <div className="bg-blue-50 rounded-xl px-3.5 py-3">
                         <div className="flex items-center gap-2">
-                          <DollarSign
-                            size={16}
-                            className="text-blue-600"
-                          />
+                          <DollarSign size={16} className="text-blue-600" />
 
                           <span className="text-[11px] text-gray-500">
                             Service Price
@@ -1330,20 +1134,14 @@ const ProviderDashboard = () => {
                         </div>
 
                         <p className="text-lg font-bold text-blue-700 mt-1">
-                          ₹
-                          {basePrice.toLocaleString(
-                            "en-IN"
-                          )}
+                          ₹{basePrice.toLocaleString("en-IN")}
                         </p>
                       </div>
 
                       {/* DISTANCE */}
                       <div className="bg-green-50 rounded-xl px-3.5 py-3">
                         <div className="flex items-center gap-2">
-                          <Activity
-                            size={16}
-                            className="text-green-600"
-                          />
+                          <Activity size={16} className="text-green-600" />
 
                           <span className="text-[11px] text-gray-500">
                             Distance
@@ -1352,9 +1150,7 @@ const ProviderDashboard = () => {
 
                         <p className="text-lg font-bold text-green-700 mt-1">
                           {distance !== null
-                            ? `${distance.toFixed(
-                                2
-                              )} km`
+                            ? `${distance.toFixed(2)} km`
                             : "Calculating..."}
                         </p>
                       </div>
@@ -1362,16 +1158,11 @@ const ProviderDashboard = () => {
 
                     {/* LOCATIONS */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-
                       {/* CUSTOMER LOCATION */}
                       <div className="border border-gray-100 rounded-xl p-3">
                         <div className="flex items-start gap-2.5">
-
                           <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                            <MapPin
-                              size={16}
-                              className="text-blue-600"
-                            />
+                            <MapPin size={16} className="text-blue-600" />
                           </div>
 
                           <div className="min-w-0">
@@ -1383,22 +1174,13 @@ const ProviderDashboard = () => {
                               {customerLocation}
                             </p>
 
-                            {customerLatitude !==
-                              null &&
-                              customerLatitude !==
-                                undefined &&
-                              customerLongitude !==
-                                null &&
-                              customerLongitude !==
-                                undefined && (
+                            {customerLatitude !== null &&
+                              customerLatitude !== undefined &&
+                              customerLongitude !== null &&
+                              customerLongitude !== undefined && (
                                 <p className="text-[10px] text-gray-400 mt-1">
-                                  {Number(
-                                    customerLatitude
-                                  ).toFixed(5)}
-                                  ,{" "}
-                                  {Number(
-                                    customerLongitude
-                                  ).toFixed(5)}
+                                  {Number(customerLatitude).toFixed(5)},{" "}
+                                  {Number(customerLongitude).toFixed(5)}
                                 </p>
                               )}
                           </div>
@@ -1408,12 +1190,8 @@ const ProviderDashboard = () => {
                       {/* PROVIDER LOCATION */}
                       <div className="border border-gray-100 rounded-xl p-3">
                         <div className="flex items-start gap-2.5">
-
                           <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                            <Navigation
-                              size={16}
-                              className="text-gray-700"
-                            />
+                            <Navigation size={16} className="text-gray-700" />
                           </div>
 
                           <div className="min-w-0">
@@ -1422,19 +1200,13 @@ const ProviderDashboard = () => {
                             </p>
 
                             <p className="text-xs font-medium text-gray-700 mt-1 line-clamp-2">
-                              {providerLocationName ||
-                                "Location unavailable"}
+                              {providerLocationName || "Location unavailable"}
                             </p>
 
                             {providerLocation && (
                               <p className="text-[10px] text-gray-400 mt-1">
-                                {providerLocation.latitude.toFixed(
-                                  5
-                                )}
-                                ,{" "}
-                                {providerLocation.longitude.toFixed(
-                                  5
-                                )}
+                                {providerLocation.latitude.toFixed(5)},{" "}
+                                {providerLocation.longitude.toFixed(5)}
                               </p>
                             )}
                           </div>
@@ -1443,15 +1215,10 @@ const ProviderDashboard = () => {
                     </div>
 
                     {/* PROBLEM */}
-                    {(request.problem_description ||
-                      request.problem) && (
+                    {(request.problem_description || request.problem) && (
                       <div className="mb-4 bg-gray-50 rounded-xl px-3.5 py-3">
-
                         <div className="flex items-center gap-2 mb-1.5">
-                          <AlertCircle
-                            size={15}
-                            className="text-red-500"
-                          />
+                          <AlertCircle size={15} className="text-red-500" />
 
                           <p className="text-xs font-semibold text-gray-700">
                             Problem
@@ -1459,8 +1226,7 @@ const ProviderDashboard = () => {
                         </div>
 
                         <p className="text-xs text-gray-600 line-clamp-2">
-                          {request.problem_description ||
-                            request.problem}
+                          {request.problem_description || request.problem}
                         </p>
                       </div>
                     )}
@@ -1468,11 +1234,7 @@ const ProviderDashboard = () => {
                     {/* SCHEDULE */}
                     {request.scheduled_at && (
                       <div className="flex items-center gap-2 bg-blue-50 rounded-xl px-3.5 py-2.5 mb-4">
-
-                        <Clock
-                          size={15}
-                          className="text-blue-600"
-                        />
+                        <Clock size={15} className="text-blue-600" />
 
                         <div>
                           <p className="text-[10px] text-blue-500">
@@ -1480,16 +1242,12 @@ const ProviderDashboard = () => {
                           </p>
 
                           <p className="text-xs font-semibold text-blue-700">
-                            {new Date(
-                              request.scheduled_at
-                            ).toLocaleString(
+                            {new Date(request.scheduled_at).toLocaleString(
                               "en-IN",
                               {
-                                dateStyle:
-                                  "medium",
-                                timeStyle:
-                                  "short",
-                              }
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                              },
                             )}
                           </p>
                         </div>
@@ -1498,44 +1256,25 @@ const ProviderDashboard = () => {
 
                     {/* BUTTONS */}
                     <div className="grid grid-cols-2 gap-3">
-
                       {/* REMOVE */}
                       <button
-                        onClick={() =>
-                          handleRemoveRequest(
-                            request.id
-                          )
-                        }
-                        disabled={
-                          requestProcessingId ===
-                          request.id
-                        }
+                        onClick={() => handleRemoveRequest(request.id)}
+                        disabled={requestProcessingId === request.id}
                         className="py-2.5 rounded-xl bg-black hover:bg-gray-800 text-white font-semibold text-sm transition flex items-center justify-center gap-2 disabled:opacity-60 shadow-sm"
                       >
                         <X size={16} />
-                        Remove
+                        Cansel
                       </button>
 
                       {/* ACCEPT */}
                       <button
-                        onClick={() =>
-                          handleAcceptRequest(
-                            request.id
-                          )
-                        }
-                        disabled={
-                          requestProcessingId ===
-                          request.id
-                        }
+                        onClick={() => handleAcceptRequest(request.id)}
+                        disabled={requestProcessingId === request.id}
                         className="py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold text-sm transition flex items-center justify-center gap-2 disabled:opacity-60 shadow-sm"
                       >
-                        {requestProcessingId ===
-                        request.id ? (
+                        {requestProcessingId === request.id ? (
                           <>
-                            <RefreshCw
-                              size={16}
-                              className="animate-spin"
-                            />
+                            <RefreshCw size={16} className="animate-spin" />
                             Accepting...
                           </>
                         ) : (

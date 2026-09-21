@@ -17,6 +17,7 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
+  ArrowRight,
 } from "lucide-react";
 
 import api from "../../api/axios";
@@ -28,16 +29,9 @@ const ServiceDetails = () => {
   |--------------------------------------------------------------------------
   | URL PARAMETER
   |--------------------------------------------------------------------------
-  |
-  | Supports both:
-  |
-  | /customer/services/:id
-  | /customer/services/:serviceId
-  |
   */
 
   const params = useParams();
-
   const serviceId = params.id || params.serviceId;
 
   // ------------------------------------------------------------------------
@@ -99,13 +93,13 @@ const ServiceDetails = () => {
 
   const iconStyles = {
     electrician: {
-      bg: "bg-yellow-50",
-      color: "text-yellow-600",
+      bg: "bg-amber-50",
+      color: "text-amber-600",
     },
 
     electrical: {
-      bg: "bg-yellow-50",
-      color: "text-yellow-600",
+      bg: "bg-amber-50",
+      color: "text-amber-600",
     },
 
     "fan repair": {
@@ -154,13 +148,13 @@ const ServiceDetails = () => {
     },
 
     appliance: {
-      bg: "bg-green-50",
-      color: "text-green-600",
+      bg: "bg-emerald-50",
+      color: "text-emerald-600",
     },
 
     "appliance repair": {
-      bg: "bg-green-50",
-      color: "text-green-600",
+      bg: "bg-emerald-50",
+      color: "text-emerald-600",
     },
 
     repair: {
@@ -179,8 +173,8 @@ const ServiceDetails = () => {
 
     return (
       iconStyles[key] || {
-        bg: "bg-gray-50",
-        color: "text-gray-600",
+        bg: "bg-orange-50",
+        color: "text-orange-600",
       }
     );
   };
@@ -213,21 +207,6 @@ const ServiceDetails = () => {
         "Service Details API Response:",
         response.data
       );
-
-      /*
-       * Supports:
-       *
-       * {
-       *   success: true,
-       *   service: {...}
-       * }
-       *
-       * OR
-       *
-       * {
-       *   data: {...}
-       * }
-       */
 
       const serviceData =
         response.data?.service ||
@@ -292,7 +271,7 @@ const ServiceDetails = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50/60">
+      <div className="min-h-screen bg-slate-50/60">
 
         <div className="flex min-h-[500px] items-center justify-center">
 
@@ -300,10 +279,10 @@ const ServiceDetails = () => {
 
             <Loader2
               size={40}
-              className="mx-auto animate-spin text-blue-600"
+              className="mx-auto animate-spin text-orange-500"
             />
 
-            <p className="mt-4 text-sm font-medium text-gray-500">
+            <p className="mt-4 text-sm font-medium text-slate-500">
               Loading service details...
             </p>
 
@@ -321,7 +300,7 @@ const ServiceDetails = () => {
 
   if (error || !service) {
     return (
-      <div className="min-h-screen bg-gray-50/60">
+      <div className="min-h-screen bg-slate-50/60">
 
         <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
 
@@ -330,26 +309,26 @@ const ServiceDetails = () => {
             onClick={() =>
               navigate("/customer/services")
             }
-            className="mb-6 flex items-center gap-2 text-sm font-semibold text-gray-600 transition hover:text-blue-600"
+            className="mb-6 flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-orange-600"
           >
             <ArrowLeft size={18} />
 
             Back to Services
           </button>
 
-          <div className="rounded-3xl border border-red-200 bg-white px-6 py-16 text-center shadow-sm">
+          <div className="rounded-3xl border border-rose-200 bg-white px-6 py-16 text-center shadow-sm">
 
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
 
               <AlertCircle size={30} />
 
             </div>
 
-            <h2 className="mt-5 text-xl font-bold text-gray-900">
+            <h2 className="mt-5 text-xl font-bold text-slate-900">
               Unable to load service
             </h2>
 
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
               {error ||
                 "The requested service could not be found."}
             </p>
@@ -359,7 +338,7 @@ const ServiceDetails = () => {
               <button
                 type="button"
                 onClick={fetchService}
-                className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700"
+                className="rounded-xl bg-orange-100/80 px-5 py-2.5 text-sm font-semibold text-orange-700 transition hover:bg-orange-200 active:scale-[0.98]"
               >
                 Try Again
               </button>
@@ -369,7 +348,7 @@ const ServiceDetails = () => {
                 onClick={() =>
                   navigate("/customer/services")
                 }
-                className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
                 Back to Services
               </button>
@@ -407,13 +386,13 @@ const ServiceDetails = () => {
   // ------------------------------------------------------------------------
 
   return (
-    <div className="min-h-screen bg-gray-50/60">
+    <div className="min-h-screen bg-slate-50/60">
 
       {/* ================================================================
           HEADER
       ================================================================ */}
 
-      <div className="border-b border-gray-200/70 bg-white">
+      <div className="border-b border-slate-200/80 bg-white">
 
         <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
 
@@ -422,7 +401,7 @@ const ServiceDetails = () => {
             onClick={() =>
               navigate("/customer/services")
             }
-            className="flex items-center gap-2 text-sm font-semibold text-gray-500 transition hover:text-blue-600"
+            className="flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-orange-600"
           >
             <ArrowLeft size={18} />
 
@@ -443,7 +422,7 @@ const ServiceDetails = () => {
             SERVICE CARD
         ================================================================ */}
 
-        <section className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+        <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
 
           <div className="p-6 sm:p-8 lg:p-10">
 
@@ -473,13 +452,13 @@ const ServiceDetails = () => {
 
                   <div className="mb-2 flex flex-wrap items-center gap-2">
 
-                    <span className="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-600">
+                    <span className="rounded-full bg-orange-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-orange-700 border border-orange-100">
                       {service.category ||
                         "Service"}
                     </span>
 
                     {service.is_active && (
-                      <span className="flex items-center gap-1 rounded-full bg-green-50 px-3 py-1 text-[11px] font-semibold text-green-600">
+                      <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-700 border border-emerald-100">
 
                         <CheckCircle size={12} />
 
@@ -490,7 +469,7 @@ const ServiceDetails = () => {
 
                   </div>
 
-                  <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl lg:text-4xl">
+                  <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl lg:text-4xl">
                     {service.name}
                   </h1>
 
@@ -500,9 +479,9 @@ const ServiceDetails = () => {
 
               {/* PRICE */}
 
-              <div className="rounded-2xl bg-blue-50 px-5 py-4 md:min-w-[180px]">
+              <div className="rounded-2xl border border-orange-100 bg-orange-50/50 px-5 py-4 md:min-w-[180px]">
 
-                <div className="flex items-center gap-1.5 text-blue-600">
+                <div className="flex items-center gap-1.5 text-orange-600">
 
                   <IndianRupee size={16} />
 
@@ -512,7 +491,7 @@ const ServiceDetails = () => {
 
                 </div>
 
-                <p className="mt-1 text-2xl font-bold text-gray-900">
+                <p className="mt-1 text-2xl font-bold text-slate-900">
 
                   {basePrice !== null
                     ? `₹${basePrice.toLocaleString(
@@ -530,11 +509,11 @@ const ServiceDetails = () => {
 
             <div className="mt-8">
 
-              <h2 className="text-lg font-bold text-gray-900">
+              <h2 className="text-lg font-bold text-slate-900">
                 About This Service
               </h2>
 
-              <p className="mt-3 max-w-4xl text-sm leading-7 text-gray-500 sm:text-base">
+              <p className="mt-3 max-w-4xl text-sm leading-7 text-slate-500 sm:text-base">
 
                 {service.description ||
                   "Professional service for your home. Submit a service request and provide your location and problem details."}
@@ -549,9 +528,9 @@ const ServiceDetails = () => {
 
               {/* CATEGORY */}
 
-              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+              <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-5">
 
-                <div className="flex items-center gap-2 text-gray-400">
+                <div className="flex items-center gap-2 text-slate-400">
 
                   <Wrench size={17} />
 
@@ -561,7 +540,7 @@ const ServiceDetails = () => {
 
                 </div>
 
-                <p className="mt-2 text-base font-bold text-gray-900">
+                <p className="mt-2 text-base font-bold text-slate-900">
 
                   {service.category ||
                     "General Service"}
@@ -572,9 +551,9 @@ const ServiceDetails = () => {
 
               {/* PRICE */}
 
-              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+              <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-5">
 
-                <div className="flex items-center gap-2 text-gray-400">
+                <div className="flex items-center gap-2 text-slate-400">
 
                   <IndianRupee size={17} />
 
@@ -584,7 +563,7 @@ const ServiceDetails = () => {
 
                 </div>
 
-                <p className="mt-2 text-base font-bold text-gray-900">
+                <p className="mt-2 text-base font-bold text-slate-900">
 
                   {basePrice !== null
                     ? `₹${basePrice.toLocaleString(
@@ -598,9 +577,9 @@ const ServiceDetails = () => {
 
               {/* AVAILABILITY */}
 
-              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+              <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-5">
 
-                <div className="flex items-center gap-2 text-gray-400">
+                <div className="flex items-center gap-2 text-slate-400">
 
                   <Clock size={17} />
 
@@ -610,7 +589,7 @@ const ServiceDetails = () => {
 
                 </div>
 
-                <p className="mt-2 text-base font-bold text-gray-900">
+                <p className="mt-2 text-base font-bold text-slate-900">
                   {service.is_active
                     ? "Available"
                     : "Currently Unavailable"}
@@ -628,9 +607,9 @@ const ServiceDetails = () => {
             REQUEST SERVICE SECTION
         ================================================================ */}
 
-        <section className="mt-6 overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-sm">
+        <section className="mt-6 overflow-hidden rounded-3xl border border-orange-200/60 bg-white shadow-sm">
 
-          <div className="bg-blue-50/60 p-6 sm:p-8">
+          <div className="bg-orange-50/40 p-6 sm:p-8">
 
             <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
 
@@ -638,7 +617,7 @@ const ServiceDetails = () => {
 
               <div>
 
-                <div className="flex items-center gap-2 text-blue-600">
+                <div className="flex items-center gap-2 text-orange-600">
 
                   <MapPin size={19} />
 
@@ -648,17 +627,17 @@ const ServiceDetails = () => {
 
                 </div>
 
-                <h2 className="mt-2 text-xl font-bold text-gray-900 sm:text-2xl">
+                <h2 className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">
                   Request {service.name}
                 </h2>
 
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
                   Choose whether you need the service now or want to schedule it for a later date and time.
                 </p>
 
               </div>
 
-              {/* BUTTON */}
+              {/* LIGHT ORANGE BUTTON */}
 
               <button
                 type="button"
@@ -666,13 +645,13 @@ const ServiceDetails = () => {
                 disabled={
                   service.is_active === false
                 }
-                className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+                className="group flex shrink-0 items-center justify-center gap-2 rounded-xl bg-orange-100/80 px-6 py-3.5 text-sm font-semibold text-orange-700 transition hover:bg-orange-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
               >
                 Request Service
 
-                <ArrowLeft
+                <ArrowRight
                   size={17}
-                  className="rotate-180"
+                  className="transition-transform group-hover:translate-x-0.5"
                 />
               </button>
 
@@ -686,9 +665,9 @@ const ServiceDetails = () => {
             WHAT HAPPENS NEXT
         ================================================================ */}
 
-        <section className="mt-6 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+        <section className="mt-6 rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
 
-          <h2 className="text-lg font-bold text-gray-900">
+          <h2 className="text-lg font-bold text-slate-900">
             What happens next?
           </h2>
 
@@ -696,17 +675,17 @@ const ServiceDetails = () => {
 
             {/* STEP 1 */}
 
-            <div className="rounded-2xl bg-gray-50 p-5">
+            <div className="rounded-2xl bg-slate-50/70 border border-slate-100 p-5">
 
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-100 text-sm font-bold text-orange-700">
                 1
               </div>
 
-              <h3 className="mt-4 text-sm font-bold text-gray-900">
+              <h3 className="mt-4 text-sm font-bold text-slate-900">
                 Submit Request
               </h3>
 
-              <p className="mt-2 text-xs leading-5 text-gray-500">
+              <p className="mt-2 text-xs leading-5 text-slate-500">
                 Enter your address, current location and describe your problem.
               </p>
 
@@ -714,17 +693,17 @@ const ServiceDetails = () => {
 
             {/* STEP 2 */}
 
-            <div className="rounded-2xl bg-gray-50 p-5">
+            <div className="rounded-2xl bg-slate-50/70 border border-slate-100 p-5">
 
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-100 text-sm font-bold text-orange-700">
                 2
               </div>
 
-              <h3 className="mt-4 text-sm font-bold text-gray-900">
+              <h3 className="mt-4 text-sm font-bold text-slate-900">
                 Provider Assignment
               </h3>
 
-              <p className="mt-2 text-xs leading-5 text-gray-500">
+              <p className="mt-2 text-xs leading-5 text-slate-500">
                 QuickFix can assign an appropriate verified provider after your request is submitted.
               </p>
 
@@ -732,17 +711,17 @@ const ServiceDetails = () => {
 
             {/* STEP 3 */}
 
-            <div className="rounded-2xl bg-gray-50 p-5">
+            <div className="rounded-2xl bg-slate-50/70 border border-slate-100 p-5">
 
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-100 text-sm font-bold text-orange-700">
                 3
               </div>
 
-              <h3 className="mt-4 text-sm font-bold text-gray-900">
+              <h3 className="mt-4 text-sm font-bold text-slate-900">
                 Service
               </h3>
 
-              <p className="mt-2 text-xs leading-5 text-gray-500">
+              <p className="mt-2 text-xs leading-5 text-slate-500">
                 The assigned provider can visit your selected location and complete the requested service.
               </p>
 

@@ -1,10 +1,4 @@
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Landing from "./Pages/Landing";
 import Login from "./Pages/Login";
@@ -15,7 +9,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import GuestRoute from "./components/GuestRoute";
 import ProviderProtectedRoute from "./components/ProviderProtectedRoute";
 
-
 // ==========================================
 // ADMIN
 // ==========================================
@@ -24,7 +17,6 @@ import AdminLayout from "./components/Admin/AdminLayout";
 import AdminDashboard from "./Pages/Admin/AdminDashboard";
 import AdminUsers from "./Pages/Admin/AdminUsers";
 import Providers from "./Pages/Admin/Providers";
-
 
 // ==========================================
 // CUSTOMER
@@ -39,7 +31,6 @@ import MyRequests from "./Pages/Customer/MyRequests";
 import RequestDetails from "./Pages/Customer/RequestDetails";
 import MyBookings from "./Pages/Customer/MyBookings";
 import ServiceDetails from "./Pages/Customer/ServiceDetails";
-
 
 // ==========================================
 // PROVIDER
@@ -63,10 +54,7 @@ import ProviderProfile from "./Pages/Provider/ProviderProfile";
 function App() {
   return (
     <BrowserRouter>
-
       <Routes>
-
-
         {/* ============================================ */}
         {/* LANDING PAGE - Default Route */}
         {/* ============================================ */}
@@ -85,7 +73,6 @@ function App() {
           }
         />
 
-
         <Route
           path="/register"
           element={
@@ -94,7 +81,6 @@ function App() {
             </GuestRoute>
           }
         />
-
 
         {/* =================================================
             ADMIN LOGIN
@@ -109,63 +95,39 @@ function App() {
           }
         />
 
-
         {/* =================================================
             CUSTOMER ROUTES
         ================================================= */}
 
         <Route
           element={
-            <ProtectedRoute
-              allowedRoles={["customer", "user"]}
-            >
+            <ProtectedRoute allowedRoles={["customer", "user"]}>
               <CustomerLayout />
             </ProtectedRoute>
           }
         >
+          <Route path="/dashboard" element={<CustomerDashboard />} />
 
-          <Route
-            path="/dashboard"
-            element={<CustomerDashboard />}
-          />
+          <Route path="/customer/profile" element={<CustomerProfile />} />
 
-          <Route
-            path="/customer/profile"
-            element={<CustomerProfile />}
-          />
+          <Route path="/customer/services" element={<Services />} />
 
-          <Route
-            path="/customer/services"
-            element={<Services />}
-          />
-
-          <Route
-            path="/customer/services/:id"
-            element={<ServiceDetails />}
-          />
+          <Route path="/customer/services/:id" element={<ServiceDetails />} />
 
           <Route
             path="/customer/services/:serviceId/request"
             element={<ServiceRequest />}
           />
 
-        <Route
-            path="/customer/my-requests"
-            element={<MyRequests />}
-        />
+          <Route path="/customer/my-requests" element={<MyRequests />} />
 
           <Route
             path="/customer/service-requests/:id"
             element={<RequestDetails />}
           />
 
-            <Route
-              path="/customer/bookings"
-              element={<MyBookings />}
-            />
-
+          <Route path="/customer/bookings" element={<MyBookings />} />
         </Route>
-
 
         {/* =================================================
             PROVIDER AUTH
@@ -189,39 +151,37 @@ function App() {
           }
         />
 
-
         {/* =================================================
             PROVIDER VERIFICATION
         ================================================= */}
 
-{/* provider verification */}
-<Route
-  path="/provider/verification"
-  element={
-    <ProviderProtectedRoute allowUnverified={true}>
-      <ProviderVerificationPending />
-    </ProviderProtectedRoute>
-  }
-/>
+        {/* provider verification */}
+        <Route
+          path="/provider/verification"
+          element={
+            <ProviderProtectedRoute allowUnverified={true}>
+              <ProviderVerificationPending />
+            </ProviderProtectedRoute>
+          }
+        />
 
-<Route
-  path="/provider/documents/edit"
-  element={
-    <ProviderProtectedRoute allowUnverified={true}>
-      <ProviderDocumentEdit />
-    </ProviderProtectedRoute>
-  }
-/>
+        <Route
+          path="/provider/documents/edit"
+          element={
+            <ProviderProtectedRoute allowUnverified={true}>
+              <ProviderDocumentEdit />
+            </ProviderProtectedRoute>
+          }
+        />
 
-<Route
-  path="/provider/setup"
-  element={
-    <ProviderProtectedRoute allowUnverified={true}>
-      <ProviderSetup />
-    </ProviderProtectedRoute>
-  }
-/>
-
+        <Route
+          path="/provider/setup"
+          element={
+            <ProviderProtectedRoute allowUnverified={true}>
+              <ProviderSetup />
+            </ProviderProtectedRoute>
+          }
+        />
 
         {/* =================================================
             PROVIDER PANEL
@@ -229,24 +189,21 @@ function App() {
 
         <Route
           element={
-            <ProtectedRoute
-              allowedRoles={["provider"]}
-            >
+            <ProtectedRoute allowedRoles={["provider"]}>
               <ProviderLayout />
             </ProtectedRoute>
           }
         >
-
           {/* Dashboard */}
 
-        <Route
-  path="/provider/dashboard"
-  element={
-    <ProviderProtectedRoute>
-      <ProviderDashboard />
-    </ProviderProtectedRoute>
-  }
-/>
+          <Route
+            path="/provider/dashboard"
+            element={
+              <ProviderProtectedRoute>
+                <ProviderDashboard />
+              </ProviderProtectedRoute>
+            }
+          />
 
           {/* Provider Services */}
 
@@ -255,35 +212,22 @@ function App() {
             element={<ProviderSetup />}
           /> */}
 
-          <Route
-            path="/provider/services"
-            element={<MyServices />}
-          />
+          <Route path="/provider/services" element={<MyServices />} />
+
+          <Route path="/provider/services/add" element={<AddService />} />
+
+          <Route path="/provider/services/edit/:id" element={<EditService />} />
+
+          {/* Service Requests */}
+
+          <Route path="/provider/requests" element={<ProviderRequests />} />
 
           <Route
-            path="/provider/services/add"
-            element={<AddService />}
+            path="/provider/service-requests/:id"
+            element={<ProviderRequestDetails />}
           />
 
-          <Route
-            path="/provider/services/edit/:id"
-            element={<EditService />}
-          />
-
-       {/* Service Requests */}
-
-  <Route
-    path="/provider/requests"
-    element={<ProviderRequests />}
-  />
-
-  <Route
-    path="/provider/service-requests/:id"
-    element={<ProviderRequestDetails />}
-  />
-
-    <Route path="/provider/profile" element={<ProviderProfile />} />
-
+          <Route path="/provider/profile" element={<ProviderProfile />} />
 
           {/* Bookings */}
 
@@ -371,9 +315,7 @@ function App() {
               </div>
             }
           />
-
         </Route>
-
 
         {/* =================================================
             ADMIN ROUTES
@@ -386,41 +328,19 @@ function App() {
             </ProtectedRoute>
           }
         >
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
-          <Route
-            path="/admin/dashboard"
-            element={<AdminDashboard />}
-          />
+          <Route path="/admin/users" element={<AdminUsers />} />
 
-          <Route
-            path="/admin/users"
-            element={<AdminUsers />}
-          />
-
-          <Route
-            path="/admin/providers"
-            element={<Providers />}
-          />
-
+          <Route path="/admin/providers" element={<Providers />} />
         </Route>
-
 
         {/* =================================================
             FALLBACK
         ================================================= */}
 
-        <Route
-          path="*"
-          element={
-            <Navigate
-              to="/login"
-              replace
-            />
-          }
-        />
-
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
-
     </BrowserRouter>
   );
 }

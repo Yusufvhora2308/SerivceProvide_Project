@@ -44,7 +44,7 @@ Route::get('/services', [ServiceController::class, 'index']);
 Route::get('/services/{id}', [ServiceController::class, 'show']);
 /*
 |--------------------------------------------------------------------------
-| Authenticated Routes
+| Authenticated Customer Routes
 |--------------------------------------------------------------------------
 */
 

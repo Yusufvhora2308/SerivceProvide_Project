@@ -271,6 +271,7 @@ class ServiceRequestController extends Controller
                 'service',
                 'customer',
                 'provider',
+                'provider.user'
             ])
                 ->where(
                     'customer_id',

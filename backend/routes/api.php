@@ -118,6 +118,11 @@ Route::middleware('auth:sanctum')->prefix('provider')->group(function () {
         '/service-requests',
         [ProviderServiceRequestController::class, 'index']
     );
+    //Get all request of accepted by provider
+    Route::get(
+        '/service-requests-accepted',
+        [ProviderServiceRequestController::class, 'providerAcceptedindex']
+    );
 
     // Get single request
     Route::get(

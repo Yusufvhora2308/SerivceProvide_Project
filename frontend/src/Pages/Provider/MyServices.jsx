@@ -29,21 +29,17 @@ const MyServices = () => {
   | Fetch Provider Services
   |--------------------------------------------------------------------------
   */
-
   const fetchServices = async () => {
     try {
       setLoading(true);
       setError("");
 
       const response = await api.get("/provider/services");
-
       setServices(response.data.services || []);
-    } catch (error) {
-      console.error("Fetch services error:", error);
-
+    } catch (err) {
+      console.error("Fetch services error:", err);
       setError(
-        error.response?.data?.message ||
-          "Unable to load your services."
+        err.response?.data?.message || "Unable to load your services."
       );
     } finally {
       setLoading(false);
@@ -59,29 +55,20 @@ const MyServices = () => {
   | Delete Service
   |--------------------------------------------------------------------------
   */
-
   const handleDelete = async (id) => {
     const confirmed = window.confirm(
       "Are you sure you want to delete this service?"
     );
-
     if (!confirmed) return;
 
     try {
       setDeleteLoading(id);
-
       await api.delete(`/provider/services/${id}`);
 
-      setServices((prev) =>
-        prev.filter((service) => service.id !== id)
-      );
-    } catch (error) {
-      console.error("Delete service error:", error);
-
-      alert(
-        error.response?.data?.message ||
-          "Unable to delete service."
-      );
+      setServices((prev) => prev.filter((service) => service.id !== id));
+    } catch (err) {
+      console.error("Delete service error:", err);
+      alert(err.response?.data?.message || "Unable to delete service.");
     } finally {
       setDeleteLoading(null);
     }
@@ -89,17 +76,12 @@ const MyServices = () => {
 
   /*
   |--------------------------------------------------------------------------
-  | Image URL
+  | Image URL Helper
   |--------------------------------------------------------------------------
   */
-
   const getImageUrl = (image) => {
     if (!image) return null;
-
-    if (image.startsWith("http")) {
-      return image;
-    }
-
+    if (image.startsWith("http")) return image;
     return `${import.meta.env.VITE_API_BASE_URL}/storage/${image}`;
   };
 
@@ -108,12 +90,10 @@ const MyServices = () => {
   | Format Price
   |--------------------------------------------------------------------------
   */
-
   const formatPrice = (price) => {
     if (price === null || price === undefined || price === "") {
       return "0.00";
     }
-
     return Number(price).toFixed(2);
   };
 
@@ -122,263 +102,223 @@ const MyServices = () => {
   | Loading State
   |--------------------------------------------------------------------------
   */
-
   if (loading) {
     return (
-      <div className="min-h-[500px] flex items-center justify-center">
-        <div className="flex items-center gap-3 text-gray-600">
-          <Loader2 className="w-6 h-6 animate-spin" />
-          <span>Loading services...</span>
+      <div className="flex min-h-[420px] items-center justify-center bg-slate-50/60">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+          <span className="text-[11px] font-semibold text-slate-500">
+            Loading your catalog...
+          </span>
         </div>
       </div>
     );
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | UI
-  |--------------------------------------------------------------------------
-  */
-
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-
-      <div className="max-w-7xl mx-auto">
-
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-
+    <div className="min-h-screen bg-slate-50/60 p-3 sm:p-5">
+      <div className="mx-auto max-w-6xl space-y-4">
+        {/* =========================================
+            HEADER BAR
+        ========================================= */}
+        <div className="flex flex-col justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs sm:flex-row sm:items-center">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                Catalog Management
+              </span>
+              <span className="text-xs text-slate-300">•</span>
+              <span className="text-xs font-medium text-blue-600">
+                {services.length} Listed
+              </span>
+            </div>
+            <h1 className="mt-0.5 text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
               My Services
             </h1>
-
-            <p className="text-gray-500 mt-1">
-              Manage the services you provide to customers.
+            <p className="text-xs text-slate-500">
+              Manage offerings, rates, and active service areas.
             </p>
           </div>
 
           <button
             onClick={() => navigate("/provider/services/add")}
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-sky-100/90 px-3.5 py-2 text-xs font-bold text-blue-700 shadow-xs transition hover:bg-blue-100 active:scale-95 sm:self-auto"
           >
-            <Plus size={20} />
+            <Plus size={14} />
             Add New Service
           </button>
-
         </div>
 
-
-        {/* Error */}
+        {/* =========================================
+            ERROR NOTIFICATION
+        ========================================= */}
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 flex items-center gap-3">
-            <AlertCircle size={20} />
+          <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50/80 px-3.5 py-2.5 text-xs font-medium text-rose-700">
+            <AlertCircle size={15} className="shrink-0 text-rose-500" />
             <span>{error}</span>
           </div>
         )}
 
-
-        {/* Empty State */}
+        {/* =========================================
+            EMPTY STATE
+        ========================================= */}
         {!error && services.length === 0 && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-10 text-center">
-
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-50 flex items-center justify-center">
-              <Wrench className="w-8 h-8 text-blue-600" />
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center shadow-xs">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-blue-600">
+              <Wrench size={22} />
             </div>
 
-            <h2 className="text-xl font-semibold text-gray-900">
-              No Services Added
+            <h2 className="text-sm font-bold text-slate-900">
+              No Services Added Yet
             </h2>
-
-            <p className="text-gray-500 mt-2 mb-6">
-              Add your first service so customers can find you.
+            <p className="mx-auto mt-1 max-w-sm text-xs text-slate-500">
+              Publish services to your profile so customers in your area can discover and book you.
             </p>
 
             <button
               onClick={() => navigate("/provider/services/add")}
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-sky-100/90 px-4 py-2 text-xs font-bold text-blue-700 shadow-xs transition hover:bg-blue-100 active:scale-95"
             >
-              <Plus size={20} />
-              Add Service
+              <Plus size={14} />
+              Add First Service
             </button>
-
           </div>
         )}
 
-
-        {/* Services Grid */}
+        {/* =========================================
+            COMPACT SERVICES GRID
+        ========================================= */}
         {services.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
             {services.map((item) => {
-
               const service = item.service;
 
               return (
                 <div
                   key={item.id}
-                  className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition"
+                  className="flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs transition hover:border-sky-300 hover:shadow-md"
                 >
+                  <div>
+                    {/* Media Thumbnail */}
+                    <div className="relative h-36 w-full overflow-hidden bg-slate-100">
+                      {item.service_image ? (
+                        <img
+                          src={getImageUrl(item.service_image)}
+                          alt={service?.name || "Service"}
+                          className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <div className="flex h-full flex-col items-center justify-center text-slate-300">
+                          <Wrench size={28} />
+                          <span className="mt-1 text-[10px] text-slate-400">
+                            No Image Provided
+                          </span>
+                        </div>
+                      )}
 
-                  {/* Image */}
-                  <div className="h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
-
-                    {item.service_image ? (
-                      <img
-                        src={getImageUrl(item.service_image)}
-                        alt={service?.name || "Service"}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                        }}
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center text-gray-400">
-                        <Wrench size={42} />
-
-                        <span className="text-sm mt-2">
-                          No Image
-                        </span>
-                      </div>
-                    )}
-
-                  </div>
-
-
-                  {/* Content */}
-                  <div className="p-5">
-
-                    <div className="flex items-start justify-between gap-3">
-
-                      <div>
-                        <h2 className="text-xl font-bold text-gray-900">
-                          {service?.name || "Service"}
-                        </h2>
-
-                        <p className="text-sm text-blue-600 font-medium mt-1">
-                          {service?.category || "General"}
-                        </p>
-                      </div>
-
-
-                      {/* Status */}
+                      {/* Floating Status Chip */}
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                        className={`absolute right-2.5 top-2.5 rounded-full px-2 py-0.5 text-[10px] font-bold shadow-xs ${
                           item.is_active
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 text-gray-600"
+                            ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                            : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
                         }`}
                       >
                         {item.is_active ? "Active" : "Inactive"}
                       </span>
-
                     </div>
 
-
-                    {/* Description */}
-                    {service?.description && (
-                      <p className="text-sm text-gray-500 mt-4 line-clamp-2">
-                        {service.description}
-                      </p>
-                    )}
-
-
-                    {/* Details */}
-                    <div className="mt-5 space-y-3">
-
-                      {/* Basic Price */}
-                      <div className="flex items-center gap-3 text-gray-700">
-                        <IndianRupee
-                          size={18}
-                          className="text-green-600"
-                        />
-
-                        <span className="text-sm text-gray-500">
-                          Basic Visit Price:
+                    {/* Content Section */}
+                    <div className="p-3.5">
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-bold uppercase tracking-wide text-blue-600">
+                          {service?.category || "General Service"}
                         </span>
-
-                        <span className="font-semibold text-gray-900">
-                          ₹{formatPrice(item.price)}
-                        </span>
+                        <h2 className="truncate text-sm font-bold text-slate-900">
+                          {service?.name || "Service Name"}
+                        </h2>
                       </div>
 
+                      {service?.description && (
+                        <p className="mt-1.5 text-xs text-slate-500 line-clamp-2">
+                          {service.description}
+                        </p>
+                      )}
 
-                      {/* Experience */}
-                      <div className="flex items-center gap-3 text-gray-600">
-                        <BriefcaseBusiness
-                          size={18}
-                          className="text-blue-600"
-                        />
+                      {/* Meta Information List */}
+                      <div className="mt-3 space-y-1.5 rounded-xl border border-slate-100 bg-slate-50/70 p-2.5 text-xs">
+                        {/* Price */}
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 text-slate-500">
+                            <IndianRupee size={13} className="text-emerald-600" />
+                            Visit / Base Rate
+                          </span>
+                          <span className="font-bold text-slate-900">
+                            ₹{formatPrice(item.price)}
+                          </span>
+                        </div>
 
-                        <span>
-                          {item.experience || 0} years experience
-                        </span>
+                        {/* Experience */}
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 text-slate-500">
+                            <BriefcaseBusiness size={13} className="text-blue-500" />
+                            Experience
+                          </span>
+                          <span className="font-semibold text-slate-800">
+                            {item.experience || 0} years
+                          </span>
+                        </div>
+
+                        {/* Service Area */}
+                        <div className="flex items-start justify-between gap-2 pt-0.5">
+                          <span className="flex items-center gap-1.5 shrink-0 text-slate-500">
+                            <MapPin size={13} className="text-rose-500" />
+                            Coverage
+                          </span>
+                          <span className="truncate max-w-[150px] text-right font-medium text-slate-700">
+                            {item.service_area || "Citywide"}
+                          </span>
+                        </div>
                       </div>
-
-
-                      {/* Service Area */}
-                      <div className="flex items-center gap-3 text-gray-600">
-                        <MapPin
-                          size={18}
-                          className="text-red-500"
-                        />
-
-                        <span>
-                          {item.service_area || "Service area not specified"}
-                        </span>
-                      </div>
-
                     </div>
-
-
-                    {/* Actions */}
-                    <div className="flex gap-3 mt-6 pt-5 border-t border-gray-100">
-
-                      <button
-                        onClick={() =>
-                          navigate(
-                            `/provider/services/edit/${item.id}`
-                          )
-                        }
-                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-blue-200 text-blue-600 font-medium hover:bg-blue-50 transition"
-                      >
-                        <Pencil size={17} />
-                        Edit
-                      </button>
-
-
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        disabled={deleteLoading === item.id}
-                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 text-red-600 font-medium hover:bg-red-50 transition disabled:opacity-50"
-                      >
-                        {deleteLoading === item.id ? (
-                          <Loader2
-                            size={17}
-                            className="animate-spin"
-                          />
-                        ) : (
-                          <Trash2 size={17} />
-                        )}
-
-                        Delete
-                      </button>
-
-                    </div>
-
                   </div>
 
+                  {/* Actions Footer */}
+                  <div className="grid grid-cols-2 gap-2 border-t border-slate-100 p-3">
+                    <button
+                      onClick={() =>
+                        navigate(`/provider/services/edit/${item.id}`)
+                      }
+                      className="inline-flex items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white py-1.5 text-xs font-semibold text-slate-700 transition hover:border-sky-200 hover:bg-sky-50/50 hover:text-blue-700 active:scale-95"
+                    >
+                      <Pencil size={12} />
+                      Edit
+                    </button>
+
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      disabled={deleteLoading === item.id}
+                      className="inline-flex items-center justify-center gap-1 rounded-lg border border-rose-200 bg-white py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 active:scale-95 disabled:opacity-50"
+                    >
+                      {deleteLoading === item.id ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={12} />
+                      )}
+                      Delete
+                    </button>
+                  </div>
                 </div>
               );
             })}
-
           </div>
         )}
-
       </div>
     </div>
   );
 };
 
 export default MyServices;
-

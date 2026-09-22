@@ -1,1993 +1,711 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-
 import {
-    ArrowLeft,
-    MapPin,
-    User,
-    Phone,
-    Mail,
-    Wrench,
-    Clock,
-    CheckCircle,
-    Navigation,
-    Play,
-    Loader2,
-    AlertCircle,
-    RefreshCw,
-    Bike,
-    Radio,
-    IndianRupee,
+  ArrowLeft,
+  MapPin,
+  User,
+  Phone,
+  Mail,
+  Wrench,
+  Clock,
+  CheckCircle,
+  Navigation,
+  Play,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+  IndianRupee,
+  Compass,
+  Radio,
+  X,
 } from "lucide-react";
-
 import {
-    MapContainer,
-    TileLayer,
-    Marker,
-    Popup,
-    Polyline,
-    useMap,
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  Polyline,
+  useMap,
 } from "react-leaflet";
-
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 import api from "../../api/axios";
 
-
-// ==================================================
-// CUSTOMER MARKER ICON
-// ==================================================
-
+// CUSTOMER ICON
 const customerIcon = new L.Icon({
-    iconUrl:
-        "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-
-    iconRetinaUrl:
-        "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-
-    shadowUrl:
-        "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41],
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconSize: [20, 32],
+  iconAnchor: [10, 32],
+  popupAnchor: [1, -28],
+  shadowSize: [32, 32],
 });
 
-
-// ==================================================
-// PROVIDER BIKE ICON
-// ==================================================
-
+// COMPACT PROVIDER BIKE ICON
 const providerIcon = L.divIcon({
-    className: "provider-bike-marker",
-
-    html: `
-        <div style="
-            width:42px;
-            height:42px;
-            background:#2563eb;
-            border-radius:50%;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            border:4px solid white;
-            box-shadow:0 3px 10px rgba(0,0,0,0.3);
-            font-size:21px;
-        ">
-            🛵
-        </div>
-    `,
-
-    iconSize: [42, 42],
-    iconAnchor: [21, 21],
+  className: "provider-bike-marker",
+  html: `
+    <div style="
+      width: 34px;
+      height: 34px;
+      background: #0284c7;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2.5px solid white;
+      box-shadow: 0 3px 10px rgba(2, 132, 199, 0.4);
+      font-size: 15px;
+    ">
+      🛵
+    </div>
+  `,
+  iconSize: [34, 34],
+  iconAnchor: [17, 17],
+  popupAnchor: [0, -17],
 });
 
-
-// ==================================================
-// MAP CENTER
-// ==================================================
-
+// MAP RE-CENTER
 const MapCenter = ({ position }) => {
-    const map = useMap();
-
-    useEffect(() => {
-        if (position) {
-            map.setView(position, 14);
-        }
-    }, [position, map]);
-
-    return null;
+  const map = useMap();
+  useEffect(() => {
+    if (position) map.setView(position, 14);
+  }, [position, map]);
+  return null;
 };
 
-
-// ==================================================
 // SMOOTH PROVIDER MARKER
-// ==================================================
-
 const SmoothProviderMarker = ({ position }) => {
-    const markerRef = useRef(null);
+  const markerRef = useRef(null);
+  const animationFrameRef = useRef(null);
 
-    useEffect(() => {
-        if (!position || !markerRef.current) {
-            return;
-        }
+  useEffect(() => {
+    if (!position || !markerRef.current) return;
+    const marker = markerRef.current;
+    const current = marker.getLatLng();
+    const startLat = current.lat;
+    const startLng = current.lng;
+    const endLat = position[0];
+    const endLng = position[1];
 
-        const marker = markerRef.current;
+    if (startLat === endLat && startLng === endLng) return;
 
-        const current = marker.getLatLng();
+    const duration = 1200;
+    const startTime = performance.now();
 
-        const startLat = current.lat;
-        const startLng = current.lng;
+    const animate = (time) => {
+      const elapsed = time - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const lat = startLat + (endLat - startLat) * progress;
+      const lng = startLng + (endLng - startLng) * progress;
+      marker.setLatLng([lat, lng]);
 
-        const endLat = position[0];
-        const endLng = position[1];
+      if (progress < 1) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        marker.setLatLng([endLat, endLng]);
+        animationFrameRef.current = null;
+      }
+    };
 
-        const duration = 1500;
-        const startTime = performance.now();
+    animationFrameRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    };
+  }, [position]);
 
-        const animate = (time) => {
-            const progress = Math.min(
-                (time - startTime) / duration,
-                1
-            );
-
-            const lat =
-                startLat +
-                (endLat - startLat) * progress;
-
-            const lng =
-                startLng +
-                (endLng - startLng) * progress;
-
-            marker.setLatLng([lat, lng]);
-
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            }
-        };
-
-        requestAnimationFrame(animate);
-    }, [position]);
-
-    return (
-        <Marker
-            ref={markerRef}
-            position={position}
-            icon={providerIcon}
-        >
-            <Popup>
-                <strong>Provider Location</strong>
-                <br />
-                Live provider location
-            </Popup>
-        </Marker>
-    );
+  return (
+    <Marker ref={markerRef} position={position} icon={providerIcon}>
+      <Popup>
+        <div className="p-0.5 text-[11px]">
+          <strong className="text-slate-900">Your Location</strong>
+          <p className="text-slate-500 mt-0.5">Live provider coordinates</p>
+        </div>
+      </Popup>
+    </Marker>
+  );
 };
 
+// HAVERSINE DISTANCE
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+  const nLat1 = Number(lat1);
+  const nLon1 = Number(lon1);
+  const nLat2 = Number(lat2);
+  const nLon2 = Number(lon2);
+  if (isNaN(nLat1) || isNaN(nLon1) || isNaN(nLat2) || isNaN(nLon2)) return null;
 
-// ==================================================
-// MAIN COMPONENT
-// ==================================================
+  const R = 6371;
+  const dLat = ((nLat2 - nLat1) * Math.PI) / 180;
+  const dLon = ((nLon2 - nLon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((nLat1 * Math.PI) / 180) *
+      Math.cos((nLat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return (R * c).toFixed(1);
+};
 
 const ProviderRequestDetails = () => {
-    const { id } = useParams();
-    const navigate = useNavigate();
+  const { id } = useParams();
+  const navigate = useNavigate();
 
-    // --------------------------------------------------
-    // STATES
-    // --------------------------------------------------
+  const [request, setRequest] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [updating, setUpdating] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [providerLocation, setProviderLocation] = useState(null);
 
-    const [request, setRequest] = useState(null);
+  const fetchRequest = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const response = await api.get(`/provider/service-requests/${id}`);
+      if (response.data.success) {
+        setRequest(response.data.request || response.data.service_request);
+      } else {
+        setError(response.data.message || "Unable to load request.");
+      }
+    } catch (err) {
+      console.error("Request Fetch Error:", err);
+      setError(err.response?.data?.message || "Unable to load service request.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const [loading, setLoading] = useState(true);
-
-    const [error, setError] = useState("");
-
-    const [success, setSuccess] = useState("");
-
-    const [updating, setUpdating] = useState(false);
-
-    const [locationLoading, setLocationLoading] =
-        useState(false);
-
-    const [providerLocation, setProviderLocation] =
-        useState(null);
-
-    // --------------------------------------------------
-    // PRICE STATES
-    // --------------------------------------------------
-
-    const [extraCharges, setExtraCharges] =
-        useState("");
-
-    const [extraChargesReason, setExtraChargesReason] =
-        useState("");
-
-    const [priceUpdating, setPriceUpdating] =
-        useState(false);
-
-
-    // ==================================================
-    // FETCH REQUEST
-    // ==================================================
-
-    const fetchRequest = async () => {
-        try {
-            setLoading(true);
-            setError("");
-
-            const response = await api.get(
-                `/provider/service-requests/${id}`
-            );
-
-            if (response.data.success) {
-                const requestData =
-                    response.data.request;
-
-                setRequest(requestData);
-
-                // --------------------------------------
-                // Load existing extra charges
-                // --------------------------------------
-
-                if (
-                    requestData.extra_charges !== null &&
-                    requestData.extra_charges !== undefined
-                ) {
-                    setExtraCharges(
-                        String(requestData.extra_charges)
-                    );
-                } else {
-                    setExtraCharges("");
-                }
-
-                // --------------------------------------
-                // Load existing reason
-                // --------------------------------------
-
-                if (
-                    requestData.extra_charges_reason
-                ) {
-                    setExtraChargesReason(
-                        requestData.extra_charges_reason
-                    );
-                } else {
-                    setExtraChargesReason("");
-                }
-            } else {
-                setError(
-                    response.data.message ||
-                        "Unable to load request."
-                );
-            }
-        } catch (err) {
-            console.error(
-                "Request Fetch Error:",
-                err.response?.data || err.message
-            );
-
-            setError(
-                err.response?.data?.message ||
-                    "Unable to load service request."
-            );
-        } finally {
-            setLoading(false);
+  const fetchProviderLocation = async () => {
+    try {
+      setLocationLoading(true);
+      const response = await api.get(`/provider/service-requests/${id}/live-location`);
+      if (response.data.success && response.data.provider_location) {
+        const location = response.data.provider_location;
+        const lat = Number(location.latitude);
+        const lng = Number(location.longitude);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          setProviderLocation([lat, lng]);
         }
-    };
+      }
+    } catch (err) {
+      console.error("Provider Location Error:", err);
+    } finally {
+      setLocationLoading(false);
+    }
+  };
 
+  useEffect(() => {
+    fetchRequest();
+  }, [id]);
 
-    // ==================================================
-    // FETCH PROVIDER LIVE LOCATION
-    // ==================================================
+  useEffect(() => {
+    if (!request) return;
+    const liveStatuses = [
+      "provider_assigned",
+      "provider_on_the_way",
+      "arrived",
+      "service_started",
+    ];
+    if (!liveStatuses.includes(request.status)) return;
 
-    const fetchProviderLocation = async () => {
-        try {
-            setLocationLoading(true);
+    fetchProviderLocation();
+    const interval = setInterval(fetchProviderLocation, 10000);
+    return () => clearInterval(interval);
+  }, [request?.status, id]);
 
-            const response = await api.get(
-                `/provider/service-requests/${id}/live-location`
-            );
+  const updateStatus = async (newStatus) => {
+    try {
+      setUpdating(true);
+      setError("");
+      setSuccess("");
+      const response = await api.put(`/provider/service-requests/${id}/status`, {
+        status: newStatus,
+      });
 
-            /*
-             * Backend response:
-             *
-             * provider_location: {
-             *     latitude,
-             *     longitude,
-             *     ...
-             * }
-             */
-
-            if (
-                response.data.success &&
-                response.data.provider_location
-            ) {
-                const location =
-                    response.data.provider_location;
-
-                const lat = Number(
-                    location.latitude
-                );
-
-                const lng = Number(
-                    location.longitude
-                );
-
-                if (
-                    !Number.isNaN(lat) &&
-                    !Number.isNaN(lng)
-                ) {
-                    setProviderLocation([
-                        lat,
-                        lng,
-                    ]);
-                }
-            }
-        } catch (err) {
-            console.error(
-                "Provider Location Error:",
-                err.response?.data || err.message
-            );
-        } finally {
-            setLocationLoading(false);
-        }
-    };
-
-
-    // ==================================================
-    // INITIAL LOAD
-    // ==================================================
-
-    useEffect(() => {
-        fetchRequest();
-    }, [id]);
-
-
-    // ==================================================
-    // LIVE LOCATION POLLING
-    // ==================================================
-
-    useEffect(() => {
-        if (!request) {
-            return;
-        }
-
-        const liveStatuses = [
-            "provider_assigned",
-            "provider_on_the_way",
-            "arrived",
-            "service_started",
-        ];
-
-        if (
-            !liveStatuses.includes(
-                request.status
-            )
-        ) {
-            return;
-        }
-
+      if (response.data.success) {
+        setRequest(response.data.request || response.data.service_request);
+        setSuccess(response.data.message || "Status updated.");
         fetchProviderLocation();
+      } else {
+        setError(response.data.message || "Unable to update status.");
+      }
+    } catch (err) {
+      console.error("Status Update Error:", err);
+      setError(err.response?.data?.message || "Unable to update request status.");
+    } finally {
+      setUpdating(false);
+    }
+  };
 
-        const interval = setInterval(() => {
-            fetchProviderLocation();
-        }, 10000);
+  const cancelRequest = async () => {
+    if (!window.confirm("Are you sure you want to cancel this service job?")) return;
+    try {
+      setUpdating(true);
+      setError("");
+      setSuccess("");
+      const response = await api.post(`/provider/service-requests/${id}/cancel`);
+      if (response.data.success) {
+        setRequest((prev) => ({ ...prev, status: "cancelled" }));
+        setSuccess("Job cancelled successfully.");
+      } else {
+        setError(response.data.message || "Unable to cancel request.");
+      }
+    } catch (err) {
+      console.error("Cancel Error:", err);
+      setError(err.response?.data?.message || "Unable to cancel request.");
+    } finally {
+      setUpdating(false);
+    }
+  };
 
-        return () => {
-            clearInterval(interval);
+  const getNextAction = () => {
+    if (!request) return null;
+    switch (request.status) {
+      case "provider_assigned":
+        return {
+          status: "provider_on_the_way",
+          label: "Start Journey",
+          icon: Navigation,
         };
-    }, [request?.status, id]);
-
-
-    // ==================================================
-    // UPDATE SERVICE STATUS
-    // ==================================================
-
-    const updateStatus = async (newStatus) => {
-        try {
-            setUpdating(true);
-
-            setError("");
-            setSuccess("");
-
-            const response = await api.put(
-                `/provider/service-requests/${id}/status`,
-                {
-                    status: newStatus,
-                }
-            );
-
-            if (response.data.success) {
-                setRequest(
-                    response.data.request
-                );
-
-                setSuccess(
-                    response.data.message ||
-                        "Status updated successfully."
-                );
-
-                fetchProviderLocation();
-            } else {
-                setError(
-                    response.data.message ||
-                        "Unable to update status."
-                );
-            }
-        } catch (err) {
-            console.error(
-                "Status Update Error:",
-                err.response?.data || err.message
-            );
-
-            setError(
-                err.response?.data?.message ||
-                    "Unable to update request status."
-            );
-        } finally {
-            setUpdating(false);
-        }
-    };
-
-
-    // ==================================================
-    // PRICE UPDATE
-    // ==================================================
-
-    const updatePrice = async () => {
-
-        // ----------------------------------------------
-        // Extra charge required
-        // ----------------------------------------------
-
-        if (extraCharges === "") {
-            setError(
-                "Please enter extra charges."
-            );
-
-            return;
-        }
-
-
-        // ----------------------------------------------
-        // Extra charge cannot be negative
-        // ----------------------------------------------
-
-        if (Number(extraCharges) < 0) {
-            setError(
-                "Extra charges cannot be negative."
-            );
-
-            return;
-        }
-
-
-        // ----------------------------------------------
-        // If extra charge > 0, reason is required
-        // ----------------------------------------------
-
-        if (
-            Number(extraCharges) > 0 &&
-            !extraChargesReason.trim()
-        ) {
-            setError(
-                "Please enter the reason for extra charges."
-            );
-
-            return;
-        }
-
-
-        try {
-            setPriceUpdating(true);
-
-            setError("");
-            setSuccess("");
-
-            const response = await api.put(
-                `/provider/service-requests/${id}/price`,
-                {
-                    extra_charges:
-                        Number(extraCharges),
-
-                    extra_charges_reason:
-                        extraChargesReason.trim() ||
-                        null,
-                }
-            );
-
-            if (response.data.success) {
-
-                setRequest(
-                    response.data.request
-                );
-
-                setSuccess(
-                    response.data.message ||
-                        "Final price sent to customer for approval."
-                );
-
-            } else {
-
-                setError(
-                    response.data.message ||
-                        "Unable to update price."
-                );
-            }
-
-        } catch (err) {
-
-            console.error(
-                "Price Update Error:",
-                err.response?.data ||
-                    err.message
-            );
-
-            setError(
-                err.response?.data?.message ||
-                    "Unable to update price."
-            );
-
-        } finally {
-
-            setPriceUpdating(false);
-        }
-    };
-
-
-    // ==================================================
-    // NEXT STATUS ACTION
-    // ==================================================
-
-    const getNextAction = () => {
-        if (!request) {
-            return null;
-        }
-
-        switch (request.status) {
-
-            case "provider_assigned":
-                return {
-                    status: "provider_on_the_way",
-                    label: "Start Journey",
-                    icon: Navigation,
-                };
-
-            case "provider_on_the_way":
-                return {
-                    status: "arrived",
-                    label: "Mark Arrived",
-                    icon: MapPin,
-                };
-
-            case "arrived":
-                return {
-                    status: "service_started",
-                    label: "Start Service",
-                    icon: Play,
-                };
-
-            case "service_started":
-                return {
-                    status: "service_completed",
-                    label: "Complete Service",
-                    icon: CheckCircle,
-                };
-
-            default:
-                return null;
-        }
-    };
-
-
-    // ==================================================
-    // DATE FORMAT
-    // ==================================================
-
-    const formatDate = (date) => {
-        if (!date) {
-            return "N/A";
-        }
-
-        return new Date(date).toLocaleString(
-            "en-IN",
-            {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-            }
-        );
-    };
-
-
-    // ==================================================
-    // PRICE FORMAT
-    // ==================================================
-
-    const formatPrice = (price) => {
-        if (
-            price === null ||
-            price === undefined
-        ) {
-            return "₹0.00";
-        }
-
-        return `₹${Number(price).toFixed(2)}`;
-    };
-
-
-    // ==================================================
-    // STATUS TEXT
-    // ==================================================
-
-    const getStatusText = (status) => {
-        switch (status) {
-
-            case "searching":
-                return "Searching";
-
-            case "provider_assigned":
-                return "Provider Assigned";
-
-            case "provider_on_the_way":
-                return "Provider On The Way";
-
-            case "arrived":
-                return "Provider Arrived";
-
-            case "service_started":
-                return "Service Started";
-
-            case "service_completed":
-                return "Service Completed";
-
-            case "cancelled":
-                return "Cancelled";
-
-            default:
-                return status
-                    ? status.replaceAll(
-                          "_",
-                          " "
-                      )
-                    : "Unknown";
-        }
-    };
-
-
-    // ==================================================
-    // PRICE STATUS TEXT
-    // ==================================================
-
-    const getPriceStatusText = (status) => {
-
-        switch (status) {
-
-            case "locked":
-                return "Basic Price Locked";
-
-            case "pending":
-                return "Waiting for Customer Approval";
-
-            case "approved":
-                return "Customer Approved";
-
-            case "rejected":
-                return "Customer Rejected";
-
-            default:
-                return "Not Set";
-        }
-    };
-
-
-    // ==================================================
-    // PRICE STATUS STYLE
-    // ==================================================
-
-    const getPriceStatusClass = (status) => {
-
-        switch (status) {
-
-            case "locked":
-                return "bg-blue-50 text-blue-700";
-
-            case "pending":
-                return "bg-yellow-50 text-yellow-700";
-
-            case "approved":
-                return "bg-green-50 text-green-700";
-
-            case "rejected":
-                return "bg-red-50 text-red-700";
-
-            default:
-                return "bg-gray-50 text-gray-700";
-        }
-    };
-
-
-    // ==================================================
-    // LOADING
-    // ==================================================
-
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-
-                <Loader2
-                    size={40}
-                    className="animate-spin text-blue-600"
+      case "provider_on_the_way":
+        return {
+          status: "arrived",
+          label: "Mark Arrived",
+          icon: MapPin,
+        };
+      case "arrived":
+        return {
+          status: "service_started",
+          label: "Start Service",
+          icon: Play,
+        };
+      case "service_started":
+        return {
+          status: "service_completed",
+          label: "Complete Service",
+          icon: CheckCircle,
+        };
+      default:
+        return null;
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "provider_assigned":
+        return { label: "Assigned", className: "bg-sky-50 text-sky-700 border-sky-200" };
+      case "provider_on_the_way":
+        return { label: "On Way", className: "bg-blue-50 text-blue-700 border-blue-200" };
+      case "arrived":
+        return { label: "Arrived", className: "bg-indigo-50 text-indigo-700 border-indigo-200" };
+      case "service_started":
+        return { label: "In Progress", className: "bg-amber-50 text-amber-700 border-amber-200" };
+      case "service_completed":
+        return { label: "Completed", className: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+      case "cancelled":
+        return { label: "Cancelled", className: "bg-rose-50 text-rose-700 border-rose-200" };
+      default:
+        return { label: status?.replaceAll("_", " ") || "In Review", className: "bg-slate-50 text-slate-700 border-slate-200" };
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50/60">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 size={24} className="animate-spin text-blue-600" />
+          <p className="text-[11px] font-semibold text-slate-500">Loading details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!request) {
+    return (
+      <div className="min-h-screen bg-slate-50/60 p-4">
+        <div className="mx-auto max-w-3xl">
+          <button
+            onClick={() => navigate(-1)}
+            className="mb-4 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 shadow-xs hover:bg-slate-50"
+          >
+            <ArrowLeft size={13} />
+            Back
+          </button>
+          <div className="rounded-2xl border border-rose-200 bg-white p-6 text-center shadow-xs">
+            <AlertCircle size={30} className="mx-auto text-rose-500 mb-2" />
+            <h2 className="text-sm font-bold text-slate-900">Request Not Found</h2>
+            <p className="mt-0.5 text-[11px] text-slate-500">{error || "Unable to find this request."}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const customerPosition =
+    request.latitude && request.longitude
+      ? [Number(request.latitude), Number(request.longitude)]
+      : null;
+
+  const currentProviderPosition = providerLocation;
+  const routeLine =
+    customerPosition && currentProviderPosition
+      ? [currentProviderPosition, customerPosition]
+      : [];
+
+  const distanceKm =
+    customerPosition && currentProviderPosition
+      ? calculateDistance(
+          currentProviderPosition[0],
+          currentProviderPosition[1],
+          customerPosition[0],
+          customerPosition[1]
+        )
+      : null;
+
+  const nextAction = getNextAction();
+  const statusInfo = getStatusBadge(request.status);
+  const canCancel = [
+    "provider_assigned",
+    "provider_on_the_way",
+    "arrived",
+  ].includes(request.status);
+
+  return (
+    <div className="min-h-screen bg-slate-50/60 p-3 sm:p-5">
+      <div className="mx-auto max-w-5xl space-y-3.5">
+
+        {/* TOP BAR NAVIGATION */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => navigate(-1)}
+            className="group inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 transition hover:text-blue-700"
+          >
+            <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-0.5" />
+            Back to Dashboard
+          </button>
+
+          <button
+            onClick={() => {
+              fetchRequest();
+              fetchProviderLocation();
+            }}
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-xs hover:bg-slate-50 active:scale-95"
+          >
+            <RefreshCw
+              size={11}
+              className={locationLoading ? "animate-spin text-blue-600" : "text-slate-400"}
+            />
+            Sync
+          </button>
+        </div>
+
+        {/* ALERTS */}
+        {success && (
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/80 px-3 py-2 text-xs font-medium text-emerald-800">
+            <CheckCircle size={14} className="shrink-0 text-emerald-600" />
+            <span>{success}</span>
+          </div>
+        )}
+
+        {error && (
+          <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50/80 px-3 py-2 text-xs font-medium text-rose-800">
+            <AlertCircle size={14} className="shrink-0 text-rose-600" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* 1. COMPACT MAP CARD */}
+        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+          {/* MAP HEADER */}
+          <div className="flex items-center justify-between border-b border-slate-100 px-3.5 py-2.5">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-blue-600">
+                <Navigation size={14} />
+              </div>
+              <div>
+                <h2 className="text-xs font-bold text-slate-900 leading-none">
+                  Live Dispatch Navigation
+                </h2>
+                <span className="text-[10px] text-slate-400">
+                  Real-time GPS tracking
+                </span>
+              </div>
+            </div>
+
+            {currentProviderPosition ? (
+              <div className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-sky-800">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live GPS
+              </div>
+            ) : (
+              <span className="text-[10px] text-slate-400">Locating...</span>
+            )}
+          </div>
+
+          {/* MAP CANVAS */}
+          <div className="relative h-[240px] w-full sm:h-[280px]">
+            {customerPosition ? (
+              <MapContainer
+                center={currentProviderPosition || customerPosition}
+                zoom={14}
+                scrollWheelZoom={false}
+                className="h-full w-full z-0"
+              >
+                <TileLayer
+                  attribution="&copy; OpenStreetMap contributors"
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
 
-            </div>
-        );
-    }
+                <MapCenter position={currentProviderPosition || customerPosition} />
 
-
-    // ==================================================
-    // ERROR / NO REQUEST
-    // ==================================================
-
-    if (!request) {
-
-        return (
-            <div className="min-h-screen bg-gray-50 p-6">
-
-                <div className="max-w-4xl mx-auto">
-
-                    <button
-                        onClick={() =>
-                            navigate(-1)
-                        }
-                        className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
-                    >
-                        <ArrowLeft
-                            size={20}
-                        />
-
-                        Back
-                    </button>
-
-
-                    <div className="bg-white rounded-2xl shadow-sm border p-8 text-center">
-
-                        <AlertCircle
-                            size={45}
-                            className="mx-auto text-red-500 mb-4"
-                        />
-
-                        <h2 className="text-xl font-semibold">
-                            Request Not Found
-                        </h2>
-
-                        <p className="text-gray-500 mt-2">
-                            {error ||
-                                "Unable to load this service request."}
-                        </p>
-
+                <Marker position={customerPosition} icon={customerIcon}>
+                  <Popup>
+                    <div className="p-0.5 text-[11px]">
+                      <strong className="text-slate-900">Destination</strong>
+                      <p className="text-slate-500 mt-0.5">{request.address || "Customer location"}</p>
                     </div>
-
-                </div>
-
-            </div>
-        );
-    }
-
-
-    // ==================================================
-    // PRICE PERMISSIONS
-    // ==================================================
-
-    /*
-     * Provider can add/edit extra charges only after
-     * reaching customer.
-     */
-
-    const canAddExtraCharges = [
-        "arrived",
-        "service_started",
-    ].includes(request.status);
-
-
-    /*
-     * Customer has not responded yet.
-     *
-     * During pending:
-     * Provider should not change the submitted price.
-     */
-
-    const pricePending =
-        request.price_status === "pending";
-
-
-    /*
-     * Customer already approved.
-     *
-     * Final price is locked.
-     */
-
-    const priceApproved =
-        request.price_status === "approved";
-
-
-    /*
-     * Customer rejected.
-     *
-     * Provider can submit a new price.
-     */
-
-    const priceRejected =
-        request.price_status === "rejected";
-
-
-    /*
-     * Provider can edit price when:
-     *
-     * 1. Provider has arrived/service started
-     * 2. Price is not pending
-     * 3. Price is not approved
-     */
-
-    const canEditPrice =
-        canAddExtraCharges &&
-        !pricePending &&
-        !priceApproved;
-
-
-    // ==================================================
-    // CUSTOMER LOCATION
-    // ==================================================
-
-    const customerPosition =
-        request.latitude &&
-        request.longitude
-            ? [
-                  Number(
-                      request.latitude
-                  ),
-                  Number(
-                      request.longitude
-                  ),
-              ]
-            : null;
-
-
-    // ==================================================
-    // PROVIDER POSITION
-    // ==================================================
-
-    const currentProviderPosition =
-        providerLocation;
-
-
-    // ==================================================
-    // MAP LINE
-    // ==================================================
-
-    const routeLine =
-        customerPosition &&
-        currentProviderPosition
-            ? [
-                  customerPosition,
-                  currentProviderPosition,
-              ]
-            : [];
-
-
-    // ==================================================
-    // NEXT ACTION
-    // ==================================================
-
-    const nextAction =
-        getNextAction();
-
-
-    // ==================================================
-    // FINAL PRICE PREVIEW
-    // ==================================================
-
-    const basicPrice = Number(
-        request.provider_service_price || 0
-    );
-
-    const enteredExtraCharges =
-        Number(extraCharges || 0);
-
-    const calculatedFinalPrice =
-        basicPrice +
-        enteredExtraCharges;
-
-
-    // ==================================================
-    // BUTTON TEXT
-    // ==================================================
-
-    const priceButtonText =
-        priceRejected
-            ? "Update Price & Resend"
-            : "Send Price to Customer";
-
-
-    // ==================================================
-    // JSX
-    // ==================================================
-
-    return (
-        <div className="min-h-screen bg-gray-50">
-
-
-            {/* ==================================================
-                HEADER
-            ================================================== */}
-
-            <div className="bg-white border-b sticky top-0 z-20">
-
-                <div className="max-w-7xl mx-auto px-6 py-4">
-
-                    <div className="flex items-center justify-between">
-
-                        <button
-                            onClick={() =>
-                                navigate(-1)
-                            }
-                            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-                        >
-                            <ArrowLeft
-                                size={20}
-                            />
-
-                            <span>
-                                Back
-                            </span>
-                        </button>
-
-
-                        <div className="flex items-center gap-3">
-
-                            <div
-                                className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                                    request.status ===
-                                    "service_completed"
-                                        ? "bg-green-100 text-green-700"
-                                        : request.status ===
-                                          "cancelled"
-                                        ? "bg-red-100 text-red-700"
-                                        : "bg-blue-100 text-blue-700"
-                                }`}
-                            >
-                                {getStatusText(
-                                    request.status
-                                )}
-                            </div>
-
-
-                            <button
-                                onClick={() => {
-                                    fetchRequest();
-                                    fetchProviderLocation();
-                                }}
-                                className="p-2 rounded-lg hover:bg-gray-100"
-                                title="Refresh"
-                            >
-                                <RefreshCw
-                                    size={20}
-                                />
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            {/* ==================================================
-                MAIN
-            ================================================== */}
-
-            <div className="max-w-7xl mx-auto px-6 py-6">
-
-
-                {/* ==================================================
-                    SUCCESS
-                ================================================== */}
-
-                {success && (
-                    <div className="mb-5 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl flex items-center gap-2">
-
-                        <CheckCircle
-                            size={20}
-                        />
-
-                        {success}
-
-                    </div>
+                  </Popup>
+                </Marker>
+
+                {currentProviderPosition && (
+                  <SmoothProviderMarker position={currentProviderPosition} />
                 )}
 
-
-                {/* ==================================================
-                    ERROR
-                ================================================== */}
-
-                {error && (
-                    <div className="mb-5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2">
-
-                        <AlertCircle
-                            size={20}
-                        />
-
-                        {error}
-
-                    </div>
+                {routeLine.length === 2 && (
+                  <Polyline
+                    positions={routeLine}
+                    pathOptions={{
+                      color: "#0284c7",
+                      weight: 3,
+                      opacity: 0.8,
+                      dashArray: "6, 6",
+                    }}
+                  />
                 )}
-
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-
-                    {/* ==================================================
-                        LEFT SIDE
-                    ================================================== */}
-
-                    <div className="space-y-6">
-
-
-                        {/* ==================================================
-                            CUSTOMER DETAILS
-                        ================================================== */}
-
-                        <div className="bg-white rounded-2xl shadow-sm border p-5">
-
-                            <h2 className="text-lg font-semibold mb-5 flex items-center gap-2">
-
-                                <User
-                                    size={20}
-                                />
-
-                                Customer Details
-
-                            </h2>
-
-
-                            <div className="space-y-4">
-
-
-                                <div className="flex items-center gap-3">
-
-                                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-
-                                        <User
-                                            size={20}
-                                            className="text-blue-600"
-                                        />
-
-                                    </div>
-
-
-                                    <div>
-
-                                        <p className="font-semibold">
-
-                                            {
-                                                request
-                                                    .customer
-                                                    ?.name
-                                            }
-
-                                        </p>
-
-                                        <p className="text-sm text-gray-500">
-                                            Customer
-                                        </p>
-
-                                    </div>
-
-                                </div>
-
-
-                                <div className="flex items-center gap-3 text-gray-600">
-
-                                    <Phone
-                                        size={18}
-                                    />
-
-                                    <span>
-
-                                        {
-                                            request
-                                                .customer
-                                                ?.phone ||
-                                            "N/A"
-                                        }
-
-                                    </span>
-
-                                </div>
-
-
-                                <div className="flex items-center gap-3 text-gray-600">
-
-                                    <Mail
-                                        size={18}
-                                    />
-
-                                    <span>
-
-                                        {
-                                            request
-                                                .customer
-                                                ?.email ||
-                                            "N/A"
-                                        }
-
-                                    </span>
-
-                                </div>
-
-
-                                <div className="flex items-start gap-3 text-gray-600">
-
-                                    <MapPin
-                                        size={18}
-                                        className="mt-1"
-                                    />
-
-                                    <span>
-                                        {
-                                            request.address
-                                        }
-                                    </span>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-
-                        {/* ==================================================
-                            SERVICE DETAILS
-                        ================================================== */}
-
-                        <div className="bg-white rounded-2xl shadow-sm border p-5">
-
-                            <h2 className="text-lg font-semibold mb-5 flex items-center gap-2">
-
-                                <Wrench
-                                    size={20}
-                                />
-
-                                Service Details
-
-                            </h2>
-
-
-                            <div className="space-y-4">
-
-
-                                <div>
-
-                                    <p className="text-sm text-gray-500">
-                                        Service
-                                    </p>
-
-                                    <p className="font-semibold">
-
-                                        {
-                                            request
-                                                .service
-                                                ?.name
-                                        }
-
-                                    </p>
-
-                                </div>
-
-
-                                <div>
-
-                                    <p className="text-sm text-gray-500">
-                                        Problem Description
-                                    </p>
-
-                                    <p className="text-gray-700">
-
-                                        {
-                                            request.problem_description ||
-                                            "No description provided"
-                                        }
-
-                                    </p>
-
-                                </div>
-
-
-                                <div className="flex items-center gap-3">
-
-                                    <Clock
-                                        size={18}
-                                        className="text-gray-500"
-                                    />
-
-                                    <div>
-
-                                        <p className="text-sm text-gray-500">
-                                            Request Type
-                                        </p>
-
-                                        <p className="font-medium capitalize">
-
-                                            {
-                                                request.request_type
-                                            }
-
-                                        </p>
-
-                                    </div>
-
-                                </div>
-
-
-                                {request.scheduled_at && (
-                                    <div className="flex items-center gap-3">
-
-                                        <Clock
-                                            size={18}
-                                            className="text-gray-500"
-                                        />
-
-                                        <div>
-
-                                            <p className="text-sm text-gray-500">
-                                                Scheduled At
-                                            </p>
-
-                                            <p className="font-medium">
-
-                                                {formatDate(
-                                                    request.scheduled_at
-                                                )}
-
-                                            </p>
-
-                                        </div>
-
-                                    </div>
-                                )}
-
-                            </div>
-
-                        </div>
-
-
-                        {/* ==================================================
-                            PRICE DETAILS
-                        ================================================== */}
-
-                        <div className="bg-white rounded-2xl shadow-sm border p-5">
-
-                            <h2 className="text-lg font-semibold mb-5 flex items-center gap-2">
-
-                                <IndianRupee
-                                    size={20}
-                                />
-
-                                Price Details
-
-                            </h2>
-
-
-                            <div className="space-y-5">
-
-
-                                {/* ==================================================
-                                    BASIC PRICE
-                                ================================================== */}
-
-                                <div className="flex items-center justify-between">
-
-                                    <span className="text-gray-500">
-                                        Basic Visit Price
-                                    </span>
-
-                                    <span className="font-semibold text-gray-800">
-
-                                        {formatPrice(
-                                            request.provider_service_price
-                                        )}
-
-                                    </span>
-
-                                </div>
-
-
-                                {/* ==================================================
-                                    BEFORE ARRIVAL
-                                ================================================== */}
-
-                                {!canAddExtraCharges && (
-                                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-
-                                        <div className="flex items-start gap-3">
-
-                                            <Clock
-                                                size={20}
-                                                className="text-blue-600 mt-0.5"
-                                            />
-
-                                            <div>
-
-                                                <p className="font-semibold text-blue-800">
-                                                    Basic Price is Locked
-                                                </p>
-
-                                                <p className="text-sm text-blue-700 mt-1">
-                                                    Extra charges can be added after you reach the customer and inspect the actual problem.
-                                                </p>
-
-                                            </div>
-
-                                        </div>
-
-                                    </div>
-                                )}
-
-
-                                {/* ==================================================
-                                    PENDING PRICE
-                                ================================================== */}
-
-                                {canAddExtraCharges &&
-                                    pricePending && (
-                                        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-
-                                            <div className="flex items-start gap-3">
-
-                                                <Clock
-                                                    size={20}
-                                                    className="text-yellow-600 mt-0.5"
-                                                />
-
-                                                <div>
-
-                                                    <p className="font-semibold text-yellow-800">
-                                                        Waiting for Customer Approval
-                                                    </p>
-
-                                                    <p className="text-sm text-yellow-700 mt-1">
-                                                        You have already sent this price to the customer. Please wait for the customer to approve or reject it.
-                                                    </p>
-
-                                                </div>
-
-                                            </div>
-
-                                        </div>
-                                    )}
-
-
-                                {/* ==================================================
-                                    APPROVED PRICE
-                                ================================================== */}
-
-                                {priceApproved && (
-                                    <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-
-                                        <div className="flex items-start gap-3">
-
-                                            <CheckCircle
-                                                size={20}
-                                                className="text-green-600 mt-0.5"
-                                            />
-
-                                            <div>
-
-                                                <p className="font-semibold text-green-800">
-                                                    Final Price Approved
-                                                </p>
-
-                                                <p className="text-sm text-green-700 mt-1">
-                                                    Customer has approved the final price. The price is now locked.
-                                                </p>
-
-                                            </div>
-
-                                        </div>
-
-                                    </div>
-                                )}
-
-
-                                {/* ==================================================
-                                    REJECTED PRICE
-                                ================================================== */}
-
-                                {priceRejected &&
-                                    canAddExtraCharges && (
-                                        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-
-                                            <div className="flex items-start gap-3">
-
-                                                <AlertCircle
-                                                    size={20}
-                                                    className="text-red-600 mt-0.5"
-                                                />
-
-                                                <div>
-
-                                                    <p className="font-semibold text-red-800">
-                                                        Customer Rejected the Price
-                                                    </p>
-
-                                                    <p className="text-sm text-red-700 mt-1">
-                                                        Review the actual work again and enter a new extra charge and reason.
-                                                    </p>
-
-                                                </div>
-
-                                            </div>
-
-                                        </div>
-                                    )}
-
-
-                                {/* ==================================================
-                                    EXTRA CHARGES
-                                ================================================== */}
-
-                                {canEditPrice && (
-                                    <>
-
-                                        {/* EXTRA CHARGE */}
-
-                                        <div>
-
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-
-                                                Extra Charges
-
-                                            </label>
-
-                                            <div className="relative">
-
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                                                    ₹
-                                                </span>
-
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={
-                                                        extraCharges
-                                                    }
-                                                    onChange={(e) =>
-                                                        setExtraCharges(
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    placeholder="Enter extra charges"
-                                                    className="w-full pl-8 pr-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                />
-
-                                            </div>
-
-                                        </div>
-
-
-                                        {/* REASON */}
-
-                                        <div>
-
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-
-                                                Reason for Extra Charges
-
-                                                {Number(
-                                                    extraCharges || 0
-                                                ) > 0 && (
-                                                    <span className="text-red-500 ml-1">
-                                                        *
-                                                    </span>
-                                                )}
-
-                                            </label>
-
-                                            <textarea
-                                                value={
-                                                    extraChargesReason
-                                                }
-                                                onChange={(e) =>
-                                                    setExtraChargesReason(
-                                                        e.target.value
-                                                    )
-                                                }
-                                                rows={3}
-                                                placeholder="Example: Motor winding repair required"
-                                                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            />
-
-                                        </div>
-
-
-                                        {/* FINAL PRICE */}
-
-                                        <div className="border-t pt-4">
-
-                                            <div className="flex items-center justify-between">
-
-                                                <span className="font-semibold text-gray-800">
-                                                    Final Price
-                                                </span>
-
-                                                <span className="text-2xl font-bold text-green-600">
-
-                                                    ₹
-                                                    {calculatedFinalPrice.toFixed(
-                                                        2
-                                                    )}
-
-                                                </span>
-
-                                            </div>
-
-                                            <p className="text-xs text-gray-500 mt-1">
-                                                Basic price + extra charges
-                                            </p>
-
-                                        </div>
-
-
-                                        {/* SEND / RESEND BUTTON */}
-
-                                        <button
-                                            type="button"
-                                            onClick={
-                                                updatePrice
-                                            }
-                                            disabled={
-                                                priceUpdating ||
-                                                request.provider_service_price ===
-                                                    null ||
-                                                request.provider_service_price ===
-                                                    undefined
-                                            }
-                                            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                                        >
-
-                                            {priceUpdating ? (
-                                                <>
-
-                                                    <Loader2
-                                                        size={18}
-                                                        className="animate-spin"
-                                                    />
-
-                                                    Sending...
-
-                                                </>
-                                            ) : (
-                                                <>
-
-                                                    <IndianRupee
-                                                        size={18}
-                                                    />
-
-                                                    {priceButtonText}
-
-                                                </>
-                                            )}
-
-                                        </button>
-
-                                    </>
-                                )}
-
-
-                                {/* ==================================================
-                                    PRICE STATUS
-                                ================================================== */}
-
-                                {request.price_status && (
-                                    <div
-                                        className={`rounded-xl px-4 py-3 ${getPriceStatusClass(
-                                            request.price_status
-                                        )}`}
-                                    >
-
-                                        <p className="text-sm opacity-80">
-                                            Price Status
-                                        </p>
-
-                                        <p className="font-semibold">
-                                            {getPriceStatusText(
-                                                request.price_status
-                                            )}
-                                        </p>
-
-                                    </div>
-                                )}
-
-
-                                {/* ==================================================
-                                    CURRENT FINAL PRICE
-                                ================================================== */}
-
-                                {request.final_price !==
-                                    null &&
-                                    request.final_price !==
-                                        undefined && (
-                                        <div className="flex items-center justify-between border-t pt-4">
-
-                                            <span className="font-medium text-gray-600">
-                                                Current Final Price
-                                            </span>
-
-                                            <span className="font-bold text-gray-900">
-                                                {formatPrice(
-                                                    request.final_price
-                                                )}
-                                            </span>
-
-                                        </div>
-                                    )}
-
-                            </div>
-
-                        </div>
-
-
-                        {/* ==================================================
-                            LIVE PROVIDER STATUS
-                        ================================================== */}
-
-                        <div className="bg-white rounded-2xl shadow-sm border p-5">
-
-                            <h2 className="text-lg font-semibold mb-5 flex items-center gap-2">
-
-                                <Radio
-                                    size={20}
-                                />
-
-                                Live Provider Status
-
-                            </h2>
-
-
-                            <div className="flex items-center justify-between">
-
-                                <div className="flex items-center gap-3">
-
-                                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-
-                                        <Bike
-                                            size={20}
-                                            className="text-green-600"
-                                        />
-
-                                    </div>
-
-
-                                    <div>
-
-                                        <p className="font-semibold">
-
-                                            {
-                                                request
-                                                    .provider
-                                                    ?.user
-                                                    ?.name ||
-                                                request
-                                                    .provider
-                                                    ?.name ||
-                                                "Provider"
-                                            }
-
-                                        </p>
-
-                                        <p className="text-sm text-gray-500">
-
-                                            {getStatusText(
-                                                request.status
-                                            )}
-
-                                        </p>
-
-                                    </div>
-
-                                </div>
-
-
-                                {locationLoading && (
-                                    <Loader2
-                                        size={20}
-                                        className="animate-spin text-blue-600"
-                                    />
-                                )}
-
-                            </div>
-
-
-                            {providerLocation && (
-                                <div className="mt-4 bg-blue-50 rounded-xl p-3">
-
-                                    <div className="flex items-center gap-2 text-blue-700">
-
-                                        <Navigation
-                                            size={16}
-                                        />
-
-                                        <span className="text-sm font-medium">
-                                            Live location available
-                                        </span>
-
-                                    </div>
-
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        Location automatically refreshes every 10 seconds.
-                                    </p>
-
-                                </div>
-                            )}
-
-                        </div>
-
-
-                        {/* ==================================================
-                            STATUS ACTION
-                        ================================================== */}
-
-                        {nextAction && (
-                            <div className="bg-white rounded-2xl shadow-sm border p-5">
-
-                                <h2 className="text-lg font-semibold mb-4">
-                                    Update Service Status
-                                </h2>
-
-
-                                <button
-                                    onClick={() =>
-                                        updateStatus(
-                                            nextAction.status
-                                        )
-                                    }
-                                    disabled={
-                                        updating
-                                    }
-                                    className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                                >
-
-                                    {updating ? (
-                                        <>
-
-                                            <Loader2
-                                                size={18}
-                                                className="animate-spin"
-                                            />
-
-                                            Updating...
-
-                                        </>
-                                    ) : (
-                                        <>
-
-                                            <nextAction.icon
-                                                size={18}
-                                            />
-
-                                            {
-                                                nextAction.label
-                                            }
-
-                                        </>
-                                    )}
-
-                                </button>
-
-                            </div>
-                        )}
-
-                    </div>
-
-
-                    {/* ==================================================
-                        RIGHT SIDE MAP
-                    ================================================== */}
-
-                    <div className="lg:sticky lg:top-24 h-fit">
-
-                        <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
-
-
-                            <div className="p-5 border-b">
-
-                                <div className="flex items-center justify-between">
-
-                                    <div>
-
-                                        <h2 className="text-lg font-semibold flex items-center gap-2">
-
-                                            <Navigation
-                                                size={20}
-                                            />
-
-                                            Live Map
-
-                                        </h2>
-
-                                        <p className="text-sm text-gray-500 mt-1">
-                                            Track provider and customer location
-                                        </p>
-
-                                    </div>
-
-
-                                    {providerLocation && (
-                                        <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
-
-                                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-
-                                            Live
-
-                                        </div>
-                                    )}
-
-                                </div>
-
-                            </div>
-
-
-                            <div className="h-[600px]">
-
-                                {customerPosition ? (
-                                    <MapContainer
-                                        center={
-                                            customerPosition
-                                        }
-                                        zoom={14}
-                                        style={{
-                                            width: "100%",
-                                            height: "100%",
-                                        }}
-                                    >
-
-                                        <TileLayer
-                                            attribution='&copy; OpenStreetMap contributors'
-                                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                        />
-
-
-                                        <MapCenter
-                                            position={
-                                                currentProviderPosition ||
-                                                customerPosition
-                                            }
-                                        />
-
-
-                                        {/* CUSTOMER */}
-
-                                        <Marker
-                                            position={
-                                                customerPosition
-                                            }
-                                            icon={
-                                                customerIcon
-                                            }
-                                        >
-
-                                            <Popup>
-
-                                                <strong>
-                                                    Customer Location
-                                                </strong>
-
-                                                <br />
-
-                                                {
-                                                    request.address
-                                                }
-
-                                            </Popup>
-
-                                        </Marker>
-
-
-                                        {/* PROVIDER */}
-
-                                        {currentProviderPosition && (
-                                            <SmoothProviderMarker
-                                                position={
-                                                    currentProviderPosition
-                                                }
-                                            />
-                                        )}
-
-
-                                        {/* ROUTE */}
-
-                                        {routeLine.length ===
-                                            2 && (
-                                            <Polyline
-                                                positions={
-                                                    routeLine
-                                                }
-                                            />
-                                        )}
-
-                                    </MapContainer>
-                                ) : (
-                                    <div className="h-full flex items-center justify-center bg-gray-100">
-
-                                        <div className="text-center">
-
-                                            <MapPin
-                                                size={40}
-                                                className="mx-auto text-gray-400 mb-3"
-                                            />
-
-                                            <p className="text-gray-500">
-                                                Customer location is not available.
-                                            </p>
-
-                                        </div>
-
-                                    </div>
-                                )}
-
-                            </div>
-
-
-                            {/* MAP LEGEND */}
-
-                            <div className="p-4 border-t bg-gray-50">
-
-                                <div className="flex items-center gap-5 text-sm">
-
-                                    <div className="flex items-center gap-2">
-
-                                        <div className="w-3 h-3 rounded-full bg-blue-600"></div>
-
-                                        <span>
-                                            Provider
-                                        </span>
-
-                                    </div>
-
-
-                                    <div className="flex items-center gap-2">
-
-                                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
-
-                                        <span>
-                                            Customer
-                                        </span>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
+              </MapContainer>
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center bg-slate-50 p-4 text-center">
+                <MapPin size={28} className="text-slate-300 mb-1" />
+                <p className="text-[11px] text-slate-500">Customer coordinates not provided</p>
+              </div>
+            )}
+          </div>
+
+          {/* MAP METRICS STRIP */}
+          <div className="grid grid-cols-3 divide-x border-t border-slate-100 bg-slate-50/60 text-center py-2 px-1 text-[11px]">
+            <div>
+              <span className="text-[9px] uppercase font-semibold text-slate-400 block">Distance</span>
+              <span className="font-bold text-slate-800">
+                {distanceKm ? `${distanceKm} km` : "N/A"}
+              </span>
+            </div>
+            <div>
+              <span className="text-[9px] uppercase font-semibold text-slate-400 block">GPS Sync</span>
+              <span className="font-bold text-slate-800">
+                {locationLoading ? "Syncing..." : "Active"}
+              </span>
+            </div>
+            <div>
+              <span className="text-[9px] uppercase font-semibold text-slate-400 block">Phase</span>
+              <span className="font-bold text-slate-800">
+                {statusInfo.label}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. COMPACT ACTION BANNER */}
+        {(nextAction || canCancel) && (
+          <div className="flex flex-col gap-2 rounded-2xl border border-sky-200/80 bg-gradient-to-r from-sky-50/80 via-sky-100/40 to-white p-3 shadow-xs sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-sky-800">
+                Job Milestone
+              </span>
+              <h3 className="text-xs font-bold text-slate-900 leading-tight">
+                {statusInfo.label}
+              </h3>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {canCancel && (
+                <button
+                  type="button"
+                  onClick={cancelRequest}
+                  disabled={updating}
+                  className="rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-[11px] font-bold text-rose-600 hover:bg-rose-50 active:scale-95 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              )}
+
+              {nextAction && (
+                <button
+                  type="button"
+                  onClick={() => updateStatus(nextAction.status)}
+                  disabled={updating}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-sky-100/90 px-4 py-1.5 text-xs font-bold text-blue-700 shadow-xs hover:bg-blue-100 active:scale-95 disabled:opacity-50"
+                >
+                  {updating ? (
+                    <Loader2 size={13} className="animate-spin text-blue-600" />
+                  ) : (
+                    <nextAction.icon size={13} />
+                  )}
+                  <span>{nextAction.label}</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 3. COMPACT TWO-COLUMN CARDS */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+
+          {/* CUSTOMER CARD */}
+          <div className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-xs">
+            <div>
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <div className="flex items-center gap-1.5">
+                  <User size={14} className="text-blue-600" />
+                  <h3 className="text-xs font-bold text-slate-900">Customer</h3>
+                </div>
+                <span className="text-[10px] text-slate-400">#{request.id}</span>
+              </div>
+
+              <div className="mt-2.5 space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-blue-600">
+                    <User size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-bold text-slate-900">
+                      {request.customer?.name || request.user?.name || "Customer"}
+                    </p>
+                    <p className="text-[10px] text-slate-400">Client</p>
+                  </div>
                 </div>
 
+                <div className="space-y-1 rounded-xl border border-slate-100 bg-slate-50/70 p-2.5 text-[11px]">
+                  {(request.customer?.phone || request.user?.phone) && (
+                    <div className="flex items-center gap-2 text-slate-700">
+                      <Phone size={12} className="text-slate-400" />
+                      <span className="font-semibold">
+                        {request.customer?.phone || request.user?.phone}
+                      </span>
+                    </div>
+                  )}
+
+                  {(request.customer?.email || request.user?.email) && (
+                    <div className="flex items-center gap-2 text-slate-700">
+                      <Mail size={12} className="text-slate-400" />
+                      <span className="truncate">
+                        {request.customer?.email || request.user?.email}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex items-start gap-2 pt-0.5 text-slate-700">
+                    <MapPin size={12} className="mt-0.5 shrink-0 text-rose-500" />
+                    <span className="leading-tight line-clamp-2">
+                      {request.address || "Address not provided"}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
+
+            {(request.customer?.phone || request.user?.phone) && (
+              <div className="mt-3 border-t border-slate-100 pt-2">
+                <a
+                  href={`tel:${request.customer?.phone || request.user?.phone}`}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-sky-100/80 py-1.5 text-[11px] font-bold text-blue-700 hover:bg-blue-100 active:scale-95"
+                >
+                  <Phone size={12} />
+                  Call Customer
+                </a>
+              </div>
+            )}
+          </div>
+
+          {/* SERVICE DETAILS CARD */}
+          <div className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-xs">
+            <div>
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <div className="flex items-center gap-1.5">
+                  <Wrench size={14} className="text-blue-600" />
+                  <h3 className="text-xs font-bold text-slate-900">Service Info</h3>
+                </div>
+                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusInfo.className}`}>
+                  {statusInfo.label}
+                </span>
+              </div>
+
+              <div className="mt-2.5 space-y-2 text-[11px]">
+                <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/70 p-2.5">
+                  <div>
+                    <span className="text-[9px] uppercase font-semibold text-slate-400 block">Service</span>
+                    <p className="text-xs font-bold text-slate-900">
+                      {request.service?.name || "Request"}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[9px] uppercase font-semibold text-slate-400 block">Payout</span>
+                    <p className="flex items-center text-xs font-extrabold text-slate-900">
+                      <IndianRupee size={11} className="text-emerald-600" />
+                      {Number(request.service?.base_price || 0).toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/70 px-2.5 py-1.5">
+                  <span className="flex items-center gap-1.5 text-slate-500 font-medium">
+                    <Clock size={12} className="text-blue-500" />
+                    Type
+                  </span>
+                  <span className="font-semibold text-slate-800">
+                    {request.request_type === "now" ? "⚡ Now" : "📅 Scheduled"}
+                  </span>
+                </div>
+
+                {request.scheduled_at && (
+                  <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/70 px-2.5 py-1.5">
+                    <span className="flex items-center gap-1.5 text-slate-500 font-medium">
+                      <Clock size={12} className="text-purple-500" />
+                      Time
+                    </span>
+                    <span className="font-semibold text-slate-800">
+                      {new Date(request.scheduled_at).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {request.problem_description && (
+              <div className="mt-2.5 rounded-xl border border-slate-100 bg-slate-50/80 p-2 text-[11px] text-slate-600 line-clamp-2">
+                <span className="font-bold text-slate-800">Note: </span>
+                {request.problem_description}
+              </div>
+            )}
+          </div>
 
         </div>
-    );
+
+      </div>
+    </div>
+  );
 };
 
 export default ProviderRequestDetails;
-

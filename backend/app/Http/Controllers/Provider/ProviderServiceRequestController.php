@@ -19,6 +19,31 @@ class ProviderServiceRequestController extends Controller
     |--------------------------------------------------------------------------
     */
 
+    public function providerAcceptedindex()
+{
+    $provider = Auth::user()->provider;
+
+    if (!$provider) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Provider profile not found.',
+        ], 404);
+    }
+
+    $requests = ServiceRequest::with([
+        'customer:id,name,email,phone,address',
+        'service:id,name,category,description,base_price',
+    ])
+        ->where('provider_id', $provider->id)
+        ->latest()
+        ->get();
+
+    return response()->json([
+        'success' => true,
+        'requests' => $requests,
+    ]);
+}
+
 
     public function index()
     {

@@ -9,6 +9,9 @@ import {
   Upload,
   Image as ImageIcon,
   X,
+  AlertCircle,
+  CheckCircle,
+  IndianRupee,
 } from "lucide-react";
 
 import api from "../../api/axios";
@@ -24,10 +27,7 @@ const EditService = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // New image preview
   const [newImagePreview, setNewImagePreview] = useState("");
-
-  // Old image failed
   const [oldImageError, setOldImageError] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -38,96 +38,38 @@ const EditService = () => {
     is_active: true,
   });
 
-  // =====================================================
-  // API BASE URL
-  // =====================================================
-
   const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL ||
-    "http://127.0.0.1:8000/api";
+    import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api";
 
-  // Remove /api from URL for Laravel storage
-  const STORAGE_BASE_URL = API_BASE_URL.replace(
-    /\/api\/?$/,
-    ""
-  );
-
-  // =====================================================
-  // IMAGE URL
-  // =====================================================
+  const STORAGE_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, "");
 
   const getImageUrl = (image) => {
     if (!image) return "";
-
     const imageString = String(image).trim();
-
     if (!imageString) return "";
 
-    // ---------------------------------------------------
-    // 1. Already full URL
-    // ---------------------------------------------------
-
-    if (
-      imageString.startsWith("http://") ||
-      imageString.startsWith("https://")
-    ) {
+    if (imageString.startsWith("http://") || imageString.startsWith("https://")) {
       return imageString;
     }
 
-    // ---------------------------------------------------
-    // 2. Remove starting slash
-    // ---------------------------------------------------
-
     let cleanImage = imageString.replace(/^\/+/, "");
-
-    // ---------------------------------------------------
-    // 3. If backend returns storage/...
-    // ---------------------------------------------------
 
     if (cleanImage.startsWith("storage/")) {
       return `${STORAGE_BASE_URL}/${cleanImage}`;
     }
 
-    // ---------------------------------------------------
-    // 4. If backend returns public/storage/...
-    // ---------------------------------------------------
-
     if (cleanImage.startsWith("public/storage/")) {
-      cleanImage = cleanImage.replace(
-        "public/storage/",
-        "storage/"
-      );
-
+      cleanImage = cleanImage.replace("public/storage/", "storage/");
       return `${STORAGE_BASE_URL}/${cleanImage}`;
     }
-
-    // ---------------------------------------------------
-    // 5. If backend returns /api/storage/...
-    // ---------------------------------------------------
 
     if (cleanImage.startsWith("api/storage/")) {
-      cleanImage = cleanImage.replace(
-        "api/",
-        ""
-      );
-
+      cleanImage = cleanImage.replace("api/", "");
       return `${STORAGE_BASE_URL}/${cleanImage}`;
     }
-
-    // ---------------------------------------------------
-    // 6. Normal Laravel storage path
-    //
-    // Example:
-    // services/abc.jpg
-    // service_images/abc.jpg
-    // ---------------------------------------------------
 
     return `${STORAGE_BASE_URL}/storage/${cleanImage}`;
   };
-
-  // =====================================================
-  // FETCH SERVICE
-  // =====================================================
 
   useEffect(() => {
     fetchService();
@@ -145,15 +87,7 @@ const EditService = () => {
       setError("");
       setOldImageError(false);
 
-      const response = await api.get(
-        `/provider/services/${id}`
-      );
-
-      console.log(
-        "EDIT SERVICE API RESPONSE:",
-        response.data
-      );
-
+      const response = await api.get(`/provider/services/${id}`);
       const data = response.data?.service;
 
       if (!data) {
@@ -162,66 +96,29 @@ const EditService = () => {
         return;
       }
 
-      console.log(
-        "SERVICE IMAGE FROM API:",
-        data.service_image
-      );
-
-      console.log(
-        "GENERATED IMAGE URL:",
-        getImageUrl(data.service_image)
-      );
-
       setService(data);
-
       setFormData({
         price: data.price ?? "",
         experience: data.experience ?? "",
         service_area: data.service_area ?? "",
         service_image: null,
-        is_active:
-          Boolean(data.is_active),
+        is_active: Boolean(data.is_active),
       });
-    } catch (error) {
-      console.error(
-        "Fetch service error:",
-        error
-      );
-
-      setError(
-        error.response?.data?.message ||
-          "Unable to load service."
-      );
+    } catch (err) {
+      console.error("Fetch service error:", err);
+      setError(err.response?.data?.message || "Unable to load service.");
     } finally {
       setLoading(false);
     }
   };
 
-  // =====================================================
-  // HANDLE INPUT
-  // =====================================================
-
   const handleChange = (e) => {
-    const {
-      name,
-      value,
-      type,
-      checked,
-      files,
-    } = e.target;
-
-    // ---------------------------------------------------
-    // FILE
-    // ---------------------------------------------------
+    const { name, value, type, checked, files } = e.target;
 
     if (type === "file") {
       const file = files?.[0];
+      if (!file) return;
 
-      if (!file) {
-        return;
-      }
-
-      // File type validation
       const allowedTypes = [
         "image/jpeg",
         "image/jpg",
@@ -230,207 +127,101 @@ const EditService = () => {
       ];
 
       if (!allowedTypes.includes(file.type)) {
-        setError(
-          "Please select JPG, JPEG, PNG or WEBP image."
-        );
-
+        setError("Please select JPG, JPEG, PNG, or WEBP image.");
         e.target.value = "";
         return;
       }
 
-      // 2 MB validation
       if (file.size > 2 * 1024 * 1024) {
-        setError(
-          "Image size must be less than 2 MB."
-        );
-
+        setError("Image size must be less than 2 MB.");
         e.target.value = "";
         return;
       }
 
       setError("");
 
-      // Revoke previous preview
       if (newImagePreview) {
-        URL.revokeObjectURL(
-          newImagePreview
-        );
+        URL.revokeObjectURL(newImagePreview);
       }
 
-      // Create preview
-      const previewUrl =
-        URL.createObjectURL(file);
-
+      const previewUrl = URL.createObjectURL(file);
       setNewImagePreview(previewUrl);
-
       setFormData((prev) => ({
         ...prev,
         service_image: file,
       }));
-
       return;
     }
 
-    // ---------------------------------------------------
-    // CHECKBOX / NORMAL INPUT
-    // ---------------------------------------------------
-
     setFormData((prev) => ({
       ...prev,
-      [name]:
-        type === "checkbox"
-          ? checked
-          : value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  // =====================================================
-  // REMOVE NEW IMAGE
-  // =====================================================
-
   const removeNewImage = () => {
     if (newImagePreview) {
-      URL.revokeObjectURL(
-        newImagePreview
-      );
+      URL.revokeObjectURL(newImagePreview);
     }
-
     setNewImagePreview("");
-
     setFormData((prev) => ({
       ...prev,
       service_image: null,
     }));
   };
 
-  // =====================================================
-  // UPDATE SERVICE
-  // =====================================================
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     setError("");
     setSuccess("");
 
     try {
       setSubmitting(true);
-
       const data = new FormData();
 
-      data.append(
-        "price",
-        formData.price
-      );
+      data.append("price", formData.price);
+      data.append("experience", formData.experience);
+      data.append("service_area", formData.service_area);
+      data.append("is_active", formData.is_active ? "1" : "0");
 
-      data.append(
-        "experience",
-        formData.experience
-      );
-
-      data.append(
-        "service_area",
-        formData.service_area
-      );
-
-      data.append(
-        "is_active",
-        formData.is_active
-          ? "1"
-          : "0"
-      );
-
-      // New image only
       if (formData.service_image) {
-        data.append(
-          "service_image",
-          formData.service_image
-        );
+        data.append("service_image", formData.service_image);
       }
 
-      // Laravel PUT method spoofing
-      data.append(
-        "_method",
-        "PUT"
-      );
+      data.append("_method", "PUT");
 
-      const response =
-        await api.post(
-          `/provider/services/${id}`,
-          data,
-          {
-            headers: {
-              "Content-Type":
-                "multipart/form-data",
-            },
-          }
-        );
+      const response = await api.post(`/provider/services/${id}`, data, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
-      console.log(
-        "UPDATE SERVICE RESPONSE:",
-        response.data
-      );
+      setSuccess(response.data?.message || "Service updated successfully.");
 
-      setSuccess(
-        response.data?.message ||
-          "Service updated successfully."
-      );
-
-      // Navigate after success
       setTimeout(() => {
-        navigate(
-          "/provider/services"
-        );
-      }, 800);
-    } catch (error) {
-      console.error(
-        "Update service error:",
-        error
-      );
+        navigate("/provider/services");
+      }, 700);
+    } catch (err) {
+      console.error("Update service error:", err);
 
-      if (
-        error.response?.data
-          ?.errors
-      ) {
-        const validationErrors =
-          error.response.data
-            .errors;
-
-        const firstError =
-          Object.values(
-            validationErrors
-          )?.[0]?.[0];
-
-        setError(
-          firstError ||
-            "Please check the form."
-        );
+      if (err.response?.data?.errors) {
+        const validationErrors = err.response.data.errors;
+        const firstError = Object.values(validationErrors)?.[0]?.[0];
+        setError(firstError || "Please check the form.");
       } else {
-        setError(
-          error.response?.data
-            ?.message ||
-            "Unable to update service."
-        );
+        setError(err.response?.data?.message || "Unable to update service.");
       }
     } finally {
       setSubmitting(false);
     }
   };
 
-  // =====================================================
-  // LOADING
-  // =====================================================
-
   if (loading) {
     return (
-      <div className="min-h-[500px] flex items-center justify-center">
-        <div className="flex items-center gap-3 text-gray-600">
-          <Loader2
-            size={24}
-            className="animate-spin"
-          />
-
-          <span>
+      <div className="flex min-h-[400px] items-center justify-center bg-slate-50/60">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 size={24} className="animate-spin text-blue-600" />
+          <span className="text-[11px] font-semibold text-slate-500">
             Loading service...
           </span>
         </div>
@@ -438,431 +229,259 @@ const EditService = () => {
     );
   }
 
-  // =====================================================
-  // SERVICE NOT FOUND
-  // =====================================================
-
   if (!service) {
     return (
-      <div className="min-h-[500px] flex items-center justify-center">
-        <div className="text-center">
-
-          <p className="text-gray-600 mb-4">
-            {error ||
-              "Service not found."}
+      <div className="min-h-screen bg-slate-50/60 p-4">
+        <div className="mx-auto max-w-xl rounded-2xl border border-rose-200 bg-white p-6 text-center shadow-xs">
+          <AlertCircle size={30} className="mx-auto text-rose-500 mb-2" />
+          <p className="text-xs font-semibold text-slate-800">
+            {error || "Service not found."}
           </p>
-
           <button
             type="button"
-            onClick={() =>
-              navigate(
-                "/provider/services"
-              )
-            }
-            className="px-5 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700"
+            onClick={() => navigate("/provider/services")}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-sky-100/90 px-3.5 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 active:scale-95"
           >
+            <ArrowLeft size={13} />
             Back to My Services
           </button>
-
         </div>
       </div>
     );
   }
 
-  // =====================================================
-  // CURRENT IMAGE URL
-  // =====================================================
-
-  const currentImageUrl =
-    getImageUrl(
-      service.service_image
-    );
-
-  // =====================================================
-  // UI
-  // =====================================================
+  const currentImageUrl = getImageUrl(service.service_image);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-
-      <div className="max-w-3xl mx-auto">
-
-        {/* =================================================
-            HEADER
-        ================================================= */}
-
-        <div className="flex items-center gap-3 mb-6">
-
+    <div className="min-h-screen bg-slate-50/60 p-3 sm:p-5">
+      <div className="mx-auto max-w-2xl space-y-4">
+        {/* HEADER BAR */}
+        <div className="flex items-center justify-between">
           <button
             type="button"
-            onClick={() =>
-              navigate(
-                "/provider/services"
-              )
-            }
-            className="p-2 rounded-lg hover:bg-white transition"
+            onClick={() => navigate("/provider/services")}
+            className="group inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 transition hover:text-blue-700"
           >
-            <ArrowLeft size={22} />
+            <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-0.5" />
+            Back to Services
           </button>
 
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-              Edit Service
-            </h1>
-
-            <p className="text-gray-500 mt-1">
-              Update your service information.
-            </p>
-          </div>
-
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+            ID #{service.id}
+          </span>
         </div>
 
-        {/* =================================================
-            FORM
-        ================================================= */}
-
+        {/* FORM CONTAINER */}
         <form
           onSubmit={handleSubmit}
-          className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 md:p-7"
+          className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs sm:p-5"
         >
+          <div className="mb-4 border-b border-slate-100 pb-3">
+            <h1 className="text-base font-bold text-slate-900 sm:text-lg">
+              Edit Service Listing
+            </h1>
+            <p className="text-xs text-slate-500">
+              Update pricing, coverage radius, and photos for this service.
+            </p>
+          </div>
 
-          {/* ERROR */}
-
+          {/* ALERTS */}
           {error && (
-            <div className="mb-5 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700">
-              {error}
+            <div className="mb-4 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50/80 px-3 py-2 text-xs font-medium text-rose-700">
+              <AlertCircle size={14} className="shrink-0 text-rose-500" />
+              <span>{error}</span>
             </div>
           )}
-
-          {/* SUCCESS */}
 
           {success && (
-            <div className="mb-5 p-4 rounded-xl bg-green-50 border border-green-200 text-green-700">
-              {success}
+            <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/80 px-3 py-2 text-xs font-medium text-emerald-800">
+              <CheckCircle size={14} className="shrink-0 text-emerald-600" />
+              <span>{success}</span>
             </div>
           )}
 
-          {/* =================================================
-              SERVICE INFORMATION
-          ================================================= */}
-
-          <div className="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-100">
-
-            <p className="text-sm text-blue-600 font-semibold">
-              {service.service?.category ||
-                "General"}
-            </p>
-
-            <h2 className="text-xl font-bold text-gray-900 mt-1">
-              {service.service?.name ||
-                "Service"}
+          {/* SERVICE META SUMMARY */}
+          <div className="mb-4 rounded-xl border border-sky-100 bg-sky-50/60 p-3">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">
+              {service.service?.category || "General Service"}
+            </span>
+            <h2 className="text-sm font-bold text-slate-900">
+              {service.service?.name || "Service"}
             </h2>
-
-            {service.service
-              ?.description && (
-              <p className="text-sm text-gray-600 mt-2">
-                {
-                  service.service
-                    .description
-                }
+            {service.service?.description && (
+              <p className="mt-1 text-[11px] leading-relaxed text-slate-600 line-clamp-2">
+                {service.service.description}
               </p>
             )}
-
           </div>
 
-          {/* =================================================
-              PRICE
-          ================================================= */}
+          <div className="space-y-3.5">
+            {/* PRICE & EXPERIENCE ROW */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {/* PRICE */}
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                  Visit / Base Price (₹) <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                    <IndianRupee size={13} />
+                  </span>
+                  <input
+                    type="number"
+                    name="price"
+                    value={formData.price}
+                    onChange={handleChange}
+                    min="0"
+                    step="0.01"
+                    required
+                    placeholder="0.00"
+                    className="h-9 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-8 pr-3 text-xs text-slate-800 outline-none transition focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-600/10"
+                  />
+                </div>
+              </div>
 
-          <div className="mb-5">
-
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Your Price
-            </label>
-
-            <div className="relative">
-
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
-                ₹
-              </span>
-
-              <input
-                type="number"
-                name="price"
-                value={formData.price}
-                onChange={handleChange}
-                min="0"
-                step="0.01"
-                required
-                className="w-full pl-9 pr-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-
+              {/* EXPERIENCE */}
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                  Years of Experience
+                </label>
+                <input
+                  type="number"
+                  name="experience"
+                  value={formData.experience}
+                  onChange={handleChange}
+                  min="0"
+                  placeholder="e.g. 3"
+                  className="h-9 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3 text-xs text-slate-800 outline-none transition focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-600/10"
+                />
+              </div>
             </div>
 
-          </div>
-
-          {/* =================================================
-              EXPERIENCE
-          ================================================= */}
-
-          <div className="mb-5">
-
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Experience
-            </label>
-
-            <input
-              type="number"
-              name="experience"
-              value={formData.experience}
-              onChange={handleChange}
-              min="0"
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Years of experience"
-            />
-
-          </div>
-
-          {/* =================================================
-              SERVICE AREA
-          ================================================= */}
-
-          <div className="mb-5">
-
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Service Area
-            </label>
-
-            <input
-              type="text"
-              name="service_area"
-              value={
-                formData.service_area
-              }
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Example: Ahmedabad, Gandhinagar"
-            />
-
-          </div>
-
-          {/* =================================================
-              OLD / CURRENT IMAGE
-          ================================================= */}
-
-          <div className="mb-6">
-
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Current Service Image
-            </label>
-
-            {currentImageUrl &&
-            !oldImageError ? (
-              <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
-
-                <img
-                  src={currentImageUrl}
-                  alt={
-                    service.service?.name ||
-                    "Service"
-                  }
-                  className="w-full h-64 object-cover"
-                  onLoad={() => {
-                    console.log(
-                      "OLD IMAGE LOADED:",
-                      currentImageUrl
-                    );
-                  }}
-                  onError={() => {
-                    console.error(
-                      "OLD IMAGE FAILED:",
-                      currentImageUrl
-                    );
-
-                    setOldImageError(
-                      true
-                    );
-                  }}
-                />
-
-                {/* CURRENT IMAGE BADGE */}
-
-                <div className="absolute top-3 left-3 flex items-center gap-2 rounded-lg bg-black/70 px-3 py-1.5 text-xs font-semibold text-white">
-                  <ImageIcon size={14} />
-                  Current Image
-                </div>
-
-              </div>
-            ) : (
-              <div className="w-full h-64 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center text-gray-400">
-
-                <ImageIcon
-                  size={48}
-                />
-
-                <p className="mt-3 text-sm font-medium">
-                  Current image not available
-                </p>
-
-                {currentImageUrl && (
-                  <p className="text-xs mt-2 px-4 text-center break-all">
-                    {currentImageUrl}
-                  </p>
-                )}
-
-              </div>
-            )}
-
-            {/* Debug information */}
-
-            {service.service_image && (
-              <p className="text-xs text-gray-400 mt-2 break-all">
-                Image path:{" "}
-                {service.service_image}
-              </p>
-            )}
-
-          </div>
-
-          {/* =================================================
-              CHANGE IMAGE
-          ================================================= */}
-
-          <div className="mb-6">
-
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Change Service Image
-            </label>
-
-            <label className="flex flex-col items-center justify-center w-full min-h-32 px-4 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition">
-
-              <Upload
-                size={28}
-                className="text-gray-400 mb-2"
-              />
-
-              <span className="text-sm text-gray-600 text-center font-medium">
-                {formData.service_image
-                  ? formData
-                      .service_image
-                      .name
-                  : "Choose new service image"}
-              </span>
-
-              <span className="text-xs text-gray-400 mt-1">
-                JPG, JPEG, PNG or WEBP • Max 2 MB
-              </span>
-
+            {/* SERVICE AREA */}
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-700">
+                Service Area Coverage <span className="text-rose-500">*</span>
+              </label>
               <input
-                type="file"
-                name="service_image"
-                accept="image/jpeg,image/jpg,image/png,image/webp"
+                type="text"
+                name="service_area"
+                value={formData.service_area}
                 onChange={handleChange}
-                className="hidden"
+                required
+                placeholder="e.g. Navrangpura, Satellite, Bodakdev"
+                className="h-9 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3 text-xs text-slate-800 outline-none transition focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-600/10"
               />
+            </div>
 
-            </label>
+            {/* IMAGES: CURRENT & NEW UPLOAD */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {/* CURRENT IMAGE */}
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                  Current Photo
+                </label>
+                {currentImageUrl && !oldImageError ? (
+                  <div className="relative h-32 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                    <img
+                      src={currentImageUrl}
+                      alt={service.service?.name || "Service"}
+                      className="h-full w-full object-cover"
+                      onError={() => setOldImageError(true)}
+                    />
+                    <div className="absolute left-2 top-2 rounded-md bg-slate-900/70 px-2 py-0.5 text-[9px] font-semibold text-white">
+                      Current
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex h-32 w-full flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 text-slate-400">
+                    <ImageIcon size={22} />
+                    <span className="mt-1 text-[10px]">No image on file</span>
+                  </div>
+                )}
+              </div>
 
-            {/* =================================================
-                NEW IMAGE PREVIEW
-            ================================================= */}
+              {/* UPLOAD NEW IMAGE */}
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                  Replace Photo
+                </label>
+                <label className="flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-3 text-center transition hover:border-blue-300 hover:bg-sky-50/40">
+                  <Upload size={18} className="text-blue-600 mb-1" />
+                  <span className="text-[11px] font-semibold text-slate-700 truncate max-w-full">
+                    {formData.service_image
+                      ? formData.service_image.name
+                      : "Choose new file"}
+                  </span>
+                  <span className="mt-0.5 text-[9px] text-slate-400">
+                    JPG, PNG, WEBP (Max 2MB)
+                  </span>
+                  <input
+                    type="file"
+                    name="service_image"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    onChange={handleChange}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
 
+            {/* NEW IMAGE PREVIEW (IF SELECTED) */}
             {newImagePreview && (
-              <div className="mt-5">
-
-                <div className="flex items-center justify-between mb-2">
-
-                  <p className="text-sm font-semibold text-gray-700">
-                    New Image Preview
-                  </p>
-
+              <div className="rounded-xl border border-sky-200 bg-sky-50/40 p-2.5">
+                <div className="mb-1.5 flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-800">
+                    New Preview Selected
+                  </span>
                   <button
                     type="button"
-                    onClick={
-                      removeNewImage
-                    }
-                    className="inline-flex items-center gap-1 text-sm font-medium text-red-600 hover:text-red-700"
+                    onClick={removeNewImage}
+                    className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-rose-600 hover:underline"
                   >
-                    <X size={16} />
+                    <X size={12} />
                     Remove
                   </button>
-
                 </div>
-
-                <div className="relative overflow-hidden rounded-xl border border-blue-200 bg-gray-100">
-
+                <div className="relative h-32 w-full overflow-hidden rounded-lg border border-slate-200">
                   <img
                     src={newImagePreview}
-                    alt="New service preview"
-                    className="w-full h-64 object-cover"
+                    alt="New preview"
+                    className="h-full w-full object-cover"
                   />
-
-                  {/* NEW IMAGE BADGE */}
-
-                  <div className="absolute top-3 left-3 flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow">
-                    <ImageIcon
-                      size={14}
-                    />
-                    New Image
-                  </div>
-
                 </div>
-
               </div>
             )}
 
+            {/* STATUS TOGGLE */}
+            <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
+              <label className="flex cursor-pointer items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-slate-800">
+                    Service Availability
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    Active services can be discovered and requested by customers.
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  name="is_active"
+                  checked={formData.is_active}
+                  onChange={handleChange}
+                  className="h-4 w-4 rounded accent-blue-600"
+                />
+              </label>
+            </div>
           </div>
 
-          {/* =================================================
-              STATUS
-          ================================================= */}
-
-          <div className="mb-7">
-
-            <label className="flex items-center justify-between p-4 rounded-xl border border-gray-200">
-
-              <div>
-
-                <p className="font-semibold text-gray-800">
-                  Service Status
-                </p>
-
-                <p className="text-sm text-gray-500">
-                  Active services are visible to customers.
-                </p>
-
-              </div>
-
-              <input
-                type="checkbox"
-                name="is_active"
-                checked={
-                  formData.is_active
-                }
-                onChange={handleChange}
-                className="w-5 h-5 accent-blue-600"
-              />
-
-            </label>
-
-          </div>
-
-          {/* =================================================
-              BUTTONS
-          ================================================= */}
-
-          <div className="flex flex-col sm:flex-row gap-3">
-
+          {/* ACTION BUTTONS */}
+          <div className="mt-5 flex gap-2.5 border-t border-slate-100 pt-4">
             <button
               type="button"
-              onClick={() =>
-                navigate(
-                  "/provider/services"
-                )
-              }
+              onClick={() => navigate("/provider/services")}
               disabled={submitting}
-              className="flex-1 px-5 py-3 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition disabled:opacity-50"
+              className="flex-1 rounded-xl border border-slate-200 bg-white py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 active:scale-95 disabled:opacity-50"
             >
               Cancel
             </button>
@@ -870,34 +489,22 @@ const EditService = () => {
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition disabled:opacity-50"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-sky-100/90 py-2 text-xs font-bold text-blue-700 transition hover:bg-blue-100 active:scale-95 disabled:opacity-50"
             >
-
               {submitting ? (
                 <>
-                  <Loader2
-                    size={20}
-                    className="animate-spin"
-                  />
-
-                  Updating...
+                  <Loader2 size={13} className="animate-spin text-blue-600" />
+                  Saving...
                 </>
               ) : (
                 <>
-                  <Save
-                    size={20}
-                  />
-
+                  <Save size={13} />
                   Update Service
                 </>
               )}
-
             </button>
-
           </div>
-
         </form>
-
       </div>
     </div>
   );

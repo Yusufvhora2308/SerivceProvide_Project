@@ -75,7 +75,7 @@ const ProviderSidebar = ({
       icon: Wrench,
     },
     {
-      name: "Service Requests",
+      name: "My Active Requests",
       path: "/provider/requests",
       icon: ClipboardList,
     },

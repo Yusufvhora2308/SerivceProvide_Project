@@ -1,1018 +1,368 @@
-    import { useEffect, useState } from "react";
-    import { useNavigate } from "react-router-dom";
-    import Swal from "sweetalert2";
-    import {
-        RefreshCw,
-        MapPin,
-        Calendar,
-        Clock,
-        User,
-        Phone,
-        Wrench,
-        CheckCircle,
-        AlertCircle,
-        Loader2,
-        Eye,
-        Navigation,
-        Play,
-    } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  RefreshCw,
+  MapPin,
+  Calendar,
+  Clock,
+  User,
+  Phone,
+  Wrench,
+  Loader2,
+  ChevronRight,
+  Zap,
+  AlertCircle,
+  IndianRupee,
+} from "lucide-react";
 
-    import api from "../../api/axios";
+import api from "../../api/axios";
 
-    const ProviderRequests = () => {
-        const navigate = useNavigate();
+const ACTIVE_STATUSES = [
+  "provider_assigned",
+  "provider_on_the_way",
+  "arrived",
+  "service_started",
+];
 
-        const [requests, setRequests] = useState([]);
-        const [loading, setLoading] = useState(true);
-        const [refreshing, setRefreshing] = useState(false);
+const ProviderRequests = () => {
+  const navigate = useNavigate();
 
-        const [acceptingId, setAcceptingId] =
-            useState(null);
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
 
-        const [error, setError] = useState("");
-        const [success, setSuccess] = useState("");
+  // ==========================================
+  // FETCH PROVIDER REQUESTS
+  // ==========================================
+  const fetchRequests = async (showRefreshLoader = false) => {
+    try {
+      setError("");
 
-        /*
-        |--------------------------------------------------------------------------
-        | FETCH REQUESTS
-        |--------------------------------------------------------------------------
-        */
+      if (showRefreshLoader) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
 
-        const fetchRequests = async (
-            showRefreshLoader = false
-        ) => {
-            try {
-                setError("");
+      const response = await api.get("/provider/service-requests-accepted");
+      const allRequests = response.data?.requests || [];
 
-                if (showRefreshLoader) {
-                    setRefreshing(true);
-                } else {
-                    setLoading(true);
-                }
+      // Filter only currently active accepted requests
+      const activeAcceptedRequests = allRequests.filter((request) =>
+        ACTIVE_STATUSES.includes(request.status)
+      );
 
-                const response = await api.get(
-                    "/provider/service-requests"
-                );
+      setRequests(activeAcceptedRequests);
+    } catch (err) {
+      console.error("Provider requests error:", err);
+      setError(
+        err?.response?.data?.message || "Unable to load active service requests."
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
-                setRequests(
-                    response.data.requests || []
-                );
-            } catch (error) {
-                console.error(
-                    "Provider requests error:",
-                    error
-                );
+  useEffect(() => {
+    fetchRequests();
+  }, []);
 
-                setError(
-                    error.response?.data?.message ||
-                        "Unable to load service requests."
-                );
-            } finally {
-                setLoading(false);
-                setRefreshing(false);
-            }
+  // ==========================================
+  // STATUS STYLE & BADGE HELPERS
+  // ==========================================
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "provider_assigned":
+        return {
+          label: "Assigned",
+          className: "bg-sky-50 text-sky-700 border-sky-200/80",
         };
-
-        /*
-        |--------------------------------------------------------------------------
-        | INITIAL LOAD
-        |--------------------------------------------------------------------------
-        */
-
-        useEffect(() => {
-            fetchRequests();
-        }, []);
-
-        /*
-        |--------------------------------------------------------------------------
-        | ACCEPT REQUEST
-        |--------------------------------------------------------------------------
-        */
-
-        const handleAccept = async (requestId) => {
-        const confirmed = await Swal.fire({
-            title: "Accept Service Request?",
-            text: "Are you sure you want to accept this request?",
-            icon: "question",
-            showCancelButton: true,
-            confirmButtonText: "Yes, Accept",
-            cancelButtonText: "Cancel",
-            confirmButtonColor: "#16a34a",
-            cancelButtonColor: "#64748b",
-        });
-
-        if (!confirmed.isConfirmed) {
-            return;
-        }
-
-        try {
-            setAcceptingId(requestId);
-            setError("");
-            setSuccess("");
-
-            const response = await api.post(
-                `/provider/service-requests/${requestId}/accept`
-            );
-
-            const acceptedRequest =
-                response.data.request;
-
-            const updatedRequest = {
-                ...requests.find(
-                    (request) => request.id === requestId
-                ),
-                ...(acceptedRequest || {}),
-                status:
-                    acceptedRequest?.status ||
-                    "provider_assigned",
-            };
-
-            setRequests((previousRequests) =>
-                previousRequests.map((request) =>
-                    request.id === requestId
-                        ? updatedRequest
-                        : request
-                )
-            );
-
-            Swal.fire({
-                title: "Request Accepted Successfully! 🎉",
-                html: `
-                    <div style="text-align:left;">
-
-                        <div style="
-                            background:#f8fafc;
-                            padding:14px;
-                            border-radius:12px;
-                            margin-bottom:12px;
-                        ">
-                            <p style="
-                                margin:0 0 6px;
-                                font-size:13px;
-                                color:#64748b;
-                            ">
-                                Customer
-                            </p>
-
-                            <p style="
-                                margin:0;
-                                font-weight:600;
-                                color:#0f172a;
-                            ">
-                                ${updatedRequest.customer?.name || "Customer"}
-                            </p>
-                        </div>
-
-                        <div style="
-                            background:#f8fafc;
-                            padding:14px;
-                            border-radius:12px;
-                            margin-bottom:12px;
-                        ">
-                            <p style="
-                                margin:0 0 6px;
-                                font-size:13px;
-                                color:#64748b;
-                            ">
-                                Service
-                            </p>
-
-                            <p style="
-                                margin:0;
-                                font-weight:600;
-                                color:#0f172a;
-                            ">
-                                ${updatedRequest.service?.name || "Service"}
-                            </p>
-                        </div>
-
-                        <div style="
-                            background:#f8fafc;
-                            padding:14px;
-                            border-radius:12px;
-                            margin-bottom:12px;
-                        ">
-                            <p style="
-                                margin:0 0 6px;
-                                font-size:13px;
-                                color:#64748b;
-                            ">
-                                Address
-                            </p>
-
-                            <p style="
-                                margin:0;
-                                color:#334155;
-                            ">
-                                ${updatedRequest.address || "Address not available"}
-                            </p>
-                        </div>
-
-                        <div style="
-                            background:#fffbeb;
-                            padding:14px;
-                            border-radius:12px;
-                            margin-bottom:12px;
-                        ">
-                            <p style="
-                                margin:0 0 6px;
-                                font-size:13px;
-                                color:#92400e;
-                            ">
-                                Problem Description
-                            </p>
-
-                            <p style="
-                                margin:0;
-                                color:#334155;
-                            ">
-                                ${
-                                    updatedRequest.problem_description ||
-                                    "No description provided."
-                                }
-                            </p>
-                        </div>
-
-                        <div style="
-                            display:flex;
-                            justify-content:space-between;
-                            gap:10px;
-                            background:#eff6ff;
-                            padding:14px;
-                            border-radius:12px;
-                        ">
-                            <div>
-                                <p style="
-                                    margin:0 0 5px;
-                                    font-size:12px;
-                                    color:#64748b;
-                                ">
-                                    Request Type
-                                </p>
-
-                                <strong style="color:#1e3a8a;">
-                                    ${
-                                        updatedRequest.request_type === "now"
-                                            ? "⚡ Instant"
-                                            : "📅 Scheduled"
-                                    }
-                                </strong>
-                            </div>
-
-                            <div>
-                                <p style="
-                                    margin:0 0 5px;
-                                    font-size:12px;
-                                    color:#64748b;
-                                ">
-                                    Status
-                                </p>
-
-                                <strong style="color:#2563eb;">
-                                    Provider Assigned
-                                </strong>
-                            </div>
-                        </div>
-
-                    </div>
-                `,
-                icon: "success",
-                confirmButtonText: "View Details",
-                showCancelButton: true,
-                cancelButtonText: "Close",
-                confirmButtonColor: "#2563eb",
-                cancelButtonColor: "#64748b",
-                width: "600px",
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    navigate(
-                        `/provider/service-requests/${requestId}`
-                    );
-                }
-            });
-
-        } catch (error) {
-            console.error(
-                "Accept request error:",
-                error
-            );
-
-            Swal.fire({
-                title: "Unable to Accept Request",
-                text:
-                    error.response?.data?.message ||
-                    "Something went wrong while accepting the request.",
-                icon: "error",
-                confirmButtonText: "OK",
-                confirmButtonColor: "#dc2626",
-            });
-
-            setError(
-                error.response?.data?.message ||
-                    "Unable to accept service request."
-            );
-        } finally {
-            setAcceptingId(null);
-        }
-    };
-
-        /*
-        |--------------------------------------------------------------------------
-        | STATUS STYLE
-        |--------------------------------------------------------------------------
-        */
-
-        const getStatusStyle = (status) => {
-            switch (status) {
-                case "searching":
-                    return "bg-yellow-100 text-yellow-700";
-
-                case "provider_assigned":
-                    return "bg-blue-100 text-blue-700";
-
-                case "provider_on_the_way":
-                    return "bg-purple-100 text-purple-700";
-
-                case "arrived":
-                    return "bg-indigo-100 text-indigo-700";
-
-                case "service_started":
-                    return "bg-orange-100 text-orange-700";
-
-                case "service_completed":
-                    return "bg-green-100 text-green-700";
-
-                case "cancelled":
-                    return "bg-red-100 text-red-700";
-
-                default:
-                    return "bg-gray-100 text-gray-700";
-            }
+      case "provider_on_the_way":
+        return {
+          label: "On the Way",
+          className: "bg-blue-50 text-blue-700 border-blue-200/80",
         };
-
-        /*
-        |--------------------------------------------------------------------------
-        | STATUS LABEL
-        |--------------------------------------------------------------------------
-        */
-
-        const formatStatus = (status) => {
-            if (!status) {
-                return "Unknown";
-            }
-
-            return status
-                .split("_")
-                .map(
-                    (word) =>
-                        word.charAt(0).toUpperCase() +
-                        word.slice(1)
-                )
-                .join(" ");
+      case "arrived":
+        return {
+          label: "Arrived",
+          className: "bg-indigo-50 text-indigo-700 border-indigo-200/80",
         };
-
-        /*
-        |--------------------------------------------------------------------------
-        | DATE FORMAT
-        |--------------------------------------------------------------------------
-        */
-
-        const formatDate = (date) => {
-            if (!date) {
-                return "Not specified";
-            }
-
-            return new Date(date).toLocaleDateString(
-                "en-IN",
-                {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                }
-            );
+      case "service_started":
+        return {
+          label: "In Progress",
+          className: "bg-amber-50 text-amber-700 border-amber-200/80",
         };
-
-        const formatDateTime = (date) => {
-            if (!date) {
-                return "Not specified";
-            }
-
-            return new Date(date).toLocaleString(
-                "en-IN",
-                {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                }
-            );
+      default:
+        return {
+          label: status?.replaceAll("_", " ") || "Active",
+          className: "bg-slate-50 text-slate-700 border-slate-200/80",
         };
-
-        /*
-        |--------------------------------------------------------------------------
-        | ACTION BUTTON
-        |--------------------------------------------------------------------------
-        */
-
-        const getActionButton = (request) => {
-            switch (request.status) {
-                case "searching":
-                    return {
-                        label: "Accept Request",
-                        icon: CheckCircle,
-                        type: "accept",
-                    };
-
-                case "provider_assigned":
-                    return {
-                        label: "Continue Request",
-                        icon: Navigation,
-                        type: "manage",
-                    };
-
-                case "provider_on_the_way":
-                    return {
-                        label: "Manage Request",
-                        icon: Navigation,
-                        type: "manage",
-                    };
-
-                case "arrived":
-                    return {
-                        label: "Manage Request",
-                        icon: MapPin,
-                        type: "manage",
-                    };
-
-                case "service_started":
-                    return {
-                        label: "Manage Request",
-                        icon: Play,
-                        type: "manage",
-                    };
-
-                default:
-                    return null;
-            }
-        };
-
-        /*
-        |--------------------------------------------------------------------------
-        | OPEN REQUEST DETAILS
-        |--------------------------------------------------------------------------
-        */
-
-        const openRequestDetails = (requestId) => {
-            navigate(
-                `/provider/service-requests/${requestId}`
-            );
-        };
-
-        /*
-        |--------------------------------------------------------------------------
-        | LOADING
-        |--------------------------------------------------------------------------
-        */
-
-        if (loading) {
-            return (
-                <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-slate-50">
-                    <div className="text-center">
-
-                        <Loader2
-                            className="mx-auto h-10 w-10 animate-spin text-blue-600"
-                        />
-
-                        <p className="mt-4 text-sm text-slate-500">
-                            Loading service requests...
-                        </p>
-
-                    </div>
-                </div>
-            );
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | PAGE
-        |--------------------------------------------------------------------------
-        */
-
-        return (
-            <div className="min-h-[calc(100vh-80px)] bg-slate-50 p-4 md:p-6">
-
-                <div className="mx-auto max-w-7xl">
-
-                    {/* HEADER */}
-
-                    <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-
-                        <div>
-
-                            <h1 className="text-2xl font-bold text-slate-900 md:text-3xl">
-                                Service Requests
-                            </h1>
-
-                            <p className="mt-1 text-sm text-slate-500">
-                                View and manage customer service requests.
-                            </p>
-
-                        </div>
-
-                        <button
-                            onClick={() =>
-                                fetchRequests(true)
-                            }
-                            disabled={refreshing}
-                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-
-                            <RefreshCw
-                                className={`h-4 w-4 ${
-                                    refreshing
-                                        ? "animate-spin"
-                                        : ""
-                                }`}
-                            />
-
-                            {refreshing
-                                ? "Refreshing..."
-                                : "Refresh"}
-
-                        </button>
-
-                    </div>
-
-
-                    {/* SUCCESS */}
-
-                    {success && (
-                        <div className="mb-5 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
-
-                            <CheckCircle className="h-5 w-5 shrink-0" />
-
-                            <span>{success}</span>
-
-                        </div>
-                    )}
-
-
-                    {/* ERROR */}
-
-                    {error && (
-                        <div className="mb-5 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-
-                            <AlertCircle className="h-5 w-5 shrink-0" />
-
-                            <span>{error}</span>
-
-                        </div>
-                    )}
-
-
-                    {/* EMPTY */}
-
-                    {requests.length === 0 && (
-                        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
-
-                            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-
-                                <Wrench className="h-8 w-8 text-slate-400" />
-
-                            </div>
-
-                            <h2 className="mt-5 text-xl font-bold text-slate-900">
-                                No Service Requests
-                            </h2>
-
-                            <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-                                There are currently no service requests.
-                                New customer requests will appear here.
-                            </p>
-
-                            <button
-                                onClick={() =>
-                                    fetchRequests(true)
-                                }
-                                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
-                            >
-
-                                <RefreshCw className="h-4 w-4" />
-
-                                Check Again
-
-                            </button>
-
-                        </div>
-                    )}
-
-
-                    {/* REQUEST LIST */}
-
-                    {requests.length > 0 && (
-                        <div className="space-y-5">
-
-                            {requests.map((request) => {
-
-                                const isSearching =
-                                    request.status ===
-                                    "searching";
-
-                                const isAccepting =
-                                    acceptingId ===
-                                    request.id;
-
-                                const action =
-                                    getActionButton(
-                                        request
-                                    );
-
-                                const ActionIcon =
-                                    action?.icon;
-
-                                return (
-                                    <div
-                                        key={request.id}
-                                        className={`overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:shadow-md ${
-                                            isSearching
-                                                ? "border-yellow-300 ring-1 ring-yellow-100"
-                                                : "border-slate-200"
-                                        }`}
-                                    >
-
-                                        {/* NEW REQUEST HEADER */}
-
-                                        {isSearching && (
-                                            <div className="flex items-center gap-2 bg-yellow-50 border-b border-yellow-100 px-5 py-3">
-
-                                                <AlertCircle
-                                                    className="h-5 w-5 text-yellow-600"
-                                                />
-
-                                                <span className="text-sm font-bold text-yellow-800">
-                                                    New Service Request
-                                                </span>
-
-                                            </div>
-                                        )}
-
-
-                                        {/* TOP */}
-
-                                        <div className="flex flex-col justify-between gap-4 border-b border-slate-100 p-5 md:flex-row md:items-center md:p-6">
-
-                                            <div>
-
-                                                <div className="flex flex-wrap items-center gap-3">
-
-                                                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                                                        Request #
-                                                        {request.id}
-                                                    </span>
-
-                                                    <span
-                                                        className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusStyle(
-                                                            request.status
-                                                        )}`}
-                                                    >
-                                                        {formatStatus(
-                                                            request.status
-                                                        )}
-                                                    </span>
-
-                                                </div>
-
-                                                <h2 className="mt-2 text-xl font-bold text-slate-900">
-                                                    {request.service?.name ||
-                                                        "Service"}
-                                                </h2>
-
-                                                <p className="mt-1 text-sm text-slate-500">
-                                                    {request.service?.category ||
-                                                        "Service Request"}
-                                                </p>
-
-                                            </div>
-
-
-                                            {/* ACTIONS */}
-
-                                            <div className="flex flex-wrap gap-2">
-
-                                                {/* VIEW DETAILS */}
-
-                                                <button
-                                                    onClick={() =>
-                                                        openRequestDetails(
-                                                            request.id
-                                                        )
-                                                    }
-                                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                                                >
-
-                                                    <Eye className="h-4 w-4" />
-
-                                                    View Details
-
-                                                </button>
-
-
-                                                {/* ACCEPT / MANAGE */}
-
-                                                {action && (
-                                                    <>
-                                                        {action.type ===
-                                                        "accept" ? (
-                                                            <button
-                                                                onClick={() =>
-                                                                    handleAccept(
-                                                                        request.id
-                                                                    )
-                                                                }
-                                                                disabled={
-                                                                    isAccepting
-                                                                }
-                                                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                                            >
-
-                                                                {isAccepting ? (
-                                                                    <>
-                                                                        <Loader2 className="h-4 w-4 animate-spin" />
-
-                                                                        Accepting...
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <CheckCircle className="h-4 w-4" />
-
-                                                                        Accept Request
-                                                                    </>
-                                                                )}
-
-                                                            </button>
-                                                        ) : (
-                                                            <button
-                                                                onClick={() =>
-                                                                    openRequestDetails(
-                                                                        request.id
-                                                                    )
-                                                                }
-                                                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
-                                                            >
-
-                                                                {ActionIcon && (
-                                                                    <ActionIcon className="h-4 w-4" />
-                                                                )}
-
-                                                                {
-                                                                    action.label
-                                                                }
-
-                                                            </button>
-                                                        )}
-                                                    </>
-                                                )}
-
-                                            </div>
-
-                                        </div>
-
-
-                                        {/* DETAILS */}
-
-                                        <div className="grid grid-cols-1 gap-5 p-5 md:grid-cols-2 md:p-6">
-
-                                            {/* CUSTOMER */}
-
-                                            <div className="rounded-xl bg-slate-50 p-4">
-
-                                                <div className="flex items-center gap-2">
-
-                                                    <User className="h-4 w-4 text-slate-500" />
-
-                                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                                                        Customer
-                                                    </p>
-
-                                                </div>
-
-                                                <p className="mt-2 font-semibold text-slate-900">
-                                                    {request.customer?.name ||
-                                                        "Customer"}
-                                                </p>
-
-                                                {request.customer?.phone && (
-                                                    <p className="mt-1 flex items-center gap-2 text-sm text-slate-500">
-
-                                                        <Phone className="h-3.5 w-3.5" />
-
-                                                        {request.customer.phone}
-
-                                                    </p>
-                                                )}
-
-                                                {request.customer?.email && (
-                                                    <p className="mt-1 truncate text-sm text-slate-500">
-                                                        {request.customer.email}
-                                                    </p>
-                                                )}
-
-                                            </div>
-
-
-                                            {/* SERVICE */}
-
-                                            <div className="rounded-xl bg-slate-50 p-4">
-
-                                                <div className="flex items-center gap-2">
-
-                                                    <Wrench className="h-4 w-4 text-slate-500" />
-
-                                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                                                        Service
-                                                    </p>
-
-                                                </div>
-
-                                                <p className="mt-2 font-semibold text-slate-900">
-                                                    {request.service?.name ||
-                                                        "Service"}
-                                                </p>
-
-                                                {request.service?.category && (
-                                                    <p className="mt-1 text-sm text-slate-500">
-                                                        {
-                                                            request
-                                                                .service
-                                                                .category
-                                                        }
-                                                    </p>
-                                                )}
-
-                                            </div>
-
-
-                                            {/* LOCATION */}
-
-                                            <div className="rounded-xl bg-slate-50 p-4">
-
-                                                <div className="flex items-center gap-2">
-
-                                                    <MapPin className="h-4 w-4 text-red-500" />
-
-                                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                                                        Service Location
-                                                    </p>
-
-                                                </div>
-
-                                                <p className="mt-2 text-sm leading-6 text-slate-700">
-                                                    {request.address ||
-                                                        "Address not available"}
-                                                </p>
-
-                                                {request.latitude &&
-                                                    request.longitude && (
-                                                        <p className="mt-2 text-xs text-slate-400">
-                                                            GPS location available
-                                                        </p>
-                                                    )}
-
-                                            </div>
-
-
-                                            {/* SERVICE TIME */}
-
-                                            <div className="rounded-xl bg-slate-50 p-4">
-
-                                                <div className="flex items-center gap-2">
-
-                                                    <Clock className="h-4 w-4 text-slate-500" />
-
-                                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                                                        Service Time
-                                                    </p>
-
-                                                </div>
-
-                                                <p className="mt-2 font-medium text-slate-800">
-
-                                                    {request.request_type ===
-                                                    "now"
-                                                        ? "⚡ Immediate Service"
-                                                        : "📅 Scheduled Service"}
-
-                                                </p>
-
-                                                {request.scheduled_at && (
-                                                    <p className="mt-1 text-sm text-slate-500">
-
-                                                        {formatDateTime(
-                                                            request.scheduled_at
-                                                        )}
-
-                                                    </p>
-                                                )}
-
-                                            </div>
-
-
-                                            {/* CREATED */}
-
-                                            <div className="rounded-xl bg-slate-50 p-4">
-
-                                                <div className="flex items-center gap-2">
-
-                                                    <Calendar className="h-4 w-4 text-slate-500" />
-
-                                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                                                        Request Created
-                                                    </p>
-
-                                                </div>
-
-                                                <p className="mt-2 text-sm font-medium text-slate-800">
-                                                    {formatDate(
-                                                        request.created_at
-                                                    )}
-                                                </p>
-
-                                            </div>
-
-                                        </div>
-
-
-                                        {/* PROBLEM */}
-
-                                        <div className="border-t border-slate-100 px-5 py-5 md:px-6">
-
-                                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                                                Customer Problem
-                                            </p>
-
-                                            <p className="mt-2 rounded-xl bg-amber-50 p-4 text-sm leading-6 text-slate-700">
-
-                                                {request.problem_description ||
-                                                    "No description provided."}
-
-                                            </p>
-
-                                        </div>
-
-
-                                        {/* BOTTOM */}
-
-                                        <div className="border-t border-slate-100 bg-slate-50 px-5 py-4 md:px-6">
-
-                                            <div className="flex flex-col justify-between gap-3 text-sm sm:flex-row sm:items-center">
-
-                                                <div>
-
-                                                    <span className="text-slate-400">
-                                                        Status:
-                                                    </span>{" "}
-
-                                                    <span className="font-semibold text-slate-700">
-                                                        {formatStatus(
-                                                            request.status
-                                                        )}
-                                                    </span>
-
-                                                </div>
-
-                                                <div>
-
-                                                    <span className="text-slate-400">
-                                                        Request Type:
-                                                    </span>{" "}
-
-                                                    <span className="font-medium text-slate-700">
-
-                                                        {request.request_type ===
-                                                        "now"
-                                                            ? "Immediate"
-                                                            : "Scheduled"}
-
-                                                    </span>
-
-                                                </div>
-
-                                            </div>
-
-                                        </div>
-
-                                    </div>
-                                );
-                            })}
-
-                        </div>
-                    )}
-
-                </div>
+    }
+  };
+
+  const formatDate = (date) => {
+    if (!date) return "N/A";
+    return new Date(date).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const formatDateTime = (date) => {
+    if (!date) return "Not specified";
+    return new Date(date).toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  // ==========================================
+  // LOADING STATE
+  // ==========================================
+  if (loading) {
+    return (
+      <div className="flex min-h-[420px] items-center justify-center bg-slate-50/60">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+          <p className="text-[11px] font-semibold text-slate-500">
+            Loading active requests...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50/60 p-3 sm:p-5">
+      <div className="mx-auto max-w-6xl space-y-4">
+        {/* ==========================================
+            HEADER BAR
+        ========================================== */}
+        <div className="flex flex-col justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs sm:flex-row sm:items-center">
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                Dispatch Queue
+              </span>
+              <span className="text-xs text-slate-300">•</span>
+              <span className="text-xs font-medium text-blue-600">
+                {requests.length} Active {requests.length === 1 ? "Job" : "Jobs"}
+              </span>
             </div>
-        );
-    };
+            <h1 className="mt-0.5 text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
+              My Active Requests
+            </h1>
+            <p className="text-xs text-slate-500">
+              Track and proceed with customer jobs you have accepted.
+            </p>
+          </div>
 
-    export default ProviderRequests;
+          <button
+            onClick={() => fetchRequests(true)}
+            disabled={refreshing}
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition hover:bg-slate-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw
+              size={13}
+              className={`text-slate-500 ${refreshing ? "animate-spin text-blue-600" : ""}`}
+            />
+            <span>{refreshing ? "Syncing..." : "Refresh"}</span>
+          </button>
+        </div>
 
+        {/* ==========================================
+            ERROR NOTIFICATION
+        ========================================== */}
+        {error && (
+          <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50/80 px-3.5 py-2.5 text-xs font-medium text-rose-700">
+            <AlertCircle size={15} className="shrink-0 text-rose-500" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* ==========================================
+            EMPTY STATE
+        ========================================== */}
+        {!error && requests.length === 0 && (
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center shadow-xs">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-blue-600">
+              <Wrench size={22} />
+            </div>
+
+            <h2 className="text-sm font-bold text-slate-900">
+              No Active Requests
+            </h2>
+            <p className="mx-auto mt-1 max-w-sm text-xs text-slate-500">
+              You do not have any accepted jobs in progress. Check the dashboard to accept new incoming service requests.
+            </p>
+
+            <button
+              onClick={() => navigate("/provider/dashboard")}
+              className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-sky-100/90 px-4 py-2 text-xs font-bold text-blue-700 shadow-xs transition hover:bg-blue-100 active:scale-95"
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        )}
+
+        {/* ==========================================
+            ACTIVE REQUEST CARDS GRID
+        ========================================== */}
+        {requests.length > 0 && (
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+            {requests.map((request) => {
+              const statusInfo = getStatusBadge(request.status);
+              const customerName =
+                request.customer?.name || request.user?.name || "Customer";
+              const customerPhone =
+                request.customer?.phone || request.user?.phone || null;
+
+              return (
+                <div
+                  key={request.id}
+                  className="flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs transition hover:border-sky-300 hover:shadow-md"
+                >
+                  <div className="p-3.5">
+                    {/* TOP: Service Info & Status Badge */}
+                    <div className="flex items-start justify-between gap-2.5">
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                          Request #{request.id}
+                        </span>
+                        <h2 className="truncate text-sm font-bold text-slate-900">
+                          {request.service?.name || "Service Request"}
+                        </h2>
+                        <p className="truncate text-[11px] font-medium text-blue-600">
+                          {request.service?.category || "General Service"}
+                        </p>
+                      </div>
+
+                      <span
+                        className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-bold ${statusInfo.className}`}
+                      >
+                        {statusInfo.label}
+                      </span>
+                    </div>
+
+                    {/* DETAILS WELL */}
+                    <div className="mt-3 space-y-2 rounded-xl border border-slate-100 bg-slate-50/70 p-2.5 text-[11px]">
+                      {/* Customer Info */}
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 font-medium text-slate-500">
+                          <User size={13} className="text-slate-400" />
+                          Client
+                        </span>
+                        <span className="truncate max-w-[170px] font-bold text-slate-800">
+                          {customerName}
+                        </span>
+                      </div>
+
+                      {/* Phone if available */}
+                      {customerPhone && (
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 font-medium text-slate-500">
+                            <Phone size={13} className="text-slate-400" />
+                            Contact
+                          </span>
+                          <a
+                            href={`tel:${customerPhone}`}
+                            className="font-semibold text-blue-600 hover:underline"
+                          >
+                            {customerPhone}
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Schedule / Type */}
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 font-medium text-slate-500">
+                          {request.request_type === "now" ? (
+                            <Zap size={13} className="text-amber-500" />
+                          ) : (
+                            <Clock size={13} className="text-purple-500" />
+                          )}
+                          Timing
+                        </span>
+                        <span className="font-semibold text-slate-800">
+                          {request.request_type === "now"
+                            ? "⚡ Immediate Need"
+                            : request.scheduled_at
+                            ? formatDateTime(request.scheduled_at)
+                            : "Scheduled"}
+                        </span>
+                      </div>
+
+                      {/* Address */}
+                      <div className="flex items-start justify-between gap-2 pt-0.5">
+                        <span className="flex items-center gap-1.5 shrink-0 font-medium text-slate-500">
+                          <MapPin size={13} className="text-rose-500 mt-0.5" />
+                          Location
+                        </span>
+                        <span className="truncate max-w-[170px] text-right font-medium text-slate-700">
+                          {request.address ||
+                            request.customer?.address ||
+                            "Location not provided"}
+                        </span>
+                      </div>
+
+                      {/* Created Date */}
+                      <div className="flex items-center justify-between pt-0.5 text-slate-400">
+                        <span className="flex items-center gap-1.5">
+                          <Calendar size={13} />
+                          Accepted On
+                        </span>
+                        <span>{formatDate(request.created_at)}</span>
+                      </div>
+                    </div>
+
+                    {/* Problem Note if present */}
+                    {request.problem_description && (
+                      <div className="mt-2.5 rounded-lg border border-slate-100 bg-white p-2 text-[11px] text-slate-600 line-clamp-2">
+                        <span className="font-bold text-slate-800">Note: </span>
+                        {request.problem_description}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* BOTTOM: Price and Action Button */}
+                  <div className="border-t border-slate-100 p-3 bg-slate-50/40">
+                    <div className="mb-2.5 flex items-center justify-between">
+                      <span className="text-[10px] font-medium text-slate-400">
+                        Service Payout
+                      </span>
+                      <span className="flex items-center text-xs font-bold text-slate-900">
+                        <IndianRupee size={12} className="mr-0.5 text-emerald-600" />
+                        {Number(request.service?.base_price || 0).toLocaleString("en-IN")}
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={() =>
+                        navigate(`/provider/service-requests/${request.id}`)
+                      }
+                      className="group/btn flex w-full items-center justify-center gap-1.5 rounded-xl bg-sky-100/90 py-2 text-xs font-bold text-blue-700 transition hover:bg-blue-100 active:scale-95"
+                    >
+                      <span>View Route & Actions</span>
+                      <ChevronRight
+                        size={14}
+                        className="transition-transform duration-150 group-hover/btn:translate-x-0.5"
+                      />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ProviderRequests;

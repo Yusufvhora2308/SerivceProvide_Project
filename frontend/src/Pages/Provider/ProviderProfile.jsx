@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   User,
   Mail,
@@ -34,6 +35,7 @@ const ProviderProfile = () => {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const navigate = useNavigate();
 
   // Modal state
   const [editModal, setEditModal] = useState(false);
@@ -220,10 +222,7 @@ const ProviderProfile = () => {
         submitData.append("profile_image", profileImage);
       }
 
-      const response = await api.post(
-        "/provider/my-profile",
-        submitData
-      );
+      const response = await api.post("/provider/my-profile", submitData);
 
       if (response.data.success) {
         const updatedData = response.data.data;
@@ -259,23 +258,14 @@ const ProviderProfile = () => {
               phone: updatedData.phone,
               address: updatedData.address,
 
-              profile_image:
-    response.data.data.profile_image,
+              profile_image: response.data.data.profile_image,
             };
 
-            localStorage.setItem(
-              "user",
-              JSON.stringify(updatedUser)
-            );
+            localStorage.setItem("user", JSON.stringify(updatedUser));
 
-            window.dispatchEvent(
-              new Event("userUpdated")
-            );
+            window.dispatchEvent(new Event("userUpdated"));
           } catch (error) {
-            console.log(
-              "LocalStorage update error:",
-              error
-            );
+            console.log("LocalStorage update error:", error);
           }
         }
 
@@ -290,13 +280,10 @@ const ProviderProfile = () => {
     } catch (error) {
       console.error("Profile update error:", error);
 
-      let message =
-        error.message ||
-        "Unable to update your profile.";
+      let message = error.message || "Unable to update your profile.";
 
       if (error.errors) {
-        const firstError =
-          Object.values(error.errors)[0];
+        const firstError = Object.values(error.errors)[0];
 
         if (firstError?.[0]) {
           message = firstError[0];
@@ -377,10 +364,7 @@ const ProviderProfile = () => {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-10 text-center">
           <div className="w-16 h-16 mx-auto rounded-2xl bg-red-50 flex items-center justify-center">
-            <AlertCircle
-              size={32}
-              className="text-red-500"
-            />
+            <AlertCircle size={32} className="text-red-500" />
           </div>
 
           <h2 className="text-xl font-bold text-slate-900 mt-5">
@@ -403,29 +387,21 @@ const ProviderProfile = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-
       {/* =========================================================
           PAGE HEADER
       ========================================================= */}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-
           <div>
             <div className="flex items-center gap-2">
-
               <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center">
-                <User
-                  size={19}
-                  className="text-blue-600"
-                />
+                <User size={19} className="text-blue-600" />
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
                 My Profile
               </h1>
-
             </div>
 
             <p className="text-sm text-slate-500 mt-2 ml-11">
@@ -442,9 +418,7 @@ const ProviderProfile = () => {
             <Edit3 size={17} />
             Edit Profile
           </button>
-
         </div>
-
       </div>
 
       {/* =========================================================
@@ -452,25 +426,18 @@ const ProviderProfile = () => {
       ========================================================= */}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
         {/* =======================================================
             PROFILE SUMMARY
         ======================================================= */}
 
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm mb-6 overflow-hidden">
-
           <div className="p-5 sm:p-8">
-
             <div className="flex flex-col md:flex-row md:items-center gap-6">
-
               {/* PROFILE IMAGE */}
 
               <div className="shrink-0">
-
                 <div className="relative">
-
                   <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-blue-50 border border-blue-100 p-1.5 shadow-sm">
-
                     {profile.profile_image ? (
                       <img
                         src={profile.profile_image}
@@ -486,35 +453,27 @@ const ProviderProfile = () => {
                         />
                       </div>
                     )}
-
                   </div>
 
                   {/* Online Dot */}
 
                   <span
                     className={`absolute bottom-2 right-2 w-5 h-5 rounded-full border-4 border-white ${
-                      profile.is_online
-                        ? "bg-green-500"
-                        : "bg-slate-400"
+                      profile.is_online ? "bg-green-500" : "bg-slate-400"
                     }`}
                   ></span>
-
                 </div>
-
               </div>
 
               {/* PROFILE INFORMATION */}
 
               <div className="flex-1">
-
                 <div className="flex flex-wrap items-center gap-3">
-
                   <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">
                     {profile.name}
                   </h2>
 
                   {getVerificationBadge()}
-
                 </div>
 
                 <p className="text-slate-500 mt-1">
@@ -522,7 +481,6 @@ const ProviderProfile = () => {
                 </p>
 
                 <div className="flex flex-wrap items-center gap-3 mt-4">
-
                   {/* ONLINE STATUS */}
 
                   <span
@@ -534,9 +492,7 @@ const ProviderProfile = () => {
                   >
                     <span
                       className={`w-2 h-2 rounded-full ${
-                        profile.is_online
-                          ? "bg-green-500"
-                          : "bg-slate-400"
+                        profile.is_online ? "bg-green-500" : "bg-slate-400"
                       }`}
                     ></span>
 
@@ -548,35 +504,22 @@ const ProviderProfile = () => {
                   {/* AVAILABILITY */}
 
                   <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-xs font-semibold">
-
                     <Activity size={14} />
 
                     <span className="capitalize">
-                      {profile.availability_status ||
-                        "Offline"}
+                      {profile.availability_status || "Offline"}
                     </span>
-
                   </span>
-
                 </div>
-
               </div>
 
               {/* SHIELD */}
 
               <div className="hidden lg:flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100">
-
-                <ShieldCheck
-                  size={32}
-                  className="text-blue-600"
-                />
-
+                <ShieldCheck size={32} className="text-blue-600" />
               </div>
-
             </div>
-
           </div>
-
         </div>
 
         {/* =======================================================
@@ -584,83 +527,56 @@ const ProviderProfile = () => {
         ======================================================= */}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-
           {/* RATING */}
 
-          <div className="group bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all">
-
+          <div
+            onClick={() => navigate("/provider/reviews")}
+            className="group cursor-pointer bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all"
+          >
             <div className="flex items-center justify-between">
-
               <div>
-
                 <p className="text-sm font-medium text-slate-500">
                   Customer Rating
                 </p>
 
                 <div className="flex items-center gap-2 mt-2">
-
                   <span className="text-3xl font-bold text-slate-900">
-                    {Number(
-                      profile.rating || 0
-                    ).toFixed(1)}
+                    {Number(profile.rating || 0).toFixed(1)}
                   </span>
 
                   <div className="flex flex-col">
-
                     <div className="flex items-center gap-0.5">
-
-                      {[1, 2, 3, 4, 5].map(
-                        (star) => (
-                          <Star
-                            key={star}
-                            size={14}
-                            className={
-                              star <=
-                              Math.round(
-                                Number(
-                                  profile.rating || 0
-                                )
-                              )
-                                ? "fill-yellow-400 text-yellow-400"
-                                : "text-slate-200"
-                            }
-                          />
-                        )
-                      )}
-
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          size={14}
+                          className={
+                            star <= Math.round(Number(profile.rating || 0))
+                              ? "fill-yellow-400 text-yellow-400"
+                              : "text-slate-200"
+                          }
+                        />
+                      ))}
                     </div>
 
                     <span className="text-xs text-slate-400 mt-1">
                       Average rating
                     </span>
-
                   </div>
-
                 </div>
-
               </div>
 
               <div className="w-14 h-14 rounded-2xl bg-yellow-50 border border-yellow-100 flex items-center justify-center group-hover:scale-105 transition">
-
-                <Star
-                  size={27}
-                  className="text-yellow-500 fill-yellow-400"
-                />
-
+                <Star size={27} className="text-yellow-500 fill-yellow-400" />
               </div>
-
             </div>
-
           </div>
 
           {/* JOBS */}
 
           <div className="group bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all">
-
             <div className="flex items-center justify-between">
-
               <div>
-
                 <p className="text-sm font-medium text-slate-500">
                   Completed Jobs
                 </p>
@@ -672,68 +588,45 @@ const ProviderProfile = () => {
                 <p className="text-xs text-slate-400 mt-1">
                   Services successfully completed
                 </p>
-
               </div>
 
               <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center group-hover:scale-105 transition">
-
-                <Briefcase
-                  size={27}
-                  className="text-blue-600"
-                />
-
+                <Briefcase size={27} className="text-blue-600" />
               </div>
-
             </div>
-
           </div>
 
           {/* VERIFICATION */}
 
           <div className="group bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all">
-
             <div className="flex items-center justify-between">
-
               <div>
-
                 <p className="text-sm font-medium text-slate-500">
                   Account Status
                 </p>
 
                 <p
                   className={`text-xl font-bold mt-2 capitalize ${
-                    profile.verification_status ===
-                    "approved"
+                    profile.verification_status === "approved"
                       ? "text-green-600"
-                      : profile.verification_status ===
-                        "rejected"
-                      ? "text-red-600"
-                      : "text-yellow-600"
+                      : profile.verification_status === "rejected"
+                        ? "text-red-600"
+                        : "text-yellow-600"
                   }`}
                 >
-                  {profile.verification_status ||
-                    "Pending"}
+                  {profile.verification_status || "Pending"}
                 </p>
 
                 <p className="text-xs text-slate-400 mt-1">
                   Provider verification status
                 </p>
-
               </div>
 
               <div className="w-14 h-14 rounded-2xl bg-green-50 border border-green-100 flex items-center justify-center group-hover:scale-105 transition">
-
-                <ShieldCheck
-                  size={27}
-                  className="text-green-600"
-                />
-
+                <ShieldCheck size={27} className="text-green-600" />
               </div>
-
             </div>
-
           </div>
-
         </div>
 
         {/* =======================================================
@@ -741,24 +634,15 @@ const ProviderProfile = () => {
         ======================================================= */}
 
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-
           {/* HEADER */}
 
           <div className="px-5 sm:px-8 py-6 border-b border-slate-100">
-
             <div className="flex items-center gap-3">
-
               <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-
-                <User
-                  size={19}
-                  className="text-blue-600"
-                />
-
+                <User size={19} className="text-blue-600" />
               </div>
 
               <div>
-
                 <h2 className="text-lg font-bold text-slate-900">
                   Personal Information
                 </h2>
@@ -766,171 +650,114 @@ const ProviderProfile = () => {
                 <p className="text-sm text-slate-500">
                   Your account and contact details
                 </p>
-
               </div>
-
             </div>
-
           </div>
 
           {/* INFORMATION */}
 
           <div className="p-5 sm:p-8">
-
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
               {/* NAME */}
 
               <div>
-
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Full Name
                 </label>
 
                 <div className="flex items-center gap-3 px-4 py-3.5 bg-slate-50 border border-slate-100 rounded-xl">
-
-                  <User
-                    size={18}
-                    className="text-blue-500"
-                  />
+                  <User size={18} className="text-blue-500" />
 
                   <span className="text-slate-800 font-medium">
                     {profile.name || "Not available"}
                   </span>
-
                 </div>
-
               </div>
 
               {/* EMAIL */}
 
               <div>
-
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Email Address
                 </label>
 
                 <div className="flex items-center gap-3 px-4 py-3.5 bg-blue-50/50 border border-blue-100 rounded-xl">
-
-                  <Mail
-                    size={18}
-                    className="text-blue-500 shrink-0"
-                  />
+                  <Mail size={18} className="text-blue-500 shrink-0" />
 
                   <span className="text-slate-800 font-medium break-all">
                     {profile.email || "Not available"}
                   </span>
-
                 </div>
-
               </div>
 
               {/* PHONE */}
 
               <div>
-
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Phone Number
                 </label>
 
                 <div className="flex items-center gap-3 px-4 py-3.5 bg-slate-50 border border-slate-100 rounded-xl">
-
-                  <Phone
-                    size={18}
-                    className="text-blue-500"
-                  />
+                  <Phone size={18} className="text-blue-500" />
 
                   <span className="text-slate-800 font-medium">
                     {profile.phone || "Not available"}
                   </span>
-
                 </div>
-
               </div>
 
               {/* ADDRESS */}
 
               <div>
-
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Address
                 </label>
 
                 <div className="flex items-start gap-3 px-4 py-3.5 bg-slate-50 border border-slate-100 rounded-xl min-h-[54px]">
-
-                  <MapPin
-                    size={18}
-                    className="text-blue-500 mt-0.5 shrink-0"
-                  />
+                  <MapPin size={18} className="text-blue-500 mt-0.5 shrink-0" />
 
                   <span className="text-slate-800 font-medium">
-                    {profile.address ||
-                      "Address not added"}
+                    {profile.address || "Address not added"}
                   </span>
-
                 </div>
-
               </div>
-
             </div>
 
             {/* VERIFIED MESSAGE */}
 
-            {profile.verification_status ===
-              "approved" &&
+            {profile.verification_status === "approved" &&
               profile.verified_at && (
                 <div className="mt-7 p-4 rounded-2xl bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100">
-
                   <div className="flex gap-3">
-
                     <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0">
-
-                      <Award
-                        size={20}
-                        className="text-green-600"
-                      />
-
+                      <Award size={20} className="text-green-600" />
                     </div>
 
                     <div>
-
                       <p className="font-bold text-green-800">
                         Your Provider Account is Verified
                       </p>
 
                       <p className="text-sm text-green-700 mt-1">
-                        Your account has been successfully
-                        verified and you can provide services
-                        to customers.
+                        Your account has been successfully verified and you can
+                        provide services to customers.
                       </p>
-
                     </div>
-
                   </div>
-
                 </div>
               )}
 
             {/* REJECTED MESSAGE */}
 
-            {profile.verification_status ===
-              "rejected" &&
+            {profile.verification_status === "rejected" &&
               profile.rejection_reason && (
                 <div className="mt-7 p-4 rounded-2xl bg-red-50 border border-red-100">
-
                   <div className="flex gap-3">
-
                     <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0">
-
-                      <AlertCircle
-                        size={20}
-                        className="text-red-500"
-                      />
-
+                      <AlertCircle size={20} className="text-red-500" />
                     </div>
 
                     <div>
-
                       <p className="font-bold text-red-800">
                         Verification Rejected
                       </p>
@@ -938,18 +765,12 @@ const ProviderProfile = () => {
                       <p className="text-sm text-red-700 mt-1">
                         {profile.rejection_reason}
                       </p>
-
                     </div>
-
                   </div>
-
                 </div>
               )}
-
           </div>
-
         </div>
-
       </div>
 
       {/* =========================================================
@@ -965,15 +786,11 @@ const ProviderProfile = () => {
             }
           }}
         >
-
           <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
-
             {/* MODAL HEADER */}
 
             <div className="px-6 sm:px-8 py-5 border-b border-slate-100 flex items-center justify-between">
-
               <div>
-
                 <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
                   Edit Profile
                 </h2>
@@ -981,7 +798,6 @@ const ProviderProfile = () => {
                 <p className="text-sm text-slate-500 mt-1">
                   Update your personal information
                 </p>
-
               </div>
 
               <button
@@ -992,57 +808,37 @@ const ProviderProfile = () => {
               >
                 <X size={20} />
               </button>
-
             </div>
 
             {/* MODAL FORM */}
 
             <form onSubmit={handleSubmit}>
-
               <div className="p-6 sm:p-8">
-
                 {/* PROFILE PHOTO */}
 
                 <div className="flex flex-col items-center mb-7">
-
                   <div className="relative">
-
                     <div className="w-28 h-28 rounded-3xl bg-blue-50 border border-blue-100 p-1.5">
-
-                      {imagePreview ||
-                      profile.profile_image ? (
+                      {imagePreview || profile.profile_image ? (
                         <img
-                          src={
-                            imagePreview ||
-                            profile.profile_image
-                          }
+                          src={imagePreview || profile.profile_image}
                           alt={profile.name}
                           className="w-full h-full object-cover rounded-[20px]"
                         />
                       ) : (
                         <div className="w-full h-full rounded-[20px] bg-blue-50 flex items-center justify-center">
-
-                          <User
-                            size={50}
-                            className="text-blue-600"
-                          />
-
+                          <User size={50} className="text-blue-600" />
                         </div>
                       )}
-
                     </div>
-
                   </div>
 
                   <label
                     htmlFor="modal_profile_image"
                     className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 border border-blue-100 rounded-xl text-sm font-semibold cursor-pointer hover:bg-blue-100 transition"
                   >
-
                     <Camera size={16} />
-
                     Change Photo
-
                   </label>
 
                   <input
@@ -1056,23 +852,19 @@ const ProviderProfile = () => {
                   <p className="text-xs text-slate-400 mt-2">
                     JPG, PNG, WEBP • Max 2MB
                   </p>
-
                 </div>
 
                 {/* INPUT GRID */}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
                   {/* NAME */}
 
                   <div>
-
                     <label className="block text-sm font-semibold text-slate-700 mb-2">
                       Full Name
                     </label>
 
                     <div className="relative">
-
                       <User
                         size={18}
                         className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
@@ -1086,21 +878,17 @@ const ProviderProfile = () => {
                         className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition"
                         placeholder="Enter your full name"
                       />
-
                     </div>
-
                   </div>
 
                   {/* EMAIL */}
 
                   <div>
-
                     <label className="block text-sm font-semibold text-slate-700 mb-2">
                       Email Address
                     </label>
 
                     <div className="relative">
-
                       <Mail
                         size={18}
                         className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
@@ -1112,25 +900,21 @@ const ProviderProfile = () => {
                         disabled
                         className="w-full pl-11 pr-4 py-3.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed"
                       />
-
                     </div>
 
                     <p className="text-xs text-slate-400 mt-1.5">
                       Email cannot be changed.
                     </p>
-
                   </div>
 
                   {/* PHONE */}
 
                   <div>
-
                     <label className="block text-sm font-semibold text-slate-700 mb-2">
                       Phone Number
                     </label>
 
                     <div className="relative">
-
                       <Phone
                         size={18}
                         className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
@@ -1144,21 +928,17 @@ const ProviderProfile = () => {
                         className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition"
                         placeholder="Enter phone number"
                       />
-
                     </div>
-
                   </div>
 
                   {/* ADDRESS */}
 
                   <div>
-
                     <label className="block text-sm font-semibold text-slate-700 mb-2">
                       Address
                     </label>
 
                     <div className="relative">
-
                       <MapPin
                         size={18}
                         className="absolute left-3.5 top-3.5 text-slate-400"
@@ -1172,19 +952,14 @@ const ProviderProfile = () => {
                         className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl outline-none resize-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition"
                         placeholder="Enter your address"
                       />
-
                     </div>
-
                   </div>
-
                 </div>
-
               </div>
 
               {/* MODAL FOOTER */}
 
               <div className="px-6 sm:px-8 py-5 bg-slate-50 border-t border-slate-200 flex flex-col-reverse sm:flex-row justify-end gap-3">
-
                 <button
                   type="button"
                   onClick={handleCloseModal}
@@ -1200,7 +975,6 @@ const ProviderProfile = () => {
                   disabled={saving}
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition disabled:opacity-60"
                 >
-
                   {saving ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></div>
@@ -1212,15 +986,10 @@ const ProviderProfile = () => {
                       Save Changes
                     </>
                   )}
-
                 </button>
-
               </div>
-
             </form>
-
           </div>
-
         </div>
       )}
     </div>
@@ -1228,4 +997,3 @@ const ProviderProfile = () => {
 };
 
 export default ProviderProfile;
-

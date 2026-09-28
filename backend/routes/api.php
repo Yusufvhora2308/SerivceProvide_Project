@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\Customer\ServiceRequestController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CustomerProfileController;
+use App\Http\Controllers\ReviewController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Provider\ProviderServiceController;
@@ -52,7 +53,8 @@ Route::middleware('auth:sanctum')->prefix('customer')->group(function () {
 
     // Nearby providers
     Route::get(
-            '/nearby-providers',[NearbyProviderController::class, 'nearbyProviders']
+        '/nearby-providers',
+        [NearbyProviderController::class, 'nearbyProviders']
     );
 
 
@@ -99,12 +101,28 @@ Route::middleware('auth:sanctum')->prefix('customer')->group(function () {
         [ServiceRequestController::class, 'cancel']
     );
 
+    // Customer → Provider Review
+    Route::post(
+        '/service-requests/{id}/review',
+        [ReviewController::class, 'customerReview']
+    );
+    Route::get(
+        '/providers/{providerId}/review-status',
+        [ReviewController::class, 'customerProviderReviewStatus']
+    );
+
+    // Get provider reviews
+    Route::get(
+        '/providers/{providerId}/reviews',
+        [ReviewController::class, 'providerReviews']
+    );
+
 });
 
 
 
 
-
+//Provider Routes
 Route::middleware('auth:sanctum')->prefix('provider')->group(function () {
 
     /*
@@ -146,6 +164,23 @@ Route::middleware('auth:sanctum')->prefix('provider')->group(function () {
     Route::post(
         '/service-requests/{id}/expire',
         [ProviderServiceRequestController::class, 'expire']
+    );
+
+
+    // Provider → Customer Review
+    Route::post(
+        '/service-requests/{id}/review',
+        [ReviewController::class, 'providerReview']
+    );
+
+    Route::get(
+        '/customers/{customerId}/review-status',
+        [ReviewController::class, 'providerCustomerReviewStatus']
+    );
+
+    Route::get(
+        '/providers/reviews',
+        [ReviewController::class, 'providerReviews']
     );
 
     /*

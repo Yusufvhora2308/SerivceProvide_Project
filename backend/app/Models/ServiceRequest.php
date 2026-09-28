@@ -86,4 +86,13 @@ class ServiceRequest extends Model
     {
         return $this->hasMany(ServiceRequestProvider::class);
     }
+
+    //review
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(
+            Review::class,
+            'service_request_id'
+        );
+    }
 }

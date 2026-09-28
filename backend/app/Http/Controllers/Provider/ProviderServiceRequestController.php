@@ -143,7 +143,7 @@ class ProviderServiceRequestController extends Controller
             |--------------------------------------------------------------------------
             */
 
-            $requestProvider = \App\Models\ServiceRequestProvider::where(
+            $requestProvider = ServiceRequestProvider::where(
                 'service_request_id',
                 $id
             )
@@ -232,7 +232,7 @@ class ProviderServiceRequestController extends Controller
             |--------------------------------------------------------------------------
             */
 
-            \App\Models\ServiceRequestProvider::where(
+            ServiceRequestProvider::where(
                 'service_request_id',
                 $serviceRequest->id
             )

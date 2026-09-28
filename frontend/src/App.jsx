@@ -50,6 +50,7 @@ import EditService from "./Pages/Provider/EditService";
 import ProviderRequests from "./Pages/Provider/ProviderRequests";
 import ProviderRequestDetails from "./Pages/Provider/ProviderRequestDetails";
 import ProviderProfile from "./Pages/Provider/ProviderProfile";
+import ProviderReviews from "./Pages/Provider/ProviderReviews";
 
 function App() {
   return (
@@ -227,7 +228,16 @@ function App() {
             element={<ProviderRequestDetails />}
           />
 
+          {/* Provider Profile */}
           <Route path="/provider/profile" element={<ProviderProfile />} />
+          <Route
+            path="/provider/reviews"
+            element={
+              <ProviderProtectedRoute>
+                <ProviderReviews />
+              </ProviderProtectedRoute>
+            }
+          />
 
           {/* Bookings */}
 
@@ -261,25 +271,6 @@ function App() {
 
                   <p className="mt-2 text-sm text-slate-500">
                     Track your earnings here.
-                  </p>
-                </div>
-              </div>
-            }
-          />
-
-          {/* Profile */}
-
-          <Route
-            path="/provider/profile"
-            element={
-              <div className="min-h-[calc(100vh-80px)] bg-slate-50 p-6">
-                <div className="mx-auto max-w-7xl">
-                  <h1 className="text-2xl font-bold text-slate-900">
-                    My Profile
-                  </h1>
-
-                  <p className="mt-2 text-sm text-slate-500">
-                    Manage your provider profile.
                   </p>
                 </div>
               </div>

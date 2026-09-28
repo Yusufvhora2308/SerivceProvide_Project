@@ -15,33 +15,42 @@ class AdminProviderController extends Controller
     /**
      * Get all providers with optional filtering
      */
-     public function show($id)
-    {
-        try {
-            $provider = Provider::with(['user', 'services', 'documents'])->findOrFail($id);
-            
-            // Add full document URLs
-            if ($provider->documents) {
-                foreach ($provider->documents as $document) {
-                    if ($document->document_file) {
-                        // Remove 'public/' if present
-                        $path = str_replace('public/', '', $document->document_file);
-                        $document->document_url = asset('storage/' . $path);
-                    }
-                }
+    public function show($id)
+{
+    try {
+        $provider = Provider::with([
+            'user',
+            'services',
+            'documents'
+        ])->findOrFail($id);
+
+        foreach ($provider->documents as $document) {
+            if ($document->document_file) {
+
+                $path = str_replace(
+                    'public/',
+                    '',
+                    $document->document_file
+                );
+
+                $document->document_url =
+                    asset('storage/' . $path);
             }
-            
-            return response()->json([
-                'success' => true,
-                'data' => $provider,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Provider not found',
-            ], 404);
         }
+
+        return response()->json([
+            'success' => true,
+            'data' => $provider,
+        ]);
+
+    } catch (\Exception $e) {
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Provider not found',
+        ], 404);
     }
+}
 
     /**
      * Get all providers with document URLs

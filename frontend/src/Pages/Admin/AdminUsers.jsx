@@ -7,75 +7,74 @@ import {
   Filter,
   Plus,
   Eye,
-  Edit,
   Trash2,
   UserCheck,
   UserX,
-  Mail,
-  Calendar,
   ChevronLeft,
   ChevronRight,
-  MoreVertical,
-  Shield,
-  Clock,
   CheckCircle,
+  Clock,
   XCircle,
-  AlertCircle,
-  Settings,
   EyeOff,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  SlidersHorizontal,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import Swal from "sweetalert2";
 import api from "../../api/axios";
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+
   const [showIdColumn, setShowIdColumn] = useState(true);
   const [showColumnMenu, setShowColumnMenu] = useState(false);
+
   const [sortConfig, setSortConfig] = useState({
-    key: 'id',
-    direction: 'ascending'
+    key: "id",
+    direction: "ascending",
   });
 
   useEffect(() => {
     fetchUsers();
-  }, [searchTerm, filterStatus, currentPage]);
+  }, [searchTerm, filterStatus, currentPage, sortConfig]);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      
-      // Build query parameters
+
       const params = {
         search: searchTerm || undefined,
-        status: filterStatus !== "all" ? filterStatus : undefined,
+        status:
+          filterStatus !== "all" ? filterStatus : undefined,
         page: currentPage,
         per_page: itemsPerPage,
         sort: sortConfig.key,
-        direction: sortConfig.direction === 'ascending' ? 'asc' : 'desc',
+        direction:
+          sortConfig.direction === "ascending" ? "asc" : "desc",
       };
 
-      // Remove undefined values
-      Object.keys(params).forEach(key => 
-        params[key] === undefined && delete params[key]
-      );
+      Object.keys(params).forEach((key) => {
+        if (params[key] === undefined) {
+          delete params[key];
+        }
+      });
 
-      const response = await api.get('/admin/users', { params });
-      
-      // Handle response
+      const response = await api.get("/admin/users", { params });
+
       let usersData = [];
       let paginationData = {};
-      
+
       if (response.data.success) {
         usersData = response.data.data || [];
         paginationData = response.data.pagination || {};
@@ -83,388 +82,858 @@ const AdminUsers = () => {
         usersData = response.data.data || response.data || [];
       }
 
-      // Format users data
-      const formattedUsers = usersData.map(user => ({
+      const formattedUsers = usersData.map((user) => ({
         id: user.id,
-        name: user.name || 'N/A',
-        email: user.email || 'N/A',
-        phone: user.phone || 'N/A',
-        role: user.role || 'customer',
-        status: user.status || 'active',
-        joined: user.created_at ? new Date(user.created_at).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
-        }) : 'N/A',
+        name: user.name || "N/A",
+        email: user.email || "N/A",
+        phone: user.phone || "N/A",
+        role: user.role || "customer",
+        status: user.status || "active",
+        joined: user.created_at
+          ? new Date(user.created_at).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })
+          : "N/A",
         bookings: user.bookings_count || user.bookings || 0,
-        address: user.address || 'N/A',
+        address: user.address || "N/A",
         profile_photo: user.profile_photo || null,
         created_at: user.created_at,
       }));
 
       setUsers(formattedUsers);
-      setTotalPages(paginationData.last_page || Math.ceil(formattedUsers.length / itemsPerPage));
-      setTotalItems(paginationData.total || formattedUsers.length);
-      setLoading(false);
+
+      setTotalPages(
+        paginationData.last_page ||
+          Math.ceil(formattedUsers.length / itemsPerPage) ||
+          1
+      );
+
+      setTotalItems(
+        paginationData.total || formattedUsers.length
+      );
     } catch (error) {
       console.error("Error fetching users:", error);
-      setLoading(false);
-      
-      // Show error with SweetAlert2
+
       Swal.fire({
-        icon: 'error',
-        title: 'Error!',
-        text: error.response?.data?.message || 'Failed to load customers. Please try again.',
-        confirmButtonColor: '#3b82f6',
+        icon: "error",
+        title: "Unable to Load Customers",
+        text:
+          error.response?.data?.message ||
+          "Failed to load customers. Please try again.",
+        confirmButtonColor: "#2563eb",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Handle sorting
+  // Sorting
   const handleSort = (key) => {
-    let direction = 'ascending';
-    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
-      direction = 'descending';
+    let direction = "ascending";
+
+    if (
+      sortConfig.key === key &&
+      sortConfig.direction === "ascending"
+    ) {
+      direction = "descending";
     }
-    setSortConfig({ key, direction });
+
+    setSortConfig({
+      key,
+      direction,
+    });
+
     setCurrentPage(1);
   };
 
-  // Filter users (client-side filtering with search)
+  // Client-side filtering
   const filteredUsers = users.filter((user) => {
+    const search = searchTerm.toLowerCase();
+
     const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.name.toLowerCase().includes(search) ||
+      user.email.toLowerCase().includes(search) ||
       (user.phone && user.phone.includes(searchTerm)) ||
       (user.id && user.id.toString().includes(searchTerm));
-    const matchesStatus = filterStatus === "all" || user.status === filterStatus;
+
+    const matchesStatus =
+      filterStatus === "all" ||
+      user.status === filterStatus;
+
     return matchesSearch && matchesStatus;
   });
 
-  // Sort users
+  // Client-side sorting
   const sortedUsers = [...filteredUsers].sort((a, b) => {
-    if (sortConfig.key === 'id') {
-      return sortConfig.direction === 'ascending' 
-        ? a.id - b.id 
+    if (sortConfig.key === "id") {
+      return sortConfig.direction === "ascending"
+        ? a.id - b.id
         : b.id - a.id;
     }
-    if (sortConfig.key === 'name') {
-      return sortConfig.direction === 'ascending'
+
+    if (sortConfig.key === "name") {
+      return sortConfig.direction === "ascending"
         ? a.name.localeCompare(b.name)
         : b.name.localeCompare(a.name);
     }
-    if (sortConfig.key === 'email') {
-      return sortConfig.direction === 'ascending'
+
+    if (sortConfig.key === "email") {
+      return sortConfig.direction === "ascending"
         ? a.email.localeCompare(b.email)
         : b.email.localeCompare(a.email);
     }
-    if (sortConfig.key === 'joined') {
-      return sortConfig.direction === 'ascending'
+
+    if (sortConfig.key === "joined") {
+      return sortConfig.direction === "ascending"
         ? new Date(a.created_at) - new Date(b.created_at)
         : new Date(b.created_at) - new Date(a.created_at);
     }
-    if (sortConfig.key === 'bookings') {
-      return sortConfig.direction === 'ascending'
+
+    if (sortConfig.key === "bookings") {
+      return sortConfig.direction === "ascending"
         ? a.bookings - b.bookings
         : b.bookings - a.bookings;
     }
+
     return 0;
   });
 
-  // Pagination
-  const totalPagesLocal = Math.ceil(sortedUsers.length / itemsPerPage);
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentUsers = sortedUsers.slice(indexOfFirstItem, indexOfLastItem);
+  // Local pagination
+  const totalPagesLocal =
+    Math.ceil(sortedUsers.length / itemsPerPage) || 1;
+
+  const indexOfLastItem =
+    currentPage * itemsPerPage;
+
+  const indexOfFirstItem =
+    indexOfLastItem - itemsPerPage;
+
+  const currentUsers = sortedUsers.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
 
   const paginate = (pageNumber) => {
-    if (pageNumber > 0 && pageNumber <= totalPagesLocal) {
+    if (
+      pageNumber > 0 &&
+      pageNumber <= totalPagesLocal
+    ) {
       setCurrentPage(pageNumber);
     }
   };
 
-  // Status badge styles
+  // Status badge
   const getStatusBadge = (status) => {
     const styles = {
       active: {
-        bg: "bg-emerald-100 dark:bg-emerald-900/30",
-        text: "text-emerald-700 dark:text-emerald-400",
-        icon: <CheckCircle size={12} className="mr-1" />,
+        bg: "bg-emerald-50 border border-emerald-100",
+        text: "text-emerald-700",
+        icon: <CheckCircle size={12} />,
         label: "Active",
       },
+
       inactive: {
-        bg: "bg-gray-100 dark:bg-gray-700",
-        text: "text-gray-700 dark:text-gray-400",
-        icon: <Clock size={12} className="mr-1" />,
+        bg: "bg-slate-50 border border-slate-200",
+        text: "text-slate-600",
+        icon: <Clock size={12} />,
         label: "Inactive",
       },
+
       suspended: {
-        bg: "bg-red-100 dark:bg-red-900/30",
-        text: "text-red-700 dark:text-red-400",
-        icon: <XCircle size={12} className="mr-1" />,
+        bg: "bg-red-50 border border-red-100",
+        text: "text-red-700",
+        icon: <XCircle size={12} />,
         label: "Suspended",
       },
     };
+
     return styles[status] || styles.inactive;
   };
 
-  // Toggle user status with SweetAlert2
+  // Toggle status
   const toggleUserStatus = async (user) => {
-    const newStatus = user.status === "active" ? "inactive" : "active";
-    const statusText = newStatus === "active" ? "activate" : "deactivate";
-    
+    const newStatus =
+      user.status === "active"
+        ? "inactive"
+        : "active";
+
+    const statusText =
+      newStatus === "active"
+        ? "activate"
+        : "deactivate";
+
     const result = await Swal.fire({
-      title: `${statusText === "activate" ? "Activate" : "Deactivate"} Customer?`,
+      title:
+        newStatus === "active"
+          ? "Activate Customer?"
+          : "Deactivate Customer?",
+
       html: `
-        <div class="text-left">
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+        <div style="text-align:left">
+          <p style="font-size:14px;color:#64748b;margin-bottom:14px">
             Are you sure you want to <strong>${statusText}</strong> this customer?
           </p>
-          <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold">
+
+          <div style="
+            display:flex;
+            align-items:center;
+            gap:12px;
+            padding:12px;
+            background:#eff6ff;
+            border:1px solid #dbeafe;
+            border-radius:10px;
+          ">
+            <div style="
+              width:42px;
+              height:42px;
+              display:flex;
+              align-items:center;
+              justify-content:center;
+              border-radius:50%;
+              background:#dbeafe;
+              color:#2563eb;
+              font-weight:700;
+            ">
               ${user.name.charAt(0).toUpperCase()}
             </div>
+
             <div>
-              <p class="font-medium text-gray-900 dark:text-white">${user.name}</p>
-              <p class="text-sm text-gray-500 dark:text-gray-400">${user.email}</p>
+              <p style="
+                margin:0;
+                font-weight:600;
+                color:#1e293b;
+              ">
+                ${user.name}
+              </p>
+
+              <p style="
+                margin:3px 0 0;
+                font-size:13px;
+                color:#64748b;
+              ">
+                ${user.email}
+              </p>
             </div>
           </div>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-3">
-            Current status: <span class="font-medium">${user.status}</span>
-            → New status: <span class="font-medium text-blue-600 dark:text-blue-400">${newStatus}</span>
+
+          <p style="
+            margin-top:14px;
+            font-size:13px;
+            color:#64748b;
+          ">
+            Current status:
+            <strong>${user.status}</strong>
+            →
+            New status:
+            <strong style="color:#2563eb">
+              ${newStatus}
+            </strong>
           </p>
         </div>
       `,
+
       icon: "question",
       showCancelButton: true,
-      confirmButtonColor: newStatus === "active" ? "#22c55e" : "#ef4444",
+
+      confirmButtonColor:
+        newStatus === "active"
+          ? "#16a34a"
+          : "#ef4444",
+
       cancelButtonColor: "#64748b",
-      confirmButtonText: `Yes, ${statusText} customer`,
+
+      confirmButtonText:
+        newStatus === "active"
+          ? "Yes, Activate"
+          : "Yes, Deactivate",
+
       cancelButtonText: "Cancel",
       reverseButtons: true,
     });
 
-    if (result.isConfirmed) {
-      try {
-        // Update user status via API
-        await api.put(`/admin/users/${user.id}/status`, { status: newStatus });
-        
-        // Update local state
-        setUsers(users.map(u => 
-          u.id === user.id ? { ...u, status: newStatus } : u
-        ));
+    if (!result.isConfirmed) return;
 
-        await Swal.fire({
-          icon: 'success',
-          title: 'Status Updated!',
-          text: `Customer has been ${statusText}d successfully.`,
-          timer: 2000,
-          showConfirmButton: false,
-        });
-      } catch (error) {
-        console.error("Error updating user status:", error);
-        Swal.fire({
-          icon: 'error',
-          title: 'Error!',
-          text: error.response?.data?.message || 'Failed to update customer status. Please try again.',
-          confirmButtonColor: '#3b82f6',
-        });
-      }
+    try {
+      await api.put(
+        `/admin/users/${user.id}/status`,
+        {
+          status: newStatus,
+        }
+      );
+
+      setUsers((prevUsers) =>
+        prevUsers.map((u) =>
+          u.id === user.id
+            ? {
+                ...u,
+                status: newStatus,
+              }
+            : u
+        )
+      );
+
+      await Swal.fire({
+        icon: "success",
+        title: "Status Updated",
+        text: `Customer has been ${statusText}d successfully.`,
+        timer: 1800,
+        showConfirmButton: false,
+      });
+    } catch (error) {
+      console.error(
+        "Error updating user status:",
+        error
+      );
+
+      Swal.fire({
+        icon: "error",
+        title: "Update Failed",
+        text:
+          error.response?.data?.message ||
+          "Failed to update customer status.",
+        confirmButtonColor: "#2563eb",
+      });
     }
   };
 
-  // Delete user with SweetAlert2
+  // Delete user
   const deleteUser = async (user) => {
     const result = await Swal.fire({
-      title: 'Delete Customer?',
+      title: "Delete Customer?",
+
       html: `
-        <div class="text-left">
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+        <div style="text-align:left">
+          <p style="
+            font-size:14px;
+            color:#64748b;
+            margin-bottom:14px;
+          ">
             Are you sure you want to permanently delete this customer?
           </p>
-          <div class="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-semibold">
+
+          <div style="
+            display:flex;
+            align-items:center;
+            gap:12px;
+            padding:12px;
+            background:#fef2f2;
+            border:1px solid #fee2e2;
+            border-radius:10px;
+          ">
+            <div style="
+              width:42px;
+              height:42px;
+              display:flex;
+              align-items:center;
+              justify-content:center;
+              border-radius:50%;
+              background:#fee2e2;
+              color:#dc2626;
+              font-weight:700;
+            ">
               ${user.name.charAt(0).toUpperCase()}
             </div>
+
             <div>
-              <p class="font-medium text-gray-900 dark:text-white">${user.name}</p>
-              <p class="text-sm text-gray-500 dark:text-gray-400">${user.email}</p>
+              <p style="
+                margin:0;
+                font-weight:600;
+                color:#1e293b;
+              ">
+                ${user.name}
+              </p>
+
+              <p style="
+                margin:3px 0 0;
+                font-size:13px;
+                color:#64748b;
+              ">
+                ${user.email}
+              </p>
             </div>
           </div>
-          <p class="text-sm text-red-600 dark:text-red-400 mt-3 font-medium">
-            ⚠️ This action cannot be undone!
+
+          <p style="
+            margin-top:14px;
+            font-size:13px;
+            color:#dc2626;
+            font-weight:600;
+          ">
+            This action cannot be undone.
           </p>
-          <p class="text-sm text-gray-500 dark:text-gray-400">
-            All customer data including bookings and requests will be permanently deleted.
+
+          <p style="
+            font-size:13px;
+            color:#64748b;
+          ">
+            Customer data, bookings and requests may be permanently deleted.
           </p>
         </div>
       `,
+
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#ef4444",
+      confirmButtonColor: "#dc2626",
       cancelButtonColor: "#64748b",
-      confirmButtonText: "Yes, delete customer",
+      confirmButtonText: "Yes, Delete",
       cancelButtonText: "Cancel",
       reverseButtons: true,
     });
 
-    if (result.isConfirmed) {
-      try {
-        // Delete user via API
-        await api.delete(`/admin/users/${user.id}`);
-        
-        // Update local state
-        setUsers(users.filter(u => u.id !== user.id));
+    if (!result.isConfirmed) return;
 
-        await Swal.fire({
-          icon: 'success',
-          title: 'Deleted!',
-          text: 'Customer has been deleted successfully.',
-          timer: 2000,
-          showConfirmButton: false,
-        });
-      } catch (error) {
-        console.error("Error deleting user:", error);
-        Swal.fire({
-          icon: 'error',
-          title: 'Error!',
-          text: error.response?.data?.message || 'Failed to delete customer. Please try again.',
-          confirmButtonColor: '#3b82f6',
-        });
-      }
+    try {
+      await api.delete(
+        `/admin/users/${user.id}`
+      );
+
+      setUsers((prevUsers) =>
+        prevUsers.filter(
+          (u) => u.id !== user.id
+        )
+      );
+
+      await Swal.fire({
+        icon: "success",
+        title: "Customer Deleted",
+        text: "Customer has been deleted successfully.",
+        timer: 1800,
+        showConfirmButton: false,
+      });
+    } catch (error) {
+      console.error(
+        "Error deleting user:",
+        error
+      );
+
+      Swal.fire({
+        icon: "error",
+        title: "Delete Failed",
+        text:
+          error.response?.data?.message ||
+          "Failed to delete customer.",
+        confirmButtonColor: "#2563eb",
+      });
     }
   };
 
-  // View user details
+  // View customer
   const viewUser = (user) => {
     Swal.fire({
-      title: 'Customer Details',
+      title: "Customer Details",
+
       html: `
-        <div class="text-left">
-          <div class="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg mb-4">
-            <div class="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-2xl font-semibold text-blue-600 dark:text-blue-400">
+        <div style="text-align:left">
+
+          <div style="
+            display:flex;
+            align-items:center;
+            gap:14px;
+            padding:16px;
+            background:#eff6ff;
+            border:1px solid #dbeafe;
+            border-radius:12px;
+            margin-bottom:16px;
+          ">
+
+            <div style="
+              width:58px;
+              height:58px;
+              display:flex;
+              align-items:center;
+              justify-content:center;
+              border-radius:50%;
+              background:#dbeafe;
+              color:#2563eb;
+              font-size:22px;
+              font-weight:700;
+            ">
               ${user.name.charAt(0).toUpperCase()}
             </div>
+
             <div>
-              <h3 class="text-lg font-bold text-gray-900 dark:text-white">${user.name}</h3>
-              <p class="text-sm text-gray-500 dark:text-gray-400">${user.email}</p>
-              <p class="text-sm text-gray-500 dark:text-gray-400">${user.phone || 'N/A'}</p>
+              <h3 style="
+                margin:0;
+                font-size:18px;
+                font-weight:700;
+                color:#0f172a;
+              ">
+                ${user.name}
+              </h3>
+
+              <p style="
+                margin:3px 0;
+                font-size:13px;
+                color:#64748b;
+              ">
+                ${user.email}
+              </p>
+
+              <p style="
+                margin:0;
+                font-size:13px;
+                color:#64748b;
+              ">
+                ${user.phone || "N/A"}
+              </p>
             </div>
           </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <p class="text-xs text-gray-500 dark:text-gray-400">ID</p>
-              <p class="font-medium text-gray-900 dark:text-white">#${user.id}</p>
+
+          <div style="
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:10px;
+          ">
+
+            <div style="
+              padding:12px;
+              background:#f8fafc;
+              border:1px solid #e2e8f0;
+              border-radius:10px;
+            ">
+              <p style="margin:0;font-size:11px;color:#94a3b8">
+                ID
+              </p>
+              <p style="margin:4px 0 0;font-weight:600;color:#1e293b">
+                #${user.id}
+              </p>
             </div>
-            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <p class="text-xs text-gray-500 dark:text-gray-400">Status</p>
-              <p class="font-medium text-gray-900 dark:text-white capitalize">${user.status}</p>
+
+            <div style="
+              padding:12px;
+              background:#f8fafc;
+              border:1px solid #e2e8f0;
+              border-radius:10px;
+            ">
+              <p style="margin:0;font-size:11px;color:#94a3b8">
+                Status
+              </p>
+              <p style="margin:4px 0 0;font-weight:600;color:#1e293b">
+                ${user.status}
+              </p>
             </div>
-            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <p class="text-xs text-gray-500 dark:text-gray-400">Role</p>
-              <p class="font-medium text-gray-900 dark:text-white capitalize">${user.role}</p>
+
+            <div style="
+              padding:12px;
+              background:#f8fafc;
+              border:1px solid #e2e8f0;
+              border-radius:10px;
+            ">
+              <p style="margin:0;font-size:11px;color:#94a3b8">
+                Role
+              </p>
+              <p style="margin:4px 0 0;font-weight:600;color:#1e293b">
+                ${user.role}
+              </p>
             </div>
-            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <p class="text-xs text-gray-500 dark:text-gray-400">Joined</p>
-              <p class="font-medium text-gray-900 dark:text-white">${user.joined}</p>
+
+            <div style="
+              padding:12px;
+              background:#f8fafc;
+              border:1px solid #e2e8f0;
+              border-radius:10px;
+            ">
+              <p style="margin:0;font-size:11px;color:#94a3b8">
+                Joined
+              </p>
+              <p style="margin:4px 0 0;font-weight:600;color:#1e293b">
+                ${user.joined}
+              </p>
             </div>
-            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <p class="text-xs text-gray-500 dark:text-gray-400">Bookings</p>
-              <p class="font-medium text-gray-900 dark:text-white">${user.bookings}</p>
+
+            <div style="
+              padding:12px;
+              background:#f8fafc;
+              border:1px solid #e2e8f0;
+              border-radius:10px;
+            ">
+              <p style="margin:0;font-size:11px;color:#94a3b8">
+                Bookings
+              </p>
+              <p style="margin:4px 0 0;font-weight:600;color:#1e293b">
+                ${user.bookings}
+              </p>
             </div>
-            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <p class="text-xs text-gray-500 dark:text-gray-400">Address</p>
-              <p class="font-medium text-gray-900 dark:text-white">${user.address || 'N/A'}</p>
+
+            <div style="
+              padding:12px;
+              background:#f8fafc;
+              border:1px solid #e2e8f0;
+              border-radius:10px;
+            ">
+              <p style="margin:0;font-size:11px;color:#94a3b8">
+                Address
+              </p>
+              <p style="
+                margin:4px 0 0;
+                font-weight:600;
+                color:#1e293b;
+                word-break:break-word;
+              ">
+                ${user.address || "N/A"}
+              </p>
             </div>
+
           </div>
         </div>
       `,
-      confirmButtonColor: '#3b82f6',
-      confirmButtonText: 'Close',
-      width: '600px',
+
+      confirmButtonColor: "#2563eb",
+      confirmButtonText: "Close",
+      width: "620px",
     });
   };
 
-  // Close column menu when clicking outside
+  // Close column menu
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showColumnMenu && !event.target.closest('.column-menu-container')) {
+      if (
+        showColumnMenu &&
+        !event.target.closest(
+          ".column-menu-container"
+        )
+      ) {
         setShowColumnMenu(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+
+    document.addEventListener(
+      "mousedown",
+      handleClickOutside
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
+    };
   }, [showColumnMenu]);
 
-  // Get sort icon
+  // Sort icon
   const getSortIcon = (key) => {
     if (sortConfig.key !== key) {
-      return <ArrowUpDown size={12} className="ml-1 text-slate-400" />;
+      return (
+        <ArrowUpDown
+          size={12}
+          className="ml-1 text-slate-400"
+        />
+      );
     }
-    return sortConfig.direction === 'ascending' 
-      ? <ArrowUp size={12} className="ml-1 text-blue-600" />
-      : <ArrowDown size={12} className="ml-1 text-blue-600" />;
+
+    return sortConfig.direction === "ascending" ? (
+      <ArrowUp
+        size={12}
+        className="ml-1 text-blue-600"
+      />
+    ) : (
+      <ArrowDown
+        size={12}
+        className="ml-1 text-blue-600"
+      />
+    );
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-50/70 px-4 py-5 sm:px-6 sm:py-7 lg:px-8 dark:bg-gray-900/70">
+    <div className="min-h-[calc(100vh-4rem)] bg-slate-50 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        {/* Header */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              Customers
-            </h1>
-            <p className="text-sm text-slate-500 dark:text-gray-400">
-              Manage all registered customers on the platform
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Column Toggle Button */}
-            <div className="relative column-menu-container">
-      
 
-           
+        {/* Header */}
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm shadow-blue-200">
+                <Users size={20} />
+              </div>
+
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                  Customers
+                </h1>
+
+                <p className="text-sm text-slate-500">
+                  Manage all registered customers
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+
+            {/* Column Menu */}
+            <div className="relative column-menu-container">
+
+              <button
+                type="button"
+                onClick={() =>
+                  setShowColumnMenu(
+                    (prev) => !prev
+                  )
+                }
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+              >
+                <SlidersHorizontal size={16} />
+                <span className="hidden sm:inline">
+                  Columns
+                </span>
+              </button>
+
+              {showColumnMenu && (
+                <div className="absolute right-0 top-full z-20 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+
+                  <p className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Table Columns
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowIdColumn(
+                        (prev) => !prev
+                      )
+                    }
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-600"
+                  >
+                    <span>ID Column</span>
+
+                    {showIdColumn ? (
+                      <Eye
+                        size={15}
+                        className="text-blue-600"
+                      />
+                    ) : (
+                      <EyeOff
+                        size={15}
+                        className="text-slate-400"
+                      />
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
 
-            <button className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 active:scale-95 shadow-lg shadow-blue-600/25 dark:shadow-blue-600/40">
+            {/* Add Customer */}
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-200 transition hover:bg-blue-700 active:scale-[0.98]"
+            >
               <Plus size={18} />
-              Add Customer
+              <span>Add Customer</span>
             </button>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <p className="text-sm text-slate-500 dark:text-gray-400">Total Customers</p>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white">{users.length}</p>
+        {/* Stats */}
+        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+
+          {/* Total */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-blue-200 hover:shadow-md">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-slate-500">
+                  Total Customers
+                </p>
+
+                <p className="mt-1 text-2xl font-bold text-slate-900">
+                  {loading ? "..." : totalItems}
+                </p>
+              </div>
+
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
+                <Users
+                  size={19}
+                  className="text-blue-600"
+                />
+              </div>
+            </div>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <p className="text-sm text-slate-500 dark:text-gray-400">Active</p>
-            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-              {users.filter(u => u.status === 'active').length}
-            </p>
+
+          {/* Active */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-emerald-200 hover:shadow-md">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-slate-500">
+                  Active
+                </p>
+
+                <p className="mt-1 text-2xl font-bold text-emerald-600">
+                  {users.filter(
+                    (u) => u.status === "active"
+                  ).length}
+                </p>
+              </div>
+
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
+                <CheckCircle
+                  size={19}
+                  className="text-emerald-600"
+                />
+              </div>
+            </div>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <p className="text-sm text-slate-500 dark:text-gray-400">Inactive</p>
-            <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-              {users.filter(u => u.status === 'inactive').length}
-            </p>
+
+          {/* Inactive */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300 hover:shadow-md">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-slate-500">
+                  Inactive
+                </p>
+
+                <p className="mt-1 text-2xl font-bold text-slate-600">
+                  {users.filter(
+                    (u) => u.status === "inactive"
+                  ).length}
+                </p>
+              </div>
+
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
+                <Clock
+                  size={19}
+                  className="text-slate-500"
+                />
+              </div>
+            </div>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <p className="text-sm text-slate-500 dark:text-gray-400">Suspended</p>
-            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-              {users.filter(u => u.status === 'suspended').length}
-            </p>
+
+          {/* Suspended */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-red-200 hover:shadow-md">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-slate-500">
+                  Suspended
+                </p>
+
+                <p className="mt-1 text-2xl font-bold text-red-600">
+                  {users.filter(
+                    (u) => u.status === "suspended"
+                  ).length}
+                </p>
+              </div>
+
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
+                <XCircle
+                  size={19}
+                  className="text-red-600"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="mb-6 flex flex-wrap items-center gap-4">
-          <div className="flex flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <Search size={18} className="text-slate-400 dark:text-gray-500" />
+        <div className="mb-5 flex flex-col gap-3 lg:flex-row">
+
+          {/* Search */}
+          <div className="flex flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 shadow-sm transition focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
+            <Search
+              size={18}
+              className="shrink-0 text-slate-400"
+            />
+
             <input
               type="text"
               placeholder="Search by name, email, phone or ID..."
@@ -473,263 +942,481 @@ const AdminUsers = () => {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="flex-1 bg-transparent text-sm outline-none text-slate-700 placeholder:text-slate-400 dark:text-gray-300 dark:placeholder:text-gray-500"
+              className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
             />
           </div>
 
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <Filter size={18} className="text-slate-400 dark:text-gray-500" />
+          {/* Status */}
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 shadow-sm">
+            <Filter
+              size={17}
+              className="text-slate-400"
+            />
+
             <select
               value={filterStatus}
               onChange={(e) => {
                 setFilterStatus(e.target.value);
                 setCurrentPage(1);
               }}
-              className="bg-transparent text-sm outline-none text-slate-700 dark:text-gray-300"
+              className="bg-transparent text-sm font-medium text-slate-600 outline-none"
             >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="suspended">Suspended</option>
+              <option value="all">
+                All Status
+              </option>
+
+              <option value="active">
+                Active
+              </option>
+
+              <option value="inactive">
+                Inactive
+              </option>
+
+              <option value="suspended">
+                Suspended
+              </option>
             </select>
           </div>
 
+          {/* Clear */}
           <button
+            type="button"
             onClick={() => {
               setSearchTerm("");
               setFilterStatus("all");
               setCurrentPage(1);
             }}
-            className="rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
           >
             Clear Filters
           </button>
         </div>
 
-        {/* Users Table */}
+        {/* Table */}
         {loading ? (
-          <div className="flex items-center justify-center py-20">
+          <div className="rounded-2xl border border-slate-200 bg-white py-20 shadow-sm">
             <div className="flex flex-col items-center gap-3">
-              <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-              <p className="text-sm text-slate-500 dark:text-gray-400">Loading customers...</p>
+              <div className="h-11 w-11 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" />
+
+              <p className="text-sm font-medium text-slate-500">
+                Loading customers...
+              </p>
             </div>
           </div>
         ) : (
-          <>
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50/50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-400">
-                      {showIdColumn && (
-                        <th 
-                          className="px-5 py-3 w-16 cursor-pointer hover:text-blue-600 transition-colors"
-                          onClick={() => handleSort('id')}
-                        >
-                          <div className="flex items-center">
-                            ID
-                            {getSortIcon('id')}
-                          </div>
-                        </th>
-                      )}
-                      <th 
-                        className="px-5 py-3 cursor-pointer hover:text-blue-600 transition-colors"
-                        onClick={() => handleSort('name')}
-                      >
-                        <div className="flex items-center">
-                          Customer
-                          {getSortIcon('name')}
-                        </div>
-                      </th>
-                      <th 
-                        className="px-5 py-3 cursor-pointer hover:text-blue-600 transition-colors"
-                        onClick={() => handleSort('email')}
-                      >
-                        <div className="flex items-center">
-                          Email
-                          {getSortIcon('email')}
-                        </div>
-                      </th>
-                      <th className="px-5 py-3">Phone</th>
-                      <th className="px-5 py-3">Status</th>
-                      <th 
-                        className="px-5 py-3 cursor-pointer hover:text-blue-600 transition-colors"
-                        onClick={() => handleSort('joined')}
-                      >
-                        <div className="flex items-center">
-                          Joined
-                          {getSortIcon('joined')}
-                        </div>
-                      </th>
-                      <th 
-                        className="px-5 py-3 text-center cursor-pointer hover:text-blue-600 transition-colors"
-                        onClick={() => handleSort('bookings')}
-                      >
-                        <div className="flex items-center justify-center">
-                          Bookings
-                          {getSortIcon('bookings')}
-                        </div>
-                      </th>
-                      <th className="px-5 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentUsers.length > 0 ? (
-                      currentUsers.map((user) => {
-                        const statusStyle = getStatusBadge(user.status);
-                        return (
-                          <tr
-                            key={user.id}
-                            className="border-b border-slate-100 transition hover:bg-slate-50/50 last:border-0 dark:border-gray-700 dark:hover:bg-gray-700/50"
-                          >
-                            {showIdColumn && (
-                              <td className="px-5 py-3.5 text-sm font-medium text-slate-500 dark:text-gray-400">
-                                {user.id}
-                              </td>
-                            )}
-                            <td className="px-5 py-3.5">
-                              <div className="flex items-center gap-3">
-                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-                                  {user.name.charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                  <p className="text-sm font-medium text-slate-800 dark:text-white">
-                                    {user.name}
-                                  </p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-5 py-3.5 text-sm text-slate-600 dark:text-gray-300">
-                              {user.email}
-                            </td>
-                            <td className="px-5 py-3.5 text-sm text-slate-600 dark:text-gray-300">
-                              {user.phone}
-                            </td>
-                            <td className="px-5 py-3.5">
-                              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}>
-                                {statusStyle.icon}
-                                {statusStyle.label}
-                              </span>
-                            </td>
-                            <td className="px-5 py-3.5 text-sm text-slate-500 dark:text-gray-400">
-                              {user.joined}
-                            </td>
-                            <td className="px-5 py-3.5 text-center text-sm font-semibold text-slate-700 dark:text-gray-300">
-                              {user.bookings}
-                            </td>
-                            <td className="px-5 py-3.5 text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                <button
-                                  onClick={() => viewUser(user)}
-                                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                                  title="View Details"
-                                >
-                                  <Eye size={16} />
-                                </button>
-                                <button
-                                  onClick={() => toggleUserStatus(user)}
-                                  className={`rounded-lg p-1.5 transition ${
-                                    user.status === 'active'
-                                      ? 'text-amber-400 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/30 dark:hover:text-amber-400'
-                                      : 'text-emerald-400 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-400'
-                                  }`}
-                                  title={user.status === 'active' ? 'Deactivate Customer' : 'Activate Customer'}
-                                >
-                                  {user.status === 'active' ? <UserX size={16} /> : <UserCheck size={16} />}
-                                </button>
-                                <button
-                                  onClick={() => deleteUser(user)}
-                                  className="rounded-lg p-1.5 text-red-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
-                                  title="Delete Customer"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    ) : (
-                      <tr>
-                        <td colSpan={showIdColumn ? 8 : 7} className="py-12 text-center">
-                          <div className="flex flex-col items-center gap-3">
-                            <Users size={40} className="text-slate-300 dark:text-gray-600" />
-                            <p className="text-sm font-medium text-slate-500 dark:text-gray-400">
-                              No customers found
-                            </p>
-                            <p className="text-xs text-slate-400 dark:text-gray-500">
-                              Try adjusting your search or filter settings
-                            </p>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-              {/* Pagination */}
-              {sortedUsers.length > 0 && (
-                <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-gray-700">
-                  <p className="text-xs text-slate-500 dark:text-gray-400">
-                    Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, sortedUsers.length)} of {sortedUsers.length} customers
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => paginate(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="rounded-lg px-3 py-1 text-sm text-slate-600 transition hover:bg-slate-100 disabled:opacity-50 dark:text-gray-400 dark:hover:bg-gray-700"
-                    >
-                      <ChevronLeft size={16} />
-                    </button>
-                    {Array.from({ length: Math.min(5, totalPagesLocal) }, (_, i) => {
-                      let pageNum;
-                      if (totalPagesLocal <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPagesLocal - 2) {
-                        pageNum = totalPagesLocal - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[950px]">
+
+                {/* Table Header */}
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/80 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500">
+
+                    {showIdColumn && (
+                      <th
+                        className="w-16 cursor-pointer px-5 py-3.5 transition hover:text-blue-600"
+                        onClick={() =>
+                          handleSort("id")
+                        }
+                      >
+                        <div className="flex items-center">
+                          ID
+                          {getSortIcon("id")}
+                        </div>
+                      </th>
+                    )}
+
+                    <th
+                      className="cursor-pointer px-5 py-3.5 transition hover:text-blue-600"
+                      onClick={() =>
+                        handleSort("name")
                       }
+                    >
+                      <div className="flex items-center">
+                        Customer
+                        {getSortIcon("name")}
+                      </div>
+                    </th>
+
+                    <th
+                      className="cursor-pointer px-5 py-3.5 transition hover:text-blue-600"
+                      onClick={() =>
+                        handleSort("email")
+                      }
+                    >
+                      <div className="flex items-center">
+                        Email
+                        {getSortIcon("email")}
+                      </div>
+                    </th>
+
+                    <th className="px-5 py-3.5">
+                      Phone
+                    </th>
+
+                    <th className="px-5 py-3.5">
+                      Status
+                    </th>
+
+                    <th
+                      className="cursor-pointer px-5 py-3.5 transition hover:text-blue-600"
+                      onClick={() =>
+                        handleSort("joined")
+                      }
+                    >
+                      <div className="flex items-center">
+                        Joined
+                        {getSortIcon("joined")}
+                      </div>
+                    </th>
+
+                    <th
+                      className="cursor-pointer px-5 py-3.5 text-center transition hover:text-blue-600"
+                      onClick={() =>
+                        handleSort("bookings")
+                      }
+                    >
+                      <div className="flex items-center justify-center">
+                        Bookings
+                        {getSortIcon("bookings")}
+                      </div>
+                    </th>
+
+                    <th className="px-5 py-3.5 text-right">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+
+                {/* Body */}
+                <tbody>
+                  {currentUsers.length > 0 ? (
+                    currentUsers.map((user) => {
+                      const statusStyle =
+                        getStatusBadge(
+                          user.status
+                        );
+
+                      return (
+                        <tr
+                          key={user.id}
+                          className="border-b border-slate-100 transition-colors last:border-0 hover:bg-blue-50/30"
+                        >
+
+                          {/* ID */}
+                          {showIdColumn && (
+                            <td className="px-5 py-3.5 text-sm font-semibold text-slate-500">
+                              #{user.id}
+                            </td>
+                          )}
+
+                          {/* Customer */}
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center gap-3">
+
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 text-sm font-bold text-blue-600">
+                                {user.profile_photo ? (
+                                  <img
+                                    src={
+                                      user.profile_photo
+                                    }
+                                    alt={user.name}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  user.name
+                                    .charAt(0)
+                                    .toUpperCase()
+                                )}
+                              </div>
+
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-slate-800">
+                                  {user.name}
+                                </p>
+
+                                <p className="text-[11px] text-slate-400">
+                                  Customer
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Email */}
+                          <td className="px-5 py-3.5 text-sm text-slate-600">
+                            {user.email}
+                          </td>
+
+                          {/* Phone */}
+                          <td className="px-5 py-3.5 text-sm text-slate-600">
+                            {user.phone}
+                          </td>
+
+                          {/* Status */}
+                          <td className="px-5 py-3.5">
+                            <span
+                              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusStyle.bg} ${statusStyle.text}`}
+                            >
+                              {statusStyle.icon}
+                              {statusStyle.label}
+                            </span>
+                          </td>
+
+                          {/* Joined */}
+                          <td className="px-5 py-3.5 text-sm text-slate-500">
+                            {user.joined}
+                          </td>
+
+                          {/* Bookings */}
+                          <td className="px-5 py-3.5 text-center">
+                            <span className="inline-flex min-w-8 items-center justify-center rounded-lg bg-slate-50 px-2 py-1 text-sm font-semibold text-slate-700">
+                              {user.bookings}
+                            </span>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center justify-end gap-1">
+
+                              {/* View */}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  viewUser(user)
+                                }
+                                className="rounded-lg p-2 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600"
+                                title="View Details"
+                              >
+                                <Eye size={16} />
+                              </button>
+
+                              {/* Toggle */}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  toggleUserStatus(
+                                    user
+                                  )
+                                }
+                                className={`rounded-lg p-2 transition ${
+                                  user.status ===
+                                  "active"
+                                    ? "text-amber-500 hover:bg-amber-50 hover:text-amber-600"
+                                    : "text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600"
+                                }`}
+                                title={
+                                  user.status ===
+                                  "active"
+                                    ? "Deactivate Customer"
+                                    : "Activate Customer"
+                                }
+                              >
+                                {user.status ===
+                                "active" ? (
+                                  <UserX
+                                    size={16}
+                                  />
+                                ) : (
+                                  <UserCheck
+                                    size={16}
+                                  />
+                                )}
+                              </button>
+
+                              {/* Delete */}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  deleteUser(user)
+                                }
+                                className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600"
+                                title="Delete Customer"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={
+                          showIdColumn
+                            ? 8
+                            : 7
+                        }
+                        className="py-16 text-center"
+                      >
+                        <div className="flex flex-col items-center">
+
+                          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50">
+                            <Users
+                              size={25}
+                              className="text-slate-300"
+                            />
+                          </div>
+
+                          <p className="mt-4 text-sm font-semibold text-slate-600">
+                            No customers found
+                          </p>
+
+                          <p className="mt-1 text-xs text-slate-400">
+                            Try adjusting your search
+                            or filter settings.
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {sortedUsers.length > 0 && (
+              <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+
+                <p className="text-xs text-slate-500">
+                  Showing{" "}
+                  <span className="font-semibold text-slate-700">
+                    {indexOfFirstItem + 1}
+                  </span>{" "}
+                  to{" "}
+                  <span className="font-semibold text-slate-700">
+                    {Math.min(
+                      indexOfLastItem,
+                      sortedUsers.length
+                    )}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-semibold text-slate-700">
+                    {sortedUsers.length}
+                  </span>{" "}
+                  customers
+                </p>
+
+                <div className="flex items-center gap-1">
+
+                  {/* Previous */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      paginate(
+                        currentPage - 1
+                      )
+                    }
+                    disabled={
+                      currentPage === 1
+                    }
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+
+                  {/* Pages */}
+                  {Array.from(
+                    {
+                      length: Math.min(
+                        5,
+                        totalPagesLocal
+                      ),
+                    },
+                    (_, i) => {
+                      let pageNum;
+
+                      if (
+                        totalPagesLocal <= 5
+                      ) {
+                        pageNum = i + 1;
+                      } else if (
+                        currentPage <= 3
+                      ) {
+                        pageNum = i + 1;
+                      } else if (
+                        currentPage >=
+                        totalPagesLocal - 2
+                      ) {
+                        pageNum =
+                          totalPagesLocal -
+                          4 +
+                          i;
+                      } else {
+                        pageNum =
+                          currentPage -
+                          2 +
+                          i;
+                      }
+
                       return (
                         <button
+                          type="button"
                           key={pageNum}
-                          onClick={() => paginate(pageNum)}
-                          className={`rounded-lg px-3 py-1 text-sm transition ${
-                            currentPage === pageNum
-                              ? "bg-blue-600 text-white"
-                              : "text-slate-600 hover:bg-slate-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                          onClick={() =>
+                            paginate(
+                              pageNum
+                            )
+                          }
+                          className={`flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-xs font-medium transition ${
+                            currentPage ===
+                            pageNum
+                              ? "bg-blue-600 text-white shadow-sm"
+                              : "text-slate-600 hover:bg-blue-50 hover:text-blue-600"
                           }`}
                         >
                           {pageNum}
                         </button>
                       );
-                    })}
-                    {totalPagesLocal > 5 && currentPage < totalPagesLocal - 2 && (
+                    }
+                  )}
+
+                  {/* Last Page */}
+                  {totalPagesLocal > 5 &&
+                    currentPage <
+                      totalPagesLocal -
+                        2 && (
                       <>
-                        <span className="text-slate-400 dark:text-gray-500">...</span>
+                        <span className="px-1 text-slate-400">
+                          ...
+                        </span>
+
                         <button
-                          onClick={() => paginate(totalPagesLocal)}
-                          className="rounded-lg px-3 py-1 text-sm text-slate-600 transition hover:bg-slate-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                          type="button"
+                          onClick={() =>
+                            paginate(
+                              totalPagesLocal
+                            )
+                          }
+                          className="flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-xs font-medium text-slate-600 transition hover:bg-blue-50 hover:text-blue-600"
                         >
                           {totalPagesLocal}
                         </button>
                       </>
                     )}
-                    <button
-                      onClick={() => paginate(currentPage + 1)}
-                      disabled={currentPage === totalPagesLocal}
-                      className="rounded-lg px-3 py-1 text-sm text-slate-600 transition hover:bg-slate-100 disabled:opacity-50 dark:text-gray-400 dark:hover:bg-gray-700"
-                    >
-                      <ChevronRight size={16} />
-                    </button>
-                  </div>
+
+                  {/* Next */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      paginate(
+                        currentPage + 1
+                      )
+                    }
+                    disabled={
+                      currentPage ===
+                      totalPagesLocal
+                    }
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
                 </div>
-              )}
-            </div>
-          </>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

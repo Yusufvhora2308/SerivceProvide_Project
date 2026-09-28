@@ -1,5 +1,3 @@
-// PATH: src/components/Admin/AdminLayout.jsx
-
 import React, { useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar";
@@ -30,20 +28,20 @@ const AdminLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen bg-slate-50 text-slate-800 antialiased">
       <AdminSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         onLogout={handleLogout}
       />
 
-      <div className="lg:pl-72">
+      <div className="flex min-h-screen flex-col lg:pl-64">
         <AdminNavbar
           onMenuClick={() => setSidebarOpen(true)}
           onLogout={handleLogout}
         />
 
-        <main className="min-h-[calc(100vh-5rem)]">
+        <main className="flex-1">
           <Outlet />
         </main>
       </div>

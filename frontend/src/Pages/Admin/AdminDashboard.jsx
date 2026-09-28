@@ -1,3 +1,4 @@
+
 // PATH: src/Pages/Admin/AdminDashboard.jsx
 
 import React, { useEffect, useState } from "react";
@@ -8,13 +9,14 @@ import {
   ClipboardList,
   CalendarCheck,
   CreditCard,
+  BarChart3,
   ArrowUpRight,
   ArrowRight,
-  TrendingUp,
   CheckCircle2,
   Clock3,
   AlertCircle,
   DollarSign,
+  Activity,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "../../api/axios";
@@ -26,26 +28,40 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = JSON.parse(
-      localStorage.getItem("user") || "{}"
-    );
-    setUser(storedUser);
+    try {
+      const storedUser = JSON.parse(
+        localStorage.getItem("user") || "{}"
+      );
+
+      setUser(storedUser);
+    } catch (error) {
+      console.error("User Load Error:", error);
+    }
+
     fetchDashboardData();
   }, []);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [servicesResponse, requestsResponse] = await Promise.allSettled([
-        api.get("/services"),
-        api.get("/service-requests"),
-      ]);
 
-      if (servicesResponse.status === "fulfilled" && servicesResponse.value?.data?.data) {
+      const [servicesResponse, requestsResponse] =
+        await Promise.allSettled([
+          api.get("/services"),
+          api.get("/service-requests"),
+        ]);
+
+      if (
+        servicesResponse.status === "fulfilled" &&
+        servicesResponse.value?.data?.data
+      ) {
         setServices(servicesResponse.value.data.data);
       }
 
-      if (requestsResponse.status === "fulfilled" && requestsResponse.value?.data?.data) {
+      if (
+        requestsResponse.status === "fulfilled" &&
+        requestsResponse.value?.data?.data
+      ) {
         setRequests(requestsResponse.value.data.data);
       }
     } catch (error) {
@@ -61,8 +77,8 @@ const AdminDashboard = () => {
       value: "1,247",
       change: "+12.5%",
       icon: Users,
-      bg: "bg-blue-50 dark:bg-blue-900/20",
-      iconColor: "text-blue-600 dark:text-blue-400",
+      iconBg: "bg-blue-50",
+      iconColor: "text-blue-600",
       link: "/admin/users",
     },
     {
@@ -70,114 +86,155 @@ const AdminDashboard = () => {
       value: "186",
       change: "+8.2%",
       icon: UserCog,
-      bg: "bg-purple-50 dark:bg-purple-900/20",
-      iconColor: "text-purple-600 dark:text-purple-400",
+      iconBg: "bg-indigo-50",
+      iconColor: "text-indigo-600",
       link: "/admin/providers",
     },
     {
       title: "Total Revenue",
-      value: "$24,850",
+      value: "₹24,850",
       change: "+18.4%",
       icon: DollarSign,
-      bg: "bg-emerald-50 dark:bg-emerald-900/20",
-      iconColor: "text-emerald-600 dark:text-emerald-400",
+      iconBg: "bg-emerald-50",
+      iconColor: "text-emerald-600",
       link: "/admin/payments",
     },
     {
       title: "Service Requests",
-      value: requests.length || "328",
+      value: requests.length || 328,
       change: "+4.6%",
       icon: ClipboardList,
-      bg: "bg-amber-50 dark:bg-amber-900/20",
-      iconColor: "text-amber-600 dark:text-amber-400",
+      iconBg: "bg-amber-50",
+      iconColor: "text-amber-600",
       link: "/admin/requests",
     },
   ];
 
   const quickActions = [
     {
-      title: "Manage Customers",
-      description: "View and manage registered customers",
+      title: "Customers",
+      description: "View and manage customers",
       icon: Users,
       link: "/admin/users",
-      bg: "bg-blue-50 dark:bg-blue-900/20",
-      color: "text-blue-600 dark:text-blue-400",
+      iconBg: "bg-blue-50",
+      iconColor: "text-blue-600",
     },
     {
-      title: "Manage Providers",
-      description: "Verify and manage service providers",
+      title: "Providers",
+      description: "Verify service providers",
       icon: UserCog,
       link: "/admin/providers",
-      bg: "bg-purple-50 dark:bg-purple-900/20",
-      color: "text-purple-600 dark:text-purple-400",
+      iconBg: "bg-indigo-50",
+      iconColor: "text-indigo-600",
     },
     {
-      title: "Manage Services",
-      description: "Add, edit and manage services",
+      title: "Services",
+      description: "Manage portal services",
       icon: Wrench,
       link: "/admin/services",
-      bg: "bg-orange-50 dark:bg-orange-900/20",
-      color: "text-orange-600 dark:text-orange-400",
+      iconBg: "bg-orange-50",
+      iconColor: "text-orange-600",
     },
     {
-      title: "Service Requests",
-      description: "Monitor customer service requests",
+      title: "Requests",
+      description: "Monitor service requests",
       icon: ClipboardList,
       link: "/admin/requests",
-      bg: "bg-amber-50 dark:bg-amber-900/20",
-      color: "text-amber-600 dark:text-amber-400",
+      iconBg: "bg-amber-50",
+      iconColor: "text-amber-600",
     },
     {
       title: "Bookings",
       description: "Manage confirmed bookings",
       icon: CalendarCheck,
       link: "/admin/bookings",
-      bg: "bg-cyan-50 dark:bg-cyan-900/20",
-      color: "text-cyan-600 dark:text-cyan-400",
+      iconBg: "bg-cyan-50",
+      iconColor: "text-cyan-600",
     },
     {
       title: "Reports",
-      description: "View business reports and analytics",
-      icon: CreditCard,
+      description: "View reports and analytics",
+      icon: BarChart3,
       link: "/admin/reports",
-      bg: "bg-pink-50 dark:bg-pink-900/20",
-      color: "text-pink-600 dark:text-pink-400",
+      iconBg: "bg-purple-50",
+      iconColor: "text-purple-600",
     },
   ];
 
   const recentRequests = requests.slice(0, 5);
 
-  return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-50/70 px-4 py-5 sm:px-6 sm:py-7 lg:px-8 dark:bg-gray-900/70">
-      <div className="mx-auto max-w-7xl">
-        {/* Welcome */}
-        <section className="mb-6">
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 p-6 text-white shadow-lg sm:p-8 dark:from-blue-800 dark:via-blue-700 dark:to-indigo-700">
-            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10" />
-            <div className="absolute -bottom-24 -left-16 h-52 w-52 rounded-full bg-white/10" />
-            <div className="absolute right-10 top-10 h-32 w-32 rounded-full bg-white/5" />
+  const getStatusClass = (status) => {
+    switch (status?.toLowerCase()) {
+      case "completed":
+      case "service_completed":
+        return "bg-emerald-50 text-emerald-700 border border-emerald-100";
 
-            <div className="relative z-10">
-              <p className="mb-1 text-sm font-medium text-blue-100">
-                ServiceHub Administration
-              </p>
-              <h1 className="text-2xl font-bold sm:text-3xl">
-                Good Afternoon, {user?.name || "Admin"} 👋
-              </h1>
-              <p className="mt-2 max-w-xl text-sm text-blue-100">
-                Manage customers, service providers, services and service requests from one place.
-              </p>
-              <div className="mt-5 flex flex-wrap gap-2">
-                <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium backdrop-blur">
-                  Service Management
-                </span>
-                <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium backdrop-blur">
-                  Provider Management
-                </span>
-                <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium backdrop-blur">
-                  Customer Management
-                </span>
+      case "cancelled":
+        return "bg-red-50 text-red-700 border border-red-100";
+
+      case "provider_assigned":
+      case "assigned":
+      case "provider_on_the_way":
+      case "on_way":
+        return "bg-blue-50 text-blue-700 border border-blue-100";
+
+      case "arrived":
+      case "service_started":
+      case "started":
+        return "bg-indigo-50 text-indigo-700 border border-indigo-100";
+
+      default:
+        return "bg-amber-50 text-amber-700 border border-amber-100";
+    }
+  };
+
+  const formatStatus = (status) => {
+    if (!status) return "Pending";
+
+    return status
+      .replaceAll("_", " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
+  return (
+    <div className="min-h-[calc(100vh-4rem)] bg-slate-50 px-4 py-5 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+
+        {/* Header */}
+        <section className="mb-6">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-6 text-white shadow-md sm:px-7">
+            
+            <div className="absolute -right-12 -top-16 h-44 w-44 rounded-full bg-white/10" />
+            <div className="absolute -bottom-20 right-24 h-40 w-40 rounded-full bg-white/5" />
+
+            <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/15">
+                    <Activity size={15} />
+                  </div>
+
+                  <span className="text-xs font-semibold uppercase tracking-wider text-blue-100">
+                    Admin Dashboard
+                  </span>
+                </div>
+
+                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                  Good Afternoon, {user?.name || "Admin"} 👋
+                </h1>
+
+                <p className="mt-1.5 max-w-xl text-sm text-blue-100">
+                  Manage your Quick Service Portal from one simple dashboard.
+                </p>
               </div>
+
+              <Link
+                to="/admin/requests"
+                className="inline-flex w-fit items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-semibold text-blue-600 shadow-sm transition hover:bg-blue-50"
+              >
+                <ClipboardList size={15} />
+                View Requests
+              </Link>
             </div>
           </div>
         </section>
@@ -191,45 +248,55 @@ const AdminDashboard = () => {
               <Link
                 key={stat.title}
                 to={stat.link}
-                className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+                className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-xs font-medium text-slate-500 sm:text-sm dark:text-gray-400">
+                    <p className="text-xs font-medium text-slate-500">
                       {stat.title}
                     </p>
-                    <p className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl dark:text-white">
+
+                    <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
                       {loading ? "..." : stat.value}
                     </p>
-                    <p className="mt-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                      ↑ {stat.change} this month
+
+                    <p className="mt-1.5 text-[11px] font-semibold text-emerald-600">
+                      ↑ {stat.change}
+                      <span className="ml-1 font-normal text-slate-400">
+                        this month
+                      </span>
                     </p>
                   </div>
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${stat.bg}`}>
-                    <Icon size={22} className={stat.iconColor} />
+
+                  <div
+                    className={`flex h-11 w-11 items-center justify-center rounded-xl ${stat.iconBg}`}
+                  >
+                    <Icon size={20} className={stat.iconColor} />
                   </div>
                 </div>
-                <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-slate-400 group-hover:text-blue-600 dark:text-gray-500 dark:group-hover:text-blue-400">
+
+                <div className="mt-4 flex items-center gap-1 text-[11px] font-semibold text-slate-400 transition-colors group-hover:text-blue-600">
                   View details
-                  <ArrowUpRight size={14} />
+                  <ArrowUpRight size={13} />
                 </div>
               </Link>
             );
           })}
         </section>
 
-        {/* Quick Actions */}
+        {/* Quick Management */}
         <section className="mb-7">
           <div className="mb-4">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-lg font-bold text-slate-900">
               Quick Management
             </h2>
-            <p className="text-xs text-slate-500 dark:text-gray-400">
-              Manage the main areas of your service portal
+
+            <p className="mt-0.5 text-xs text-slate-500">
+              Quickly access the main portal sections
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {quickActions.map((item) => {
               const Icon = item.icon;
 
@@ -237,134 +304,236 @@ const AdminDashboard = () => {
                 <Link
                   key={item.title}
                   to={item.link}
-                  className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+                  className="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
                 >
-                  <div className="flex gap-4">
-                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${item.bg}`}>
-                      <Icon size={21} className={item.color} />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
-                        {item.title}
-                      </h3>
-                      <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-gray-400">
-                        {item.description}
-                      </p>
-                      <div className={`mt-3 flex items-center gap-1 text-xs font-semibold ${item.color}`}>
-                        Manage
-                        <ArrowRight size={13} className="transition group-hover:translate-x-1" />
-                      </div>
-                    </div>
+                  <div
+                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${item.iconBg}`}
+                  >
+                    <Icon size={20} className={item.iconColor} />
                   </div>
+
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-semibold text-slate-800 transition-colors group-hover:text-blue-600">
+                      {item.title}
+                    </h3>
+
+                    <p className="mt-0.5 truncate text-xs text-slate-400">
+                      {item.description}
+                    </p>
+                  </div>
+
+                  <ArrowRight
+                    size={16}
+                    className="shrink-0 text-slate-300 transition-all group-hover:translate-x-1 group-hover:text-blue-500"
+                  />
                 </Link>
               );
             })}
           </div>
         </section>
 
-        {/* Bottom Grid */}
+        {/* Bottom Section */}
         <section className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+
           {/* Recent Requests */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2 dark:border-gray-700 dark:bg-gray-800">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                <h2 className="text-base font-bold text-slate-900">
                   Recent Service Requests
                 </h2>
-                <p className="text-xs text-slate-400 dark:text-gray-500">
-                  Latest customer requests
+
+                <p className="mt-0.5 text-xs text-slate-400">
+                  Latest requests from customers
                 </p>
               </div>
+
               <Link
                 to="/admin/requests"
-                className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700"
               >
                 View All
                 <ArrowRight size={14} />
               </Link>
             </div>
 
-            {recentRequests.length > 0 ? (
+            {loading ? (
               <div className="space-y-3">
+                {[1, 2, 3].map((item) => (
+                  <div
+                    key={item}
+                    className="h-16 animate-pulse rounded-xl bg-slate-100"
+                  />
+                ))}
+              </div>
+            ) : recentRequests.length > 0 ? (
+              <div className="space-y-2.5">
                 {recentRequests.map((request, index) => (
                   <div
                     key={request.id || index}
-                    className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-gray-700/50"
+                    className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3 transition hover:border-blue-100 hover:bg-white"
                   >
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
                       <ClipboardList size={16} />
                     </div>
+
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-slate-800 dark:text-white">
-                        {request.service?.name || request.service_name || "Service Request"}
+                      <p className="truncate text-sm font-semibold text-slate-800">
+                        {request.service?.name ||
+                          request.service_name ||
+                          "Service Request"}
                       </p>
-                      <p className="truncate text-xs text-slate-400 dark:text-gray-400">
-                        {request.status || "Pending"} request
+
+                      <p className="mt-0.5 truncate text-[11px] text-slate-400">
+                        Request #{request.id || "—"}
                       </p>
                     </div>
-                    <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold capitalize text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
-                      {request.status || "pending"}
+
+                    <span
+                      className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold ${getStatusClass(
+                        request.status
+                      )}`}
+                    >
+                      {formatStatus(request.status)}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="rounded-xl bg-slate-50 py-10 text-center dark:bg-gray-700/50">
-                <ClipboardList size={30} className="mx-auto text-slate-300 dark:text-gray-600" />
-                <p className="mt-2 text-sm font-semibold text-slate-500 dark:text-gray-400">
+              <div className="rounded-xl border border-dashed border-slate-200 py-10 text-center">
+                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-slate-50">
+                  <ClipboardList
+                    size={20}
+                    className="text-slate-300"
+                  />
+                </div>
+
+                <p className="mt-3 text-sm font-semibold text-slate-500">
                   No recent requests
+                </p>
+
+                <p className="mt-1 text-xs text-slate-400">
+                  New customer requests will appear here.
                 </p>
               </div>
             )}
           </div>
 
-          {/* System Status */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">
-              System Overview
-            </h2>
-            <p className="mt-1 text-xs text-slate-400 dark:text-gray-500">
-              Current portal status
-            </p>
+          {/* System Overview */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">
+                  System Overview
+                </h2>
 
-            <div className="mt-5 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-900/30">
-                  <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400" />
+                <p className="mt-0.5 text-xs text-slate-400">
+                  Current portal status
+                </p>
+              </div>
+
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50">
+                <Activity
+                  size={16}
+                  className="text-emerald-600"
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 divide-y divide-slate-100">
+
+              {/* Services */}
+              <div className="flex items-center gap-3 py-3 first:pt-0">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-50">
+                  <CheckCircle2
+                    size={17}
+                    className="text-emerald-600"
+                  />
                 </div>
+
                 <div>
-                  <p className="text-sm font-semibold text-slate-800 dark:text-white">Services</p>
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400">System operational</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    Services
+                  </p>
+
+                  <p className="text-[11px] text-emerald-600">
+                    System operational
+                  </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/30">
-                  <Clock3 size={18} className="text-blue-600 dark:text-blue-400" />
+              {/* Requests */}
+              <div className="flex items-center gap-3 py-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50">
+                  <Clock3
+                    size={17}
+                    className="text-blue-600"
+                  />
                 </div>
+
                 <div>
-                  <p className="text-sm font-semibold text-slate-800 dark:text-white">Requests</p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400">Monitoring active</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    Requests
+                  </p>
+
+                  <p className="text-[11px] text-blue-600">
+                    Monitoring active
+                  </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-900/30">
-                  <AlertCircle size={18} className="text-amber-600 dark:text-amber-400" />
+              {/* Providers */}
+              <div className="flex items-center gap-3 py-3 last:pb-0">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-50">
+                  <AlertCircle
+                    size={17}
+                    className="text-amber-600"
+                  />
                 </div>
+
                 <div>
-                  <p className="text-sm font-semibold text-slate-800 dark:text-white">Providers</p>
-                  <p className="text-xs text-amber-600 dark:text-amber-400">Verification required</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    Providers
+                  </p>
+
+                  <p className="text-[11px] text-amber-600">
+                    Verification required
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="mt-6 rounded-xl bg-blue-50 p-4 dark:bg-blue-900/30">
-              <p className="text-xs font-semibold text-blue-700 dark:text-blue-400">
+            {/* Service Count */}
+            <div className="mt-5 rounded-xl bg-slate-50 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-medium text-slate-400">
+                    Available Services
+                  </p>
+
+                  <p className="mt-1 text-xl font-bold text-slate-900">
+                    {loading ? "..." : services.length}
+                  </p>
+                </div>
+
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm">
+                  <Wrench
+                    size={17}
+                    className="text-blue-600"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Admin Tip */}
+            <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50/70 p-3.5">
+              <p className="text-[11px] font-semibold text-blue-700">
                 Admin Tip
               </p>
-              <p className="mt-1 text-xs leading-5 text-blue-600 dark:text-blue-300">
-                Verify service providers before allowing them to accept customer requests.
+
+              <p className="mt-1 text-[11px] leading-5 text-blue-600">
+                Verify service providers before allowing them to accept
+                customer requests.
               </p>
             </div>
           </div>
@@ -375,3 +544,4 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+

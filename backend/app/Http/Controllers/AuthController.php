@@ -328,7 +328,8 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Login successful',
             'data' => [
-                'user' => $this->formatUser($user),
+                 // IMPORTANT: Provider data with profile image
+            'user' => $this->formatProviderUser($user),
                 'token' => $token,
                 'token_type' => 'Bearer',
                 'verification_status' => $user->provider->verification_status,
@@ -361,4 +362,35 @@ class AuthController extends Controller
             'data' => $this->formatUser($request->user()),
         ]);
     }
+
+    //After logout image show this code
+
+    private function formatProviderUser(User $user): array
+{
+    $provider = $user->provider;
+
+    return [
+        'id' => $user->id,
+        'name' => $user->name,
+        'email' => $user->email,
+        'phone' => $user->phone,
+        'address' => $user->address,
+        'role' => $user->role,
+        'status' => $user->status,
+        'is_verified' => $user->is_verified,
+
+        // Provider data
+        'provider_id' => $provider?->id,
+
+        'profile_image' => $provider?->profile_image
+            ? asset('storage/' . $provider->profile_image)
+            : null,
+
+        'verification_status' => $provider?->verification_status,
+        'is_online' => $provider?->is_online,
+        'availability_status' => $provider?->availability_status,
+
+        'created_at' => $user->created_at?->toDateTimeString(),
+    ];
+}
 }

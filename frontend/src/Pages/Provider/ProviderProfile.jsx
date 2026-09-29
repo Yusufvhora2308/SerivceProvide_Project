@@ -17,6 +17,8 @@ import {
   Activity,
   BadgeCheck,
   Camera,
+  FileText,
+  ExternalLink,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import api from "../../api/axios";
@@ -259,6 +261,7 @@ const ProviderProfile = () => {
               address: updatedData.address,
 
               profile_image: response.data.data.profile_image,
+              profile_image: updatedData.profile_image,
             };
 
             localStorage.setItem("user", JSON.stringify(updatedUser));
@@ -281,20 +284,26 @@ const ProviderProfile = () => {
       console.error("Profile update error:", error);
 
       let message = error.message || "Unable to update your profile.";
+      error.response?.data?.message ||
+        error.message ||
+        "Unable to update your profile.";
 
       if (error.errors) {
         const firstError = Object.values(error.errors)[0];
+        if (error.response?.data?.errors) {
+          const firstError = Object.values(error.response.data.errors)[0];
 
-        if (firstError?.[0]) {
-          message = firstError[0];
+          if (firstError?.[0]) {
+            message = firstError[0];
+          }
         }
-      }
 
-      Swal.fire({
-        icon: "error",
-        title: "Update Failed",
-        text: message,
-      });
+        Swal.fire({
+          icon: "error",
+          title: "Update Failed",
+          text: message,
+        });
+      }
     } finally {
       setSaving(false);
     }
@@ -769,6 +778,167 @@ const ProviderProfile = () => {
                   </div>
                 </div>
               )}
+          </div>
+        </div>
+
+        {/* =======================================================
+            VERIFICATION DOCUMENTS
+        ======================================================= */}
+
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mt-6">
+          {/* HEADER */}
+
+          <div className="px-5 sm:px-8 py-6 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                <FileText size={20} className="text-blue-600" />
+              </div>
+
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">
+                  Verification Documents
+                </h2>
+
+                <p className="text-sm text-slate-500">
+                  Documents submitted for provider verification
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* DOCUMENT CONTENT */}
+
+          <div className="p-5 sm:p-8">
+            {profile.documents?.length > 0 ? (
+              <div className="space-y-4">
+                {profile.documents.map((document) => (
+                  <div
+                    key={document.id}
+                    className="border border-slate-200 rounded-2xl p-5 hover:shadow-sm transition"
+                  >
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+                      {/* DOCUMENT INFO */}
+
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                          <FileText size={22} className="text-blue-600" />
+                        </div>
+
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="font-bold text-slate-900 capitalize">
+                              {document.document_type?.replace(/_/g, " ")}
+                            </h3>
+
+                            {/* DOCUMENT STATUS */}
+
+                            {document.status === "approved" && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-50 border border-green-100 text-green-700 text-xs font-bold">
+                                <BadgeCheck size={13} />
+                                Approved
+                              </span>
+                            )}
+
+                            {document.status === "rejected" && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50 border border-red-100 text-red-700 text-xs font-bold">
+                                <AlertCircle size={13} />
+                                Rejected
+                              </span>
+                            )}
+
+                            {(!document.status ||
+                              document.status === "pending") && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-yellow-50 border border-yellow-100 text-yellow-700 text-xs font-bold">
+                                <Clock size={13} />
+                                Pending
+                              </span>
+                            )}
+                          </div>
+
+                          {/* DOCUMENT NUMBER */}
+
+                          {document.document_number && (
+                            <p className="text-sm text-slate-500 mt-2">
+                              <span className="font-medium text-slate-700">
+                                Document Number:
+                              </span>{" "}
+                              {document.document_number}
+                            </p>
+                          )}
+
+                          {/* VERIFIED DATE */}
+
+                          {document.status === "approved" &&
+                            document.verified_at && (
+                              <p className="text-xs text-green-600 mt-2 font-medium">
+                                Document verified successfully
+                              </p>
+                            )}
+
+                          {/* REJECTION REASON */}
+
+                          {document.status === "rejected" &&
+                            document.rejection_reason && (
+                              <div className="mt-3 p-3 rounded-xl bg-red-50 border border-red-100">
+                                <p className="text-xs font-bold text-red-700">
+                                  Rejection Reason
+                                </p>
+
+                                <p className="text-sm text-red-600 mt-1">
+                                  {document.rejection_reason}
+                                </p>
+                              </div>
+                            )}
+                        </div>
+                      </div>
+
+                      {/* VIEW DOCUMENT */}
+
+                      {document.document_file && (
+                        <a
+                          href={document.document_file}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition"
+                        >
+                          <ExternalLink size={16} />
+                          View Document
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* NO DOCUMENT */
+
+              <div className="text-center py-10">
+                <div className="w-16 h-16 mx-auto rounded-2xl bg-slate-100 flex items-center justify-center">
+                  <FileText size={30} className="text-slate-400" />
+                </div>
+
+                <h3 className="text-lg font-bold text-slate-900 mt-4">
+                  No Verification Document
+                </h3>
+
+                <p className="text-sm text-slate-500 mt-2">
+                  You have not uploaded any verification document yet.
+                </p>
+
+                {/* UPLOAD ONLY IF ACCOUNT IS NOT APPROVED */}
+
+                {profile.verification_status !== "approved" && (
+                  <button
+                    type="button"
+                    onClick={() => navigate("/provider/documents/edit")}
+                    className="inline-flex items-center gap-2 mt-5 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition"
+                  >
+                    <FileText size={17} />
+                    Upload Document
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

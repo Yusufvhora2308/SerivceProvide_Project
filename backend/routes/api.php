@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminProviderController;
+use App\Http\Controllers\Provider\ProviderBookingController;
 use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\Customer\ServiceRequestController;
@@ -327,6 +328,7 @@ Route::middleware('auth:sanctum')->prefix('provider')->group(function () {
         '/location',
         [ProviderController::class, 'updateLocation']
     );
+
     /*
     | Provider Online / Offline Status
     |--------------------------------------------------------------------------

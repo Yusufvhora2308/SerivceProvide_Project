@@ -1,6 +1,6 @@
 // PATH: src/components/Admin/AdminSidebar.jsx
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   LayoutDashboard,
   Users,
@@ -15,54 +15,14 @@ import {
   LogOut,
   X,
   ChevronRight,
-  Shield,
+  ShieldCheck,
   MessageSquare,
   Star,
   Bell,
 } from "lucide-react";
-import { NavLink, useNavigate } from "react-router-dom";
-import api from "../../api/axios";
+import { NavLink } from "react-router-dom";
 
 const AdminSidebar = ({ isOpen, onClose, onLogout }) => {
-  const navigate = useNavigate();
-  const [user, setUser] = useState({});
-
-  useEffect(() => {
-    const loadUser = () => {
-      try {
-        const storedUser = JSON.parse(
-          localStorage.getItem("user") || "{}"
-        );
-        setUser(storedUser);
-      } catch (error) {
-        console.error("User Load Error:", error);
-        setUser({});
-      }
-    };
-
-    loadUser();
-    window.addEventListener("userUpdated", loadUser);
-
-    return () => {
-      window.removeEventListener("userUpdated", loadUser);
-    };
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      await api.post("/logout");
-    } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      localStorage.removeItem("role");
-      localStorage.removeItem("refresh_token");
-      navigate("/admin/login");
-    }
-  };
-
-  // Main Menu
   const menuItems = [
     {
       name: "Dashboard",
@@ -75,9 +35,9 @@ const AdminSidebar = ({ isOpen, onClose, onLogout }) => {
       icon: Users,
     },
     {
-    name: "Service Providers",
-    path: "/admin/providers",
-    icon: UserCog,
+      name: "Service Providers",
+      path: "/admin/providers",
+      icon: UserCog,
     },
     {
       name: "Services",
@@ -96,7 +56,6 @@ const AdminSidebar = ({ isOpen, onClose, onLogout }) => {
     },
   ];
 
-  // Management Menu
   const managementItems = [
     {
       name: "Payments",
@@ -111,7 +70,7 @@ const AdminSidebar = ({ isOpen, onClose, onLogout }) => {
     {
       name: "Audit Log",
       path: "/admin/audit-log",
-      icon: Shield,
+      icon: ShieldCheck,
     },
     {
       name: "Feedback",
@@ -120,7 +79,6 @@ const AdminSidebar = ({ isOpen, onClose, onLogout }) => {
     },
   ];
 
-  // Communication Menu
   const communicationItems = [
     {
       name: "Messages",
@@ -134,7 +92,6 @@ const AdminSidebar = ({ isOpen, onClose, onLogout }) => {
     },
   ];
 
-  // Account Menu
   const accountItems = [
     {
       name: "My Profile",
@@ -148,8 +105,8 @@ const AdminSidebar = ({ isOpen, onClose, onLogout }) => {
     },
   ];
 
-  const renderMenu = (items) => {
-    return items.map((item) => {
+  const renderMenu = (items) =>
+    items.map((item) => {
       const Icon = item.icon;
 
       return (
@@ -158,30 +115,40 @@ const AdminSidebar = ({ isOpen, onClose, onLogout }) => {
           to={item.path}
           onClick={onClose}
           className={({ isActive }) =>
-            `group relative flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200 ${
+            `group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200 ${
               isActive
-                ? "bg-blue-600 text-white shadow-md shadow-blue-600/25 dark:bg-blue-700 dark:shadow-blue-700/30"
-                : "text-gray-600 hover:bg-blue-50/70 hover:text-blue-600 active:scale-[0.99] dark:text-gray-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400"
+                ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
+                : "text-slate-600 hover:bg-blue-50 hover:text-blue-600"
             }`
           }
         >
           {({ isActive }) => (
             <>
-              <div className="flex items-center gap-3">
-                <Icon
-                  size={19}
-                  strokeWidth={2}
-                  className={`shrink-0 transition-transform duration-200 ${
+              <div className="flex min-w-0 items-center gap-3">
+                <div
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
                     isActive
-                      ? "text-white"
-                      : "text-gray-400 group-hover:scale-110 group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                      ? "bg-white/15"
+                      : "bg-slate-50 group-hover:bg-blue-100"
                   }`}
-                />
-                <span className="tracking-tight">{item.name}</span>
+                >
+                  <Icon
+                    size={17}
+                    strokeWidth={isActive ? 2.3 : 2}
+                    className={
+                      isActive
+                        ? "text-white"
+                        : "text-slate-400 group-hover:text-blue-600"
+                    }
+                  />
+                </div>
+
+                <span className="truncate">{item.name}</span>
               </div>
+
               <ChevronRight
                 size={15}
-                className={`transition-all duration-200 ${
+                className={`shrink-0 transition-all duration-200 ${
                   isActive
                     ? "translate-x-0 text-white/80 opacity-100"
                     : "-translate-x-1 text-blue-500 opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
@@ -192,39 +159,40 @@ const AdminSidebar = ({ isOpen, onClose, onLogout }) => {
         </NavLink>
       );
     });
-  };
 
   return (
     <>
-      {/* Mobile Backdrop */}
+      {/* Mobile Overlay */}
       {isOpen && (
         <div
           onClick={onClose}
-          className="fixed inset-0 z-40 bg-gray-900/40 backdrop-blur-sm transition-opacity duration-200 animate-in fade-in lg:hidden dark:bg-black/60"
+          className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm lg:hidden"
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-screen w-72 flex-col border-r border-gray-200/80 bg-white/95 backdrop-blur-md transition-transform duration-300 ease-in-out lg:translate-x-0 dark:border-gray-700/80 dark:bg-gray-900/95 ${
+        className={`fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-slate-200 bg-white transition-transform duration-300 ${
           isOpen
-            ? "translate-x-0 shadow-2xl shadow-gray-900/10"
+            ? "translate-x-0 shadow-2xl"
             : "-translate-x-full"
-        }`}
+        } lg:translate-x-0`}
       >
-        {/* Header */}
-        <div className="flex h-16 items-center justify-between border-b border-gray-100 px-5 sm:h-20 sm:px-6 dark:border-gray-700">
+        {/* Brand */}
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-700 to-blue-500 text-sm font-bold text-white shadow-sm shadow-blue-500/20">
-              S
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm shadow-blue-200">
+              <Wrench size={18} strokeWidth={2.4} />
             </div>
+
             <div>
-              <h2 className="text-base font-bold tracking-tight text-gray-900 sm:text-lg dark:text-white">
-                Service
-                <span className="text-blue-600">Hub</span>
+              <h2 className="text-sm font-bold tracking-tight text-slate-900">
+                Quick
+                <span className="text-blue-600">Service</span>
               </h2>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                Admin Panel
+
+              <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                Admin Portal
               </p>
             </div>
           </div>
@@ -234,76 +202,74 @@ const AdminSidebar = ({ isOpen, onClose, onLogout }) => {
             type="button"
             onClick={onClose}
             aria-label="Close sidebar"
-            className="ml-auto flex h-9 w-9 items-center justify-center rounded-xl text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 active:scale-95 lg:hidden dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 lg:hidden"
           >
-            <X size={19} />
+            <X size={18} />
           </button>
         </div>
 
-        {/* User Card */}
-        {/* <div className="border-b border-gray-100 px-5 py-4 dark:border-gray-700">
-          <div className="flex items-center gap-3 rounded-2xl bg-gray-50/80 p-2.5 ring-1 ring-gray-100 dark:bg-gray-800/80 dark:ring-gray-700">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-50 to-blue-100 text-sm font-semibold text-blue-600 ring-1 ring-blue-600/10 dark:from-blue-900/30 dark:to-blue-800/30 dark:text-blue-400 dark:ring-blue-400/20">
-              {user?.profile_photo ? (
-                <img
-                  src={user.profile_photo}
-                  alt={user?.name || "Admin"}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                user?.name
-                  ? user.name.charAt(0).toUpperCase()
-                  : "A"
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <h2 className="truncate text-xs font-semibold leading-snug text-gray-900 sm:text-sm dark:text-white">
-                {user?.name || "Admin"}
-              </h2>
-              <p className="truncate text-[11px] font-medium text-gray-400 dark:text-gray-500">
-                {user?.email || "admin@servicehub.com"}
-              </p>
+        {/* Small Portal Label */}
+        <div className="px-4 pt-5">
+          <div className="rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2.5">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="text-[11px] font-semibold text-blue-700">
+                Portal is active
+              </span>
             </div>
           </div>
-        </div> */}
+        </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-4 py-5 scrollbar-thin scrollbar-thumb-gray-200 hover:scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 dark:hover:scrollbar-thumb-gray-600">
-          <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+        <nav className="flex-1 overflow-y-auto px-3 py-5">
+          <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
             Main Menu
           </p>
-          <div className="space-y-1">{renderMenu(menuItems)}</div>
 
-          <p className="mb-2 mt-6 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+          <div className="space-y-1">
+            {renderMenu(menuItems)}
+          </div>
+
+          <p className="mb-2 mt-7 px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
             Management
           </p>
-          <div className="space-y-1">{renderMenu(managementItems)}</div>
 
-          <p className="mb-2 mt-6 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+          <div className="space-y-1">
+            {renderMenu(managementItems)}
+          </div>
+
+          <p className="mb-2 mt-7 px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
             Communication
           </p>
-          <div className="space-y-1">{renderMenu(communicationItems)}</div>
 
-          <p className="mb-2 mt-6 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+          <div className="space-y-1">
+            {renderMenu(communicationItems)}
+          </div>
+
+          <p className="mb-2 mt-7 px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
             Account
           </p>
-          <div className="space-y-1">{renderMenu(accountItems)}</div>
+
+          <div className="space-y-1">
+            {renderMenu(accountItems)}
+          </div>
         </nav>
 
         {/* Logout */}
-        <div className="border-t border-gray-100 p-4 dark:border-gray-700">
+        <div className="shrink-0 border-t border-slate-100 p-3">
           <button
             type="button"
-            onClick={onLogout || handleLogout}
-            className="group flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-sm font-medium text-red-600 transition-all duration-150 hover:bg-red-50 active:scale-[0.99] dark:text-red-400 dark:hover:bg-red-900/30"
+            onClick={onLogout}
+            className="group flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
           >
-            <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 group-hover:bg-red-100">
               <LogOut
-                size={18}
-                className="transition-transform duration-200 group-hover:-translate-x-0.5"
+                size={17}
+                className="transition-transform group-hover:-translate-x-0.5"
               />
-              <span>Sign Out</span>
             </div>
+
+            <span>Sign Out</span>
           </button>
         </div>
       </aside>
@@ -312,3 +278,4 @@ const AdminSidebar = ({ isOpen, onClose, onLogout }) => {
 };
 
 export default AdminSidebar;
+

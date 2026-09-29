@@ -91,11 +91,11 @@ const ProviderSidebar = ({
   // ==========================================
 
   const accountMenu = [
-    {
-      name: "Verification",
-      path: "/provider/verification",
-      icon: ShieldCheck,
-    },
+    // {
+    //   name: "Verification",
+    //   path: "/provider/verification",
+    //   icon: ShieldCheck,
+    // },
     {
       name: "My Profile",
       path: "/provider/profile",

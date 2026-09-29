@@ -8,19 +8,15 @@ import {
   XCircle,
   Clock,
   UserCog,
-  Mail,
   Phone,
   Wrench,
   FileText,
   X,
-  RefreshCw,
   ChevronLeft,
   ChevronRight,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Settings,
-  Download,
   ExternalLink,
 } from "lucide-react";
 import api from "../../api/axios";
@@ -29,106 +25,79 @@ import Swal from "sweetalert2";
 const Providers = () => {
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+
   const [actionLoading, setActionLoading] = useState(false);
-  const [showIdColumn, setShowIdColumn] = useState(true);
-  const [showColumnMenu, setShowColumnMenu] = useState(false);
-  const [documentLoading, setDocumentLoading] = useState({});
-  
+
+  const [showIdColumn] = useState(true);
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  
+
   // Sorting
   const [sortConfig, setSortConfig] = useState({
-    key: 'id',
-    direction: 'ascending'
+    key: "id",
+    direction: "ascending",
   });
 
   useEffect(() => {
     fetchProviders();
-  }, [status, search, currentPage, sortConfig]);
+  }, [status, currentPage, sortConfig]);
 
-  // Helper function to get document URL
-  const getDocumentUrl = (documentFile) => {
-    if (!documentFile) return null;
-    
-    // If it already starts with http, return as is
-    if (documentFile.startsWith('http')) {
-      return documentFile;
+  // --------------------------------------------------
+  // Document URL
+  // --------------------------------------------------
+
+  const handleViewDocument = (documentFile, documentUrl) => {
+    if (!documentFile && !documentUrl) {
+      Swal.fire({
+        icon: "warning",
+        title: "No File",
+        text: "This document has no file attached.",
+        confirmButtonColor: "#2563eb",
+      });
+      return;
     }
-    
-    // Remove 'public/' if present
-    let path = documentFile.replace(/^public\//, '');
-    
-    // If the path already includes 'storage/', use it directly
-    if (path.startsWith('storage/')) {
-      return `http://127.0.0.1:8000/${path}`;
+
+    let url = documentUrl;
+
+    if (!url && documentFile) {
+      let path = documentFile.replace(/^public\//, "");
+      path = path.replace(/^storage\//, "");
+
+      url = `http://127.0.0.1:8000/storage/${path}`;
     }
-    
-    // Otherwise, prepend storage/
-    return `http://127.0.0.1:8000/storage/${path}`;
+
+    if (!url) {
+      Swal.fire({
+        icon: "error",
+        title: "Unable to open document",
+        text: "Document URL is not available.",
+        confirmButtonColor: "#2563eb",
+      });
+      return;
+    }
+
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  // Handle document view with file existence check
- // In Providers.jsx, update handleViewDocument
-
-const handleViewDocument = async (documentFile, documentType) => {
-  if (!documentFile) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'No File',
-      text: 'This document has no file attached.',
-      confirmButtonColor: '#3b82f6',
-    });
-    return;
-  }
-
-  const docId = documentFile.replace(/[^a-zA-Z0-9]/g, '_');
-  setDocumentLoading(prev => ({ ...prev, [docId]: true }));
-
-  try {
-    const url = `${api.defaults.baseURL}/documents/view?file=${encodeURIComponent(documentFile)}`;
-
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Access denied or file not found');
-    }
-
-    const blob = await response.blob();
-    const blobUrl = window.URL.createObjectURL(blob);
-    window.open(blobUrl, '_blank');
-    // thodi der baad revoke kar sakte ho memory free karne ke liye
-    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60000);
-  } catch (error) {
-    console.error('Error viewing document:', error);
-    Swal.fire({
-      icon: 'error',
-      title: 'Unable to open document',
-      text: 'Could not load the file. Please check server logs.',
-      confirmButtonColor: '#3b82f6',
-    });
-  } finally {
-    setDocumentLoading(prev => ({ ...prev, [docId]: false }));
-  }
-};
+  // --------------------------------------------------
+  // Fetch Providers
+  // --------------------------------------------------
 
   const fetchProviders = async () => {
     try {
       setLoading(true);
-      
+
       const response = await api.get("/admin/providers", {
         params: {
           status: status !== "all" ? status : undefined,
@@ -136,18 +105,21 @@ const handleViewDocument = async (documentFile, documentType) => {
           page: currentPage,
           per_page: perPage,
           sort: sortConfig.key,
-          direction: sortConfig.direction === 'ascending' ? 'asc' : 'desc',
+          direction:
+            sortConfig.direction === "ascending" ? "asc" : "desc",
         },
       });
 
-      console.log("Providers API Response:", response.data);
-
       let providersData = [];
       let paginationData = {};
-      
+
       if (response.data?.success && response.data?.data) {
-        if (response.data.data.data && Array.isArray(response.data.data.data)) {
+        if (
+          response.data.data.data &&
+          Array.isArray(response.data.data.data)
+        ) {
           providersData = response.data.data.data;
+
           paginationData = {
             current_page: response.data.data.current_page || 1,
             last_page: response.data.data.last_page || 1,
@@ -156,81 +128,115 @@ const handleViewDocument = async (documentFile, documentType) => {
           };
         } else if (Array.isArray(response.data.data)) {
           providersData = response.data.data;
-        } else {
-          providersData = [];
         }
       } else if (Array.isArray(response.data)) {
         providersData = response.data;
-      } else {
-        providersData = [];
       }
 
-      console.log("Extracted providers:", providersData);
-      
       setProviders(providersData);
       setTotalPages(paginationData.last_page || 1);
       setTotalItems(paginationData.total || providersData.length);
     } catch (error) {
       console.error("Providers error:", error);
-      
+
       Swal.fire({
-        icon: 'error',
-        title: 'Error!',
-        text: error.response?.data?.message || 'Failed to load providers. Please try again.',
-        confirmButtonColor: '#3b82f6',
+        icon: "error",
+        title: "Error!",
+        text:
+          error.response?.data?.message ||
+          "Failed to load providers. Please try again.",
+        confirmButtonColor: "#2563eb",
       });
-      
+
       setProviders([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle sorting
+  // --------------------------------------------------
+  // Sorting
+  // --------------------------------------------------
+
   const handleSort = (key) => {
-    let direction = 'ascending';
-    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
-      direction = 'descending';
+    let direction = "ascending";
+
+    if (
+      sortConfig.key === key &&
+      sortConfig.direction === "ascending"
+    ) {
+      direction = "descending";
     }
-    setSortConfig({ key, direction });
+
+    setSortConfig({
+      key,
+      direction,
+    });
+
     setCurrentPage(1);
   };
 
-  // Get sort icon
   const getSortIcon = (key) => {
     if (sortConfig.key !== key) {
-      return <ArrowUpDown size={12} className="ml-1 text-slate-400" />;
+      return (
+        <ArrowUpDown
+          size={12}
+          className="ml-1 text-slate-400"
+        />
+      );
     }
-    return sortConfig.direction === 'ascending' 
-      ? <ArrowUp size={12} className="ml-1 text-blue-600" />
-      : <ArrowDown size={12} className="ml-1 text-blue-600" />;
+
+    return sortConfig.direction === "ascending" ? (
+      <ArrowUp
+        size={12}
+        className="ml-1 text-blue-600"
+      />
+    ) : (
+      <ArrowDown
+        size={12}
+        className="ml-1 text-blue-600"
+      />
+    );
   };
+
+  // --------------------------------------------------
+  // Approve Provider
+  // --------------------------------------------------
 
   const approveProvider = async (provider) => {
     const result = await Swal.fire({
-      title: 'Approve Provider?',
+      title: "Approve Provider?",
       html: `
         <div class="text-left">
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-            Are you sure you want to approve <strong>${provider.user?.name}</strong>?
+          <p class="text-sm text-slate-600 mb-3">
+            Are you sure you want to approve
+            <strong>${provider.user?.name || "this provider"}</strong>?
           </p>
-          <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 font-semibold dark:bg-emerald-900/30 dark:text-emerald-400">
-              ${provider.user?.name?.charAt(0)?.toUpperCase() || 'P'}
+
+          <div class="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600 font-semibold">
+              ${provider.user?.name?.charAt(0)?.toUpperCase() || "P"}
             </div>
+
             <div>
-              <p class="font-medium text-gray-900 dark:text-white">${provider.user?.name}</p>
-              <p class="text-sm text-gray-500 dark:text-gray-400">${provider.user?.email}</p>
+              <p class="font-medium text-slate-900">
+                ${provider.user?.name || "Provider"}
+              </p>
+
+              <p class="text-sm text-slate-500">
+                ${provider.user?.email || "No email"}
+              </p>
             </div>
           </div>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-3">
-            This will <span class="font-semibold text-emerald-600 dark:text-emerald-400">approve</span> the provider and they will be able to accept service requests.
+
+          <p class="text-sm text-slate-500 mt-3">
+            The provider will be able to accept service requests after approval.
           </p>
         </div>
       `,
       icon: "question",
       showCancelButton: true,
-      confirmButtonColor: "#22c55e",
+      confirmButtonColor: "#16a34a",
       cancelButtonColor: "#64748b",
       confirmButtonText: "Yes, approve",
       cancelButtonText: "Cancel",
@@ -247,9 +253,11 @@ const handleViewDocument = async (documentFile, documentType) => {
       );
 
       await Swal.fire({
-        icon: 'success',
-        title: 'Approved!',
-        text: response.data?.message || 'Provider approved successfully.',
+        icon: "success",
+        title: "Approved!",
+        text:
+          response.data?.message ||
+          "Provider approved successfully.",
         timer: 2000,
         showConfirmButton: false,
       });
@@ -258,17 +266,23 @@ const handleViewDocument = async (documentFile, documentType) => {
       await fetchProviders();
     } catch (error) {
       console.error(error);
-      
+
       Swal.fire({
-        icon: 'error',
-        title: 'Error!',
-        text: error.response?.data?.message || "Unable to approve provider.",
-        confirmButtonColor: '#3b82f6',
+        icon: "error",
+        title: "Error!",
+        text:
+          error.response?.data?.message ||
+          "Unable to approve provider.",
+        confirmButtonColor: "#2563eb",
       });
     } finally {
       setActionLoading(false);
     }
   };
+
+  // --------------------------------------------------
+  // Reject
+  // --------------------------------------------------
 
   const openRejectModal = (provider) => {
     setSelectedProvider(provider);
@@ -279,11 +293,12 @@ const handleViewDocument = async (documentFile, documentType) => {
   const rejectProvider = async () => {
     if (!rejectReason.trim()) {
       Swal.fire({
-        icon: 'warning',
-        title: 'Reason Required',
-        text: 'Please enter a rejection reason.',
-        confirmButtonColor: '#3b82f6',
+        icon: "warning",
+        title: "Reason Required",
+        text: "Please enter a rejection reason.",
+        confirmButtonColor: "#2563eb",
       });
+
       return;
     }
 
@@ -298,9 +313,11 @@ const handleViewDocument = async (documentFile, documentType) => {
       );
 
       await Swal.fire({
-        icon: 'success',
-        title: 'Rejected!',
-        text: response.data?.message || 'Provider rejected successfully.',
+        icon: "success",
+        title: "Rejected!",
+        text:
+          response.data?.message ||
+          "Provider rejected successfully.",
         timer: 2000,
         showConfirmButton: false,
       });
@@ -308,34 +325,41 @@ const handleViewDocument = async (documentFile, documentType) => {
       setShowRejectModal(false);
       setSelectedProvider(null);
       setRejectReason("");
+
       await fetchProviders();
     } catch (error) {
       console.error(error);
-      
+
       Swal.fire({
-        icon: 'error',
-        title: 'Error!',
-        text: error.response?.data?.message || "Unable to reject provider.",
-        confirmButtonColor: '#3b82f6',
+        icon: "error",
+        title: "Error!",
+        text:
+          error.response?.data?.message ||
+          "Unable to reject provider.",
+        confirmButtonColor: "#2563eb",
       });
     } finally {
       setActionLoading(false);
     }
   };
 
-  const statusBadge = (status) => {
-    if (status === "approved") {
+  // --------------------------------------------------
+  // Status Badge
+  // --------------------------------------------------
+
+  const statusBadge = (providerStatus) => {
+    if (providerStatus === "approved") {
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
           <CheckCircle size={13} />
           Approved
         </span>
       );
     }
 
-    if (status === "rejected") {
+    if (providerStatus === "rejected") {
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600 dark:bg-red-900/30 dark:text-red-400">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">
           <XCircle size={13} />
           Rejected
         </span>
@@ -343,14 +367,17 @@ const handleViewDocument = async (documentFile, documentType) => {
     }
 
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
         <Clock size={13} />
         Pending
       </span>
     );
   };
 
-  // Handle search with debounce
+  // --------------------------------------------------
+  // Search debounce
+  // --------------------------------------------------
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setCurrentPage(1);
@@ -360,56 +387,166 @@ const handleViewDocument = async (documentFile, documentType) => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Pagination functions
+  // --------------------------------------------------
+  // Pagination
+  // --------------------------------------------------
+
   const goToPage = (page) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
   };
 
-  // Close column menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showColumnMenu && !event.target.closest('.column-menu-container')) {
-        setShowColumnMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showColumnMenu]);
+  // --------------------------------------------------
+  // Render
+  // --------------------------------------------------
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-50/70 p-4 sm:p-5 lg:p-6 dark:bg-gray-900/70">
+    <div className="min-h-[calc(100vh-4rem)] bg-slate-50 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        {/* Header */}
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+
+        {/* -------------------------------- Header -------------------------------- */}
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-xl font-bold text-slate-900 sm:text-2xl dark:text-white">
-              Service Providers
-            </h1>
-            <p className="mt-1 text-sm text-slate-500 dark:text-gray-400">
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm">
+                <UserCog size={19} />
+              </div>
+
+              <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">
+                Service Providers
+              </h1>
+            </div>
+
+            <p className="mt-2 text-sm text-slate-500">
               Review, verify and manage service providers.
             </p>
           </div>
-          
-      
+
+          <button
+            onClick={fetchProviders}
+            className="flex w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+          >
+            <Clock size={16} />
+            Refresh
+          </button>
         </div>
 
-        {/* Filters */}
-        <div className="mb-5 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        {/* -------------------------------- Stats -------------------------------- */}
+        {!loading && (
+          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+
+            {/* Total */}
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-slate-500">
+                    Total Providers
+                  </p>
+
+                  <p className="mt-1 text-2xl font-bold text-slate-900">
+                    {totalItems || providers.length}
+                  </p>
+                </div>
+
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                  <UserCog size={18} />
+                </div>
+              </div>
+            </div>
+
+            {/* Pending */}
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-slate-500">
+                    Pending
+                  </p>
+
+                  <p className="mt-1 text-2xl font-bold text-amber-600">
+                    {
+                      providers.filter(
+                        (p) =>
+                          p.verification_status === "pending"
+                      ).length
+                    }
+                  </p>
+                </div>
+
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+                  <Clock size={18} />
+                </div>
+              </div>
+            </div>
+
+            {/* Approved */}
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-slate-500">
+                    Approved
+                  </p>
+
+                  <p className="mt-1 text-2xl font-bold text-emerald-600">
+                    {
+                      providers.filter(
+                        (p) =>
+                          p.verification_status === "approved"
+                      ).length
+                    }
+                  </p>
+                </div>
+
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                  <CheckCircle size={18} />
+                </div>
+              </div>
+            </div>
+
+            {/* Rejected */}
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-slate-500">
+                    Rejected
+                  </p>
+
+                  <p className="mt-1 text-2xl font-bold text-red-600">
+                    {
+                      providers.filter(
+                        (p) =>
+                          p.verification_status === "rejected"
+                      ).length
+                    }
+                  </p>
+                </div>
+
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-50 text-red-600">
+                  <XCircle size={18} />
+                </div>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* -------------------------------- Filters -------------------------------- */}
+        <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+
             {/* Search */}
-            <div className="relative w-full lg:max-w-sm">
+            <div className="relative w-full lg:max-w-md">
               <Search
                 size={17}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
               />
+
               <input
                 type="text"
                 placeholder="Search by name, email or ID..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none focus:border-blue-500 focus:bg-white dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:focus:bg-gray-700"
+                className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10"
               />
             </div>
 
@@ -429,8 +566,8 @@ const handleViewDocument = async (documentFile, documentType) => {
                   }}
                   className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
                     status === value
-                      ? "bg-blue-600 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-600 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400"
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-600"
                   }`}
                 >
                   {label}
@@ -438,158 +575,171 @@ const handleViewDocument = async (documentFile, documentType) => {
               ))}
             </div>
 
+            {/* Clear */}
             <button
               onClick={() => {
                 setSearch("");
                 setStatus("all");
                 setCurrentPage(1);
-                fetchProviders();
               }}
-              className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
             >
               Clear Filters
             </button>
           </div>
         </div>
 
-        {/* Stats */}
-        {!loading && (
-          <div className="mb-4 flex flex-wrap gap-4 text-sm">
-            <span className="text-slate-600 dark:text-gray-400">
-              Total: <strong className="text-slate-900 dark:text-white">{totalItems || providers.length}</strong>
-            </span>
-            <span className="text-slate-600 dark:text-gray-400">
-              Pending: <strong className="text-amber-600 dark:text-amber-400">
-                {providers.filter(p => p.verification_status === 'pending').length}
-              </strong>
-            </span>
-            <span className="text-slate-600 dark:text-gray-400">
-              Approved: <strong className="text-emerald-600 dark:text-emerald-400">
-                {providers.filter(p => p.verification_status === 'approved').length}
-              </strong>
-            </span>
-            <span className="text-slate-600 dark:text-gray-400">
-              Rejected: <strong className="text-red-600 dark:text-red-400">
-                {providers.filter(p => p.verification_status === 'rejected').length}
-              </strong>
-            </span>
-          </div>
-        )}
+        {/* -------------------------------- Table -------------------------------- */}
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
 
-        {/* Provider Table */}
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
           {loading ? (
-            <div className="flex items-center justify-center py-16">
+            <div className="flex items-center justify-center py-20">
               <div className="flex flex-col items-center gap-3">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-                <p className="text-sm text-slate-500 dark:text-gray-400">Loading providers...</p>
+                <div className="h-9 w-9 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+
+                <p className="text-sm text-slate-500">
+                  Loading providers...
+                </p>
               </div>
             </div>
           ) : providers.length === 0 ? (
-            <div className="py-16 text-center">
-              <UserCog size={38} className="mx-auto text-slate-300 dark:text-gray-600" />
-              <p className="mt-3 text-sm font-semibold text-slate-600 dark:text-gray-400">
+            <div className="py-20 text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+                <UserCog size={28} />
+              </div>
+
+              <p className="mt-4 text-sm font-semibold text-slate-700">
                 No providers found
               </p>
-              <p className="mt-1 text-xs text-slate-400 dark:text-gray-500">
+
+              <p className="mt-1 text-xs text-slate-400">
                 No providers match your current filter.
               </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[950px]">
-                <thead className="border-b border-slate-200 bg-slate-50 dark:border-gray-700 dark:bg-gray-800/50">
-                  <tr>
+
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50 text-left">
                     {showIdColumn && (
-                      <th 
-                        className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-gray-400 cursor-pointer hover:text-blue-600 transition-colors"
-                        onClick={() => handleSort('id')}
+                      <th
+                        className="cursor-pointer px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 transition hover:text-blue-600"
+                        onClick={() => handleSort("id")}
                       >
                         <div className="flex items-center">
                           ID
-                          {getSortIcon('id')}
+                          {getSortIcon("id")}
                         </div>
                       </th>
                     )}
-                    <th 
-                      className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-gray-400 cursor-pointer hover:text-blue-600 transition-colors"
-                      onClick={() => handleSort('name')}
+
+                    <th
+                      className="cursor-pointer px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 transition hover:text-blue-600"
+                      onClick={() => handleSort("name")}
                     >
                       <div className="flex items-center">
                         Provider
-                        {getSortIcon('name')}
+                        {getSortIcon("name")}
                       </div>
                     </th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-gray-400">
+
+                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Contact
                     </th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-gray-400">
+
+                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Services
                     </th>
-                    <th 
-                      className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-gray-400 cursor-pointer hover:text-blue-600 transition-colors"
-                      onClick={() => handleSort('verification_status')}
+
+                    <th
+                      className="cursor-pointer px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 transition hover:text-blue-600"
+                      onClick={() =>
+                        handleSort("verification_status")
+                      }
                     >
                       <div className="flex items-center">
                         Status
-                        {getSortIcon('verification_status')}
+                        {getSortIcon("verification_status")}
                       </div>
                     </th>
-                    <th 
-                      className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-gray-400 cursor-pointer hover:text-blue-600 transition-colors"
-                      onClick={() => handleSort('created_at')}
+
+                    <th
+                      className="cursor-pointer px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 transition hover:text-blue-600"
+                      onClick={() => handleSort("created_at")}
                     >
                       <div className="flex items-center">
                         Joined
-                        {getSortIcon('created_at')}
+                        {getSortIcon("created_at")}
                       </div>
                     </th>
-                    <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-gray-400">
+
+                    <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-gray-700">
+
+                <tbody className="divide-y divide-slate-100">
                   {providers.map((provider) => (
-                    <tr key={provider.id} className="hover:bg-slate-50 dark:hover:bg-gray-700/50">
+                    <tr
+                      key={provider.id}
+                      className="transition hover:bg-blue-50/40"
+                    >
                       {showIdColumn && (
-                        <td className="px-5 py-4 text-sm font-medium text-slate-500 dark:text-gray-400">
-                          {provider.id}
+                        <td className="px-5 py-4 text-sm font-medium text-slate-500">
+                          #{provider.id}
                         </td>
                       )}
+
                       {/* Provider */}
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-                            {provider.user?.name?.charAt(0)?.toUpperCase() || "P"}
+
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-600">
+                            {provider.user?.name
+                              ?.charAt(0)
+                              ?.toUpperCase() || "P"}
                           </div>
-                          <div>
-                            <p className="text-sm font-semibold text-slate-800 dark:text-white">
+
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-slate-800">
                               {provider.user?.name || "Unknown"}
                             </p>
-                            <p className="text-xs text-slate-400 dark:text-gray-500">
+
+                            <p className="truncate text-xs text-slate-400">
                               {provider.user?.email || "No email"}
                             </p>
                           </div>
+
                         </div>
                       </td>
 
                       {/* Contact */}
                       <td className="px-5 py-4">
-                        <p className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-gray-300">
-                          <Phone size={13} />
+                        <p className="flex items-center gap-1.5 text-xs text-slate-600">
+                          <Phone
+                            size={13}
+                            className="text-slate-400"
+                          />
+
                           {provider.user?.phone || "-"}
                         </p>
-                        <p className="mt-1 text-xs text-slate-400 dark:text-gray-500">
-                          Docs: {provider.documents?.length || 0}
+
+                        <p className="mt-1 text-xs text-slate-400">
+                          {provider.documents?.length || 0} documents
                         </p>
                       </td>
 
                       {/* Services */}
                       <td className="px-5 py-4">
-                        <div className="flex items-center gap-1.5">
-                          <Wrench size={14} className="text-blue-500" />
-                          <span className="text-xs font-medium text-slate-600 dark:text-gray-300">
+                        <div className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-2.5 py-1.5">
+                          <Wrench
+                            size={14}
+                            className="text-blue-600"
+                          />
+
+                          <span className="text-xs font-semibold text-blue-700">
                             {provider.services?.length || 0}
                           </span>
                         </div>
@@ -597,365 +747,562 @@ const handleViewDocument = async (documentFile, documentType) => {
 
                       {/* Status */}
                       <td className="px-5 py-4">
-                        {statusBadge(provider.verification_status)}
+                        {statusBadge(
+                          provider.verification_status
+                        )}
                       </td>
 
                       {/* Joined */}
-                      <td className="px-5 py-4 text-xs text-slate-500 dark:text-gray-400">
-                        {provider.created_at ? new Date(provider.created_at).toLocaleDateString() : '-'}
+                      <td className="px-5 py-4 text-xs text-slate-500">
+                        {provider.created_at
+                          ? new Date(
+                              provider.created_at
+                            ).toLocaleDateString()
+                          : "-"}
                       </td>
 
                       {/* Actions */}
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
+
                           <button
-                            onClick={() => setSelectedProvider(provider)}
-                            className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
+                            onClick={() =>
+                              setSelectedProvider(provider)
+                            }
+                            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
                           >
                             <Eye size={14} />
                             View
                           </button>
 
-                          {provider.verification_status !== "approved" && (
+                          {provider.verification_status !==
+                            "approved" && (
                             <button
                               disabled={actionLoading}
-                              onClick={() => approveProvider(provider)}
-                              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                              onClick={() =>
+                                approveProvider(provider)
+                              }
+                              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
                             >
                               <CheckCircle size={14} />
                               Approve
                             </button>
                           )}
 
-                          {provider.verification_status !== "rejected" && (
+                          {provider.verification_status !==
+                            "rejected" && (
                             <button
                               disabled={actionLoading}
-                              onClick={() => openRejectModal(provider)}
-                              className="flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                              onClick={() =>
+                                openRejectModal(provider)
+                              }
+                              className="flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
                             >
                               <XCircle size={14} />
                               Reject
                             </button>
                           )}
+
                         </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
+
               </table>
             </div>
           )}
-          
+
           {/* Pagination */}
           {!loading && providers.length > 0 && (
-            <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-gray-700">
-              <p className="text-xs text-slate-500 dark:text-gray-400">
-                Showing {(currentPage - 1) * perPage + 1} to {Math.min(currentPage * perPage, totalItems)} of {totalItems} providers
+            <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+
+              <p className="text-xs text-slate-500">
+                Showing{" "}
+                {(currentPage - 1) * perPage + 1} to{" "}
+                {Math.min(
+                  currentPage * perPage,
+                  totalItems
+                )}{" "}
+                of {totalItems} providers
               </p>
-              <div className="flex items-center gap-2">
+
+              <div className="flex items-center gap-1">
+
                 <button
-                  onClick={() => goToPage(currentPage - 1)}
+                  onClick={() =>
+                    goToPage(currentPage - 1)
+                  }
                   disabled={currentPage === 1}
-                  className="rounded-lg px-3 py-1 text-sm text-slate-600 transition hover:bg-slate-100 disabled:opacity-50 dark:text-gray-400 dark:hover:bg-gray-700"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <ChevronLeft size={16} />
                 </button>
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
+
+                {Array.from(
+                  {
+                    length: Math.min(5, totalPages),
+                  },
+                  (_, i) => {
+                    let pageNum;
+
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (
+                      currentPage >=
+                      totalPages - 2
+                    ) {
+                      pageNum =
+                        totalPages - 4 + i;
+                    } else {
+                      pageNum =
+                        currentPage - 2 + i;
+                    }
+
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() =>
+                          goToPage(pageNum)
+                        }
+                        className={`flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-xs font-medium transition ${
+                          currentPage === pageNum
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "text-slate-600 hover:bg-blue-50 hover:text-blue-600"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
                   }
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => goToPage(pageNum)}
-                      className={`rounded-lg px-3 py-1 text-sm transition ${
-                        currentPage === pageNum
-                          ? "bg-blue-600 text-white"
-                          : "text-slate-600 hover:bg-slate-100 dark:text-gray-400 dark:hover:bg-gray-700"
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-                {totalPages > 5 && currentPage < totalPages - 2 && (
-                  <>
-                    <span className="text-slate-400 dark:text-gray-500">...</span>
-                    <button
-                      onClick={() => goToPage(totalPages)}
-                      className="rounded-lg px-3 py-1 text-sm text-slate-600 transition hover:bg-slate-100 dark:text-gray-400 dark:hover:bg-gray-700"
-                    >
-                      {totalPages}
-                    </button>
-                  </>
                 )}
+
+                {totalPages > 5 &&
+                  currentPage < totalPages - 2 && (
+                    <>
+                      <span className="px-1 text-slate-400">
+                        ...
+                      </span>
+
+                      <button
+                        onClick={() =>
+                          goToPage(totalPages)
+                        }
+                        className="flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-xs text-slate-600 transition hover:bg-blue-50 hover:text-blue-600"
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+
                 <button
-                  onClick={() => goToPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="rounded-lg px-3 py-1 text-sm text-slate-600 transition hover:bg-slate-100 disabled:opacity-50 dark:text-gray-400 dark:hover:bg-gray-700"
+                  onClick={() =>
+                    goToPage(currentPage + 1)
+                  }
+                  disabled={
+                    currentPage === totalPages
+                  }
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <ChevronRight size={16} />
                 </button>
+
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Provider Details Modal */}
+      {/* =========================================================
+          PROVIDER DETAILS MODAL
+      ========================================================= */}
+
       {selectedProvider && !showRejectModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-gray-800">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 p-5 dark:border-gray-700">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-[2px]">
+
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl">
+
+            {/* Header */}
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4">
+
               <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                  Provider Details
-                </h2>
-                <p className="text-xs text-slate-400 dark:text-gray-500">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                    <UserCog size={16} />
+                  </div>
+
+                  <h2 className="text-lg font-bold text-slate-900">
+                    Provider Details
+                  </h2>
+                </div>
+
+                <p className="mt-1 text-xs text-slate-400">
                   Review provider information
                 </p>
               </div>
+
               <button
-                onClick={() => setSelectedProvider(null)}
-                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-gray-700"
+                onClick={() =>
+                  setSelectedProvider(null)
+                }
+                className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
               >
                 <X size={18} />
               </button>
+
             </div>
 
             <div className="space-y-5 p-5">
-              {/* User info */}
-              <div className="rounded-xl bg-slate-50 p-4 dark:bg-gray-700/50">
+
+              {/* User */}
+              <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
+
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-                    {selectedProvider.user?.name?.charAt(0)?.toUpperCase() || "P"}
+
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 font-bold text-white">
+                    {selectedProvider.user?.name
+                      ?.charAt(0)
+                      ?.toUpperCase() || "P"}
                   </div>
+
                   <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white">
+                    <h3 className="font-bold text-slate-900">
                       {selectedProvider.user?.name}
                     </h3>
-                    <p className="text-xs text-slate-500 dark:text-gray-400">
+
+                    <p className="text-xs text-slate-500">
                       {selectedProvider.user?.email}
                     </p>
-                    <p className="text-xs text-slate-500 dark:text-gray-400">
-                      {selectedProvider.user?.phone || "No phone"}
+
+                    <p className="text-xs text-slate-500">
+                      {selectedProvider.user?.phone ||
+                        "No phone"}
                     </p>
                   </div>
+
                 </div>
               </div>
 
-              {/* Provider Info */}
+              {/* Info */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-slate-50 p-3 dark:bg-gray-700/50">
-                  <p className="text-xs text-slate-400 dark:text-gray-500">Provider ID</p>
-                  <p className="font-medium text-slate-900 dark:text-white">#{selectedProvider.id}</p>
+
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  <p className="text-xs text-slate-400">
+                    Provider ID
+                  </p>
+
+                  <p className="mt-1 font-semibold text-slate-900">
+                    #{selectedProvider.id}
+                  </p>
                 </div>
-                <div className="rounded-xl bg-slate-50 p-3 dark:bg-gray-700/50">
-                  <p className="text-xs text-slate-400 dark:text-gray-500">Status</p>
-                  <p className="font-medium text-slate-900 dark:text-white">{statusBadge(selectedProvider.verification_status)}</p>
+
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  <p className="mb-1 text-xs text-slate-400">
+                    Status
+                  </p>
+
+                  {statusBadge(
+                    selectedProvider.verification_status
+                  )}
                 </div>
-                <div className="rounded-xl bg-slate-50 p-3 dark:bg-gray-700/50">
-                  <p className="text-xs text-slate-400 dark:text-gray-500">Total Services</p>
-                  <p className="font-medium text-slate-900 dark:text-white">{selectedProvider.services?.length || 0}</p>
+
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  <p className="text-xs text-slate-400">
+                    Total Services
+                  </p>
+
+                  <p className="mt-1 font-semibold text-slate-900">
+                    {selectedProvider.services?.length ||
+                      0}
+                  </p>
                 </div>
-                <div className="rounded-xl bg-slate-50 p-3 dark:bg-gray-700/50">
-                  <p className="text-xs text-slate-400 dark:text-gray-500">Total Documents</p>
-                  <p className="font-medium text-slate-900 dark:text-white">{selectedProvider.documents?.length || 0}</p>
+
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  <p className="text-xs text-slate-400">
+                    Total Documents
+                  </p>
+
+                  <p className="mt-1 font-semibold text-slate-900">
+                    {selectedProvider.documents?.length ||
+                      0}
+                  </p>
                 </div>
+
               </div>
 
               {/* Services */}
               <div>
+
                 <div className="mb-2 flex items-center gap-2">
-                  <Wrench size={16} className="text-blue-600" />
-                  <h3 className="text-sm font-bold text-slate-800 dark:text-white">
+                  <Wrench
+                    size={16}
+                    className="text-blue-600"
+                  />
+
+                  <h3 className="text-sm font-bold text-slate-800">
                     Selected Services
                   </h3>
                 </div>
+
                 <div className="flex flex-wrap gap-2">
-                  {selectedProvider.services?.length > 0 ? (
-                    selectedProvider.services.map((service) => (
-                      <span
-                        key={service.id}
-                        className="rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
-                      >
-                        {service.name}
-                      </span>
-                    ))
+
+                  {selectedProvider.services?.length >
+                  0 ? (
+                    selectedProvider.services.map(
+                      (service) => (
+                        <span
+                          key={service.id}
+                          className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700"
+                        >
+                          {service.name}
+                        </span>
+                      )
+                    )
                   ) : (
-                    <span className="text-xs text-slate-400 dark:text-gray-500">No services selected</span>
+                    <span className="text-xs text-slate-400">
+                      No services selected
+                    </span>
                   )}
+
                 </div>
               </div>
 
-              {/* Documents - Updated with improved viewing */}
+              {/* Documents */}
               <div>
+
                 <div className="mb-2 flex items-center gap-2">
-                  <FileText size={16} className="text-blue-600" />
-                  <h3 className="text-sm font-bold text-slate-800 dark:text-white">
+                  <FileText
+                    size={16}
+                    className="text-blue-600"
+                  />
+
+                  <h3 className="text-sm font-bold text-slate-800">
                     Verification Documents
                   </h3>
                 </div>
+
                 <div className="space-y-2">
-                  {selectedProvider.documents?.length > 0 ? (
-                    selectedProvider.documents.map((document) => {
-                      const docId = document.document_file?.replace(/[^a-zA-Z0-9]/g, '_') || document.id;
-                      const isLoading = documentLoading[docId];
-                      
-                      return (
+
+                  {selectedProvider.documents?.length >
+                  0 ? (
+                    selectedProvider.documents.map(
+                      (document) => (
                         <div
                           key={document.id}
-                          className="flex items-center justify-between rounded-xl border border-slate-200 p-3 dark:border-gray-700"
+                          className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3 transition hover:border-blue-200 hover:bg-blue-50/30"
                         >
+
                           <div>
-                            <p className="text-sm font-semibold text-slate-800 dark:text-white">
-                              {document.document_type?.replace(/_/g, ' ') || 'Document'}
+                            <p className="text-sm font-semibold capitalize text-slate-800">
+                              {document.document_type?.replace(
+                                /_/g,
+                                " "
+                              ) || "Document"}
                             </p>
-                            <p className="text-xs text-slate-400 dark:text-gray-500">
-                              {document.document_number || "No document number"}
+
+                            <p className="text-xs text-slate-400">
+                              {document.document_number ||
+                                "No document number"}
                             </p>
+
                             {document.document_file && (
                               <button
-                                onClick={() => handleViewDocument(document.document_file, document.document_type)}
-                                disabled={isLoading}
-                                className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline dark:text-blue-400 disabled:opacity-50"
+                                type="button"
+                                onClick={() =>
+                                  handleViewDocument(
+                                    document.document_file,
+                                    document.document_url
+                                  )
+                                }
+                                className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
                               >
-                                {isLoading ? (
-                                  <>
-                                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
-                                    Loading...
-                                  </>
-                                ) : (
-                                  <>
-                                    <ExternalLink size={12} />
-                                    View File
-                                  </>
-                                )}
+                                <ExternalLink size={12} />
+                                View File
                               </button>
                             )}
                           </div>
+
                           <div className="text-right">
-                            <span className={`text-xs font-semibold capitalize px-2 py-1 rounded-full ${
-                              document.status === 'approved' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                              document.status === 'rejected' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
-                              'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
-                            }`}>
-                              {document.status || 'pending'}
+
+                            <span
+                              className={`rounded-full px-2 py-1 text-xs font-semibold capitalize ${
+                                document.status ===
+                                "approved"
+                                  ? "bg-emerald-50 text-emerald-700"
+                                  : document.status ===
+                                    "rejected"
+                                  ? "bg-red-50 text-red-700"
+                                  : "bg-amber-50 text-amber-700"
+                              }`}
+                            >
+                              {document.status ||
+                                "pending"}
                             </span>
+
                             {document.rejection_reason && (
-                              <p className="mt-1 text-xs text-red-500 dark:text-red-400">
+                              <p className="mt-1 max-w-[160px] text-xs text-red-500">
                                 {document.rejection_reason}
                               </p>
                             )}
+
                           </div>
+
                         </div>
-                      );
-                    })
+                      )
+                    )
                   ) : (
-                    <div className="rounded-xl border border-slate-200 p-4 text-center dark:border-gray-700">
-                      <FileText size={24} className="mx-auto text-slate-300 dark:text-gray-600" />
-                      <p className="mt-2 text-sm text-slate-500 dark:text-gray-400">No documents uploaded</p>
+                    <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center">
+
+                      <FileText
+                        size={25}
+                        className="mx-auto text-slate-300"
+                      />
+
+                      <p className="mt-2 text-sm text-slate-500">
+                        No documents uploaded
+                      </p>
+
                     </div>
                   )}
+
                 </div>
               </div>
 
-              {/* Rejection reason */}
+              {/* Rejection Reason */}
               {selectedProvider.rejection_reason && (
-                <div className="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
-                  <p className="text-xs font-bold text-red-700 dark:text-red-400">
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                  <p className="text-xs font-bold text-red-700">
                     Rejection Reason
                   </p>
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-300">
+
+                  <p className="mt-1 text-sm text-red-600">
                     {selectedProvider.rejection_reason}
                   </p>
                 </div>
               )}
+
             </div>
 
-            {/* Modal Actions */}
-            {selectedProvider.verification_status !== "approved" && (
-              <div className="flex gap-3 border-t border-slate-100 p-5 dark:border-gray-700">
+            {/* Actions */}
+            {selectedProvider.verification_status !==
+              "approved" && (
+              <div className="flex gap-3 border-t border-slate-200 bg-slate-50 p-5">
+
                 <button
-                  onClick={() => approveProvider(selectedProvider)}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-700"
+                  onClick={() =>
+                    approveProvider(selectedProvider)
+                  }
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
                 >
                   <CheckCircle size={17} />
                   Approve Provider
                 </button>
+
                 <button
-                  onClick={() => openRejectModal(selectedProvider)}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700"
+                  onClick={() =>
+                    openRejectModal(selectedProvider)
+                  }
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
                 >
                   <XCircle size={17} />
                   Reject
                 </button>
+
               </div>
             )}
+
           </div>
         </div>
       )}
 
-      {/* Reject Modal */}
+      {/* =========================================================
+          REJECT MODAL
+      ========================================================= */}
+
       {showRejectModal && selectedProvider && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl dark:bg-gray-800">
-            <div className="flex items-center justify-between border-b border-slate-100 p-5 dark:border-gray-700">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-[2px]">
+
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+
               <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                <h2 className="text-lg font-bold text-slate-900">
                   Reject Provider
                 </h2>
-                <p className="mt-1 text-xs text-slate-400 dark:text-gray-500">
+
+                <p className="mt-1 text-xs text-slate-400">
                   {selectedProvider.user?.name}
                 </p>
               </div>
+
               <button
-                onClick={() => setShowRejectModal(false)}
-                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-gray-700"
+                onClick={() =>
+                  setShowRejectModal(false)
+                }
+                className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
               >
                 <X size={18} />
               </button>
+
             </div>
 
             <div className="p-5">
-              <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-gray-300">
+
+              <div className="mb-4 rounded-lg bg-red-50 p-3">
+                <p className="text-xs font-medium text-red-700">
+                  Please provide a clear reason for rejecting
+                  this provider.
+                </p>
+              </div>
+
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
                 Rejection Reason
               </label>
+
               <textarea
                 value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
+                onChange={(e) =>
+                  setRejectReason(e.target.value)
+                }
                 rows={5}
                 placeholder="Explain why this provider verification was rejected..."
-                className="w-full resize-none rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-red-400 focus:ring-4 focus:ring-red-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                className="w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-red-400 focus:ring-4 focus:ring-red-500/10"
               />
-              <p className="mt-2 text-xs text-slate-400 dark:text-gray-500">
+
+              <p className="mt-2 text-xs text-slate-400">
                 This message will be shown to the provider.
               </p>
+
             </div>
 
-            <div className="flex gap-3 border-t border-slate-100 p-5 dark:border-gray-700">
+            <div className="flex gap-3 border-t border-slate-200 bg-slate-50 p-5">
+
               <button
-                onClick={() => setShowRejectModal(false)}
-                className="flex-1 rounded-xl border border-slate-200 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700"
+                onClick={() =>
+                  setShowRejectModal(false)
+                }
+                className="flex-1 rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
               >
                 Cancel
               </button>
+
               <button
-                disabled={actionLoading || !rejectReason.trim()}
+                disabled={
+                  actionLoading || !rejectReason.trim()
+                }
                 onClick={rejectProvider}
-                className="flex-1 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex-1 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {actionLoading ? "Rejecting..." : "Confirm Reject"}
+                {actionLoading
+                  ? "Rejecting..."
+                  : "Confirm Reject"}
               </button>
+
             </div>
+
           </div>
         </div>
       )}

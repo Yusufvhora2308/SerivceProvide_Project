@@ -50,6 +50,8 @@ import EditService from "./Pages/Provider/EditService";
 import ProviderRequests from "./Pages/Provider/ProviderRequests";
 import ProviderRequestDetails from "./Pages/Provider/ProviderRequestDetails";
 import ProviderProfile from "./Pages/Provider/ProviderProfile";
+import ProviderBookings  from "./Pages/Provider/ProviderBookings";
+import ProviderBookingDetails from "./Pages/Provider/ProviderBookingDetails";
 import ProviderReviews from "./Pages/Provider/ProviderReviews";
 
 function App() {
@@ -241,21 +243,14 @@ function App() {
 
           {/* Bookings */}
 
-          <Route
-            path="/provider/bookings"
-            element={
-              <div className="min-h-[calc(100vh-80px)] bg-slate-50 p-6">
-                <div className="mx-auto max-w-7xl">
-                  <h1 className="text-2xl font-bold text-slate-900">
-                    Bookings
-                  </h1>
+       <Route
+        path="/provider/bookings"
+        element={<ProviderBookings />}
+      />
 
-                  <p className="mt-2 text-sm text-slate-500">
-                    Manage your bookings here.
-                  </p>
-                </div>
-              </div>
-            }
+          <Route
+            path="/provider/bookings/:id"
+            element={<ProviderBookingDetails />}
           />
 
           {/* Earnings */}

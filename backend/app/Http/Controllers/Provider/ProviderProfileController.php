@@ -25,6 +25,9 @@ class ProviderProfileController extends Controller
             ], 404);
         }
 
+        // Load provider documents
+        $provider->load('documents');
+
         return response()->json([
             'success' => true,
             'message' => 'Provider profile fetched successfully',
@@ -49,6 +52,21 @@ class ProviderProfileController extends Controller
 
                 'availability_status' => $provider->availability_status,
                 'is_online' => $provider->is_online,
+
+                // Verification Documents
+                'documents' => $provider->documents->map(function ($document) {
+    return [
+        'id' => $document->id,
+        'document_type' => $document->document_type,
+        'document_number' => $document->document_number,
+        'document_file' => $document->document_file
+            ? asset('storage/' . $document->document_file)
+            : null,
+        'status' => $document->status,
+        'rejection_reason' => $document->rejection_reason,
+        'verified_at' => $document->verified_at,
+    ];
+}),
             ]
         ]);
     }
@@ -130,6 +148,9 @@ class ProviderProfileController extends Controller
         |--------------------------------------------------------------------------
         */
 
+        // Reload documents
+        $provider->load('documents');
+
         return response()->json([
             'success' => true,
             'message' => 'Profile updated successfully',
@@ -154,6 +175,21 @@ class ProviderProfileController extends Controller
 
                 'availability_status' => $provider->availability_status,
                 'is_online' => $provider->is_online,
+
+                // Verification Documents
+                'documents' => $provider->documents->map(function ($document) {
+                    return [
+                        'id' => $document->id,
+                        'document_type' => $document->document_type,
+                        'document_number' => $document->document_number,
+                        'document_file' => $document->document_file
+                            ? asset('storage/' . $document->document_file)
+                            : null,
+                        'status' => $document->status,
+                        'rejection_reason' => $document->rejection_reason,
+                        'verified_at' => $document->verified_at,
+                    ];
+                }),
             ]
         ]);
     }

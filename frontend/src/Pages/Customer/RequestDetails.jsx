@@ -16,13 +16,16 @@ import {
   Bike,
   IndianRupee,
   FileText,
+  MessageCircle,
   AlertTriangle,
 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-
+import ChatBox from "../../components/ChatBox";
 import api from "../../api/axios";
+import useChatUnread from "../../firebase/hooks/useChatUnread";
+import useChatPresenceWriter from "../../firebase/hooks/useChatPresenceWriter";
 
 /*
 |--------------------------------------------------------------------------
@@ -290,6 +293,21 @@ export default function RequestDetails() {
   const [reviewError, setReviewError] = useState("");
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [existingReview, setExistingReview] = useState(null);
+
+  //chat states
+  const [showChat, setShowChat] = useState(false);
+  const customerUserId =
+    request?.customer?.id || request?.user?.id || request?.customer_id;
+
+  useChatPresenceWriter({
+    requestId: request?.id,
+    currentUserId: customerUserId,
+  });
+
+  const unreadCount = useChatUnread({
+    requestId: request?.id,
+    currentUserId: customerUserId,
+  });
 
   // Fetch Existing Review
   const fetchExistingReview = async () => {
@@ -790,15 +808,57 @@ export default function RequestDetails() {
               )}
             </div>
 
-            {request.provider?.user?.phone && (
-              <div className="mt-5 pt-4 border-t border-slate-100">
+            <div className="mt-5 grid grid-cols-2 gap-2 border-t border-slate-100 pt-4">
+              {request.provider?.user?.phone && (
                 <a
                   href={`tel:${request.provider.user.phone}`}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-100/80 px-4 py-2.5 text-sm font-semibold text-orange-700 transition hover:bg-orange-200 active:scale-[0.98]"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-100/80 px-4 py-2.5 text-sm font-semibold text-orange-700 transition hover:bg-orange-200 active:scale-[0.98]"
                 >
                   <Phone size={15} />
-                  Call Provider
+                  Call
                 </a>
+              )}
+
+              {request.provider && (
+                <button
+                  type="button"
+                  onClick={() => setShowChat(true)}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-100/80 px-4 py-2.5 text-sm font-semibold text-orange-700 transition hover:bg-orange-200 active:scale-[0.98]"
+                >
+                  <MessageCircle size={16} />
+
+                  <span>Chat</span>
+
+                  {unreadCount > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
+            {showChat && (
+              <div className="fixed bottom-5 right-5 z-[2000]">
+                <ChatBox
+                  requestId={request.id}
+                  currentUserId={
+                    request.customer?.id ||
+                    request.user?.id ||
+                    request.customer_id
+                  }
+                  currentUserRole="customer"
+                  otherUserId={
+                    request?.provider?.user_id ||
+                    request?.provider?.user?.id ||
+                    request?.provider?.id
+                  }
+                  otherUserName={
+                    request.provider?.user?.name ||
+                    request.provider?.name ||
+                    "Service Provider"
+                  }
+                  onClose={() => setShowChat(false)}
+                />
               </div>
             )}
           </div>

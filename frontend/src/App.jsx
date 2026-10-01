@@ -50,8 +50,7 @@ import EditService from "./Pages/Provider/EditService";
 import ProviderRequests from "./Pages/Provider/ProviderRequests";
 import ProviderRequestDetails from "./Pages/Provider/ProviderRequestDetails";
 import ProviderProfile from "./Pages/Provider/ProviderProfile";
-import ProviderBookings  from "./Pages/Provider/ProviderBookings";
-import ProviderBookingDetails from "./Pages/Provider/ProviderBookingDetails";
+import ProviderBookings from "./Pages/Provider/ProviderBookings";
 import ProviderReviews from "./Pages/Provider/ProviderReviews";
 
 function App() {
@@ -243,15 +242,7 @@ function App() {
 
           {/* Bookings */}
 
-       <Route
-        path="/provider/bookings"
-        element={<ProviderBookings />}
-      />
-
-          <Route
-            path="/provider/bookings/:id"
-            element={<ProviderBookingDetails />}
-          />
+          <Route path="/provider/bookings" element={<ProviderBookings />} />
 
           {/* Earnings */}
 

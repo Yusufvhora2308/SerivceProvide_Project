@@ -56,7 +56,7 @@ class User extends Authenticatable
         ];
     }
 
-    
+
 
     /**
      * Helper methods to check role — useful later in controllers/middleware.
@@ -86,5 +86,22 @@ class User extends Authenticatable
     public function provider()
     {
         return $this->hasOne(Provider::class);
+    }
+
+    //review
+    public function givenReviews(): HasMany
+    {
+        return $this->hasMany(
+            Review::class,
+            'reviewer_id'
+        );
+    }
+
+    public function receivedReviews(): HasMany
+    {
+        return $this->hasMany(
+            Review::class,
+            'reviewee_id'
+        );
     }
 }

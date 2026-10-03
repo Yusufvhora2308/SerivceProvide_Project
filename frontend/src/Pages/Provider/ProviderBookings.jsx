@@ -28,7 +28,7 @@ function ProviderBookings() {
   const [sortOrder, setSortOrder] = useState("latest");
 
   // --------------------------------------------------
-  // GET PROVIDER BOOKINGS
+  // GET ACCEPTED SERVICE REQUESTS
   // --------------------------------------------------
 
   useEffect(() => {
@@ -39,17 +39,24 @@ function ProviderBookings() {
     try {
       setLoading(true);
 
-      const response = await api.get("/provider/bookings");
+      const response = await api.get("/provider/service-requests-accepted");
 
-      console.log("PROVIDER BOOKINGS API:", response.data);
+      console.log("ACCEPTED SERVICE REQUESTS API:", response.data);
 
       if (response.data.success) {
-        setBookings(response.data.bookings || []);
+        // /service-requests-accepted may return the list as service_requests,
+        // data, or bookings depending on the Laravel response.
+        const acceptedRequests =
+          response.data?.requests ||
+          response.data.data ||
+          [];
+
+        setBookings(Array.isArray(acceptedRequests) ? acceptedRequests : []);
       } else {
         setBookings([]);
       }
     } catch (error) {
-      console.error("Error fetching provider bookings:", error);
+      console.error("Error fetching accepted service requests:", error);
     } finally {
       setLoading(false);
     }
@@ -642,7 +649,7 @@ function ProviderBookings() {
                       type="button"
                       onClick={() =>
                         navigate(
-                          `/provider/bookings/${booking.id}`
+                          `/provider/service-requests/${booking.id}`
                         )
                       }
                       className={`group/btn inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition active:scale-[0.98] ${

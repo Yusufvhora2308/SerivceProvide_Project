@@ -18,6 +18,7 @@ import {
   Compass,
   Radio,
   X,
+  MessageCircle,
 } from "lucide-react";
 import {
   MapContainer,
@@ -29,8 +30,10 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-
+import ChatBox from "../../components/ChatBox";
+import useChatUnread from "../../firebase/hooks/useChatUnread";
 import api from "../../api/axios";
+import useChatPresenceWriter from "../../firebase/hooks/useChatPresenceWriter";
 
 // CUSTOMER ICON
 const customerIcon = new L.Icon({
@@ -115,7 +118,8 @@ const SmoothProviderMarker = ({ position }) => {
 
     animationFrameRef.current = requestAnimationFrame(animate);
     return () => {
-      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      if (animationFrameRef.current)
+        cancelAnimationFrame(animationFrameRef.current);
     };
   }, [position]);
 
@@ -164,6 +168,112 @@ const ProviderRequestDetails = () => {
   const [updating, setUpdating] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [providerLocation, setProviderLocation] = useState(null);
+  //revide provider to customer
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [existingReview, setExistingReview] = useState(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+  //chat states
+  const [showChat, setShowChat] = useState(false);
+  const providerUserId =
+    request?.provider?.user_id ||
+    request?.provider?.user?.id ||
+    request?.provider?.id;
+
+  useChatPresenceWriter({
+    requestId: request?.id,
+    currentUserId: providerUserId,
+  });
+
+  const unreadCount = useChatUnread({
+    requestId: request?.id,
+    currentUserId: providerUserId,
+  });
+
+  const fetchExistingReview = async () => {
+    if (!request?.customer?.id && !request?.user?.id) return;
+
+    const customerId = request?.customer?.id || request?.user?.id;
+
+    try {
+      console.log("Checking review for customer:", customerId);
+
+      const response = await api.get(
+        `/provider/customers/${customerId}/review-status`,
+      );
+
+      if (response.data.has_reviewed) {
+        setExistingReview(response.data.review);
+        setReviewSubmitted(true);
+        setShowReviewModal(false);
+      } else {
+        setExistingReview(null);
+        setReviewSubmitted(false);
+        setShowReviewModal(true);
+      }
+    } catch (err) {
+      console.error(
+        "Existing customer review error:",
+        err.response?.data || err,
+      );
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    if (reviewRating === 0) {
+      setReviewError("Please select a rating.");
+      return;
+    }
+
+    try {
+      setReviewSubmitting(true);
+      setReviewError("");
+
+      const response = await api.post(
+        `/provider/service-requests/${id}/review`,
+        {
+          rating: reviewRating,
+          comment: reviewComment.trim() || null,
+        },
+      );
+
+      if (response.data.success) {
+        setExistingReview(
+          response.data.review || {
+            rating: reviewRating,
+            comment: reviewComment.trim() || null,
+          },
+        );
+
+        setReviewSubmitted(true);
+        setShowReviewModal(false);
+
+        setSuccess(
+          response.data.message || "Customer review submitted successfully.",
+        );
+      } else {
+        setReviewError(response.data.message || "Unable to submit review.");
+      }
+    } catch (err) {
+      console.error("Provider Review Error:", err.response?.data || err);
+
+      setReviewError(
+        err.response?.data?.message ||
+          "Unable to submit review. Please try again.",
+      );
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    if (request?.status === "service_completed") {
+      fetchExistingReview();
+    }
+  }, [request?.status, request?.customer?.id, request?.user?.id]);
 
   const fetchRequest = async () => {
     try {
@@ -177,7 +287,9 @@ const ProviderRequestDetails = () => {
       }
     } catch (err) {
       console.error("Request Fetch Error:", err);
-      setError(err.response?.data?.message || "Unable to load service request.");
+      setError(
+        err.response?.data?.message || "Unable to load service request.",
+      );
     } finally {
       setLoading(false);
     }
@@ -186,7 +298,9 @@ const ProviderRequestDetails = () => {
   const fetchProviderLocation = async () => {
     try {
       setLocationLoading(true);
-      const response = await api.get(`/provider/service-requests/${id}/live-location`);
+      const response = await api.get(
+        `/provider/service-requests/${id}/live-location`,
+      );
       if (response.data.success && response.data.provider_location) {
         const location = response.data.provider_location;
         const lat = Number(location.latitude);
@@ -226,9 +340,12 @@ const ProviderRequestDetails = () => {
       setUpdating(true);
       setError("");
       setSuccess("");
-      const response = await api.put(`/provider/service-requests/${id}/status`, {
-        status: newStatus,
-      });
+      const response = await api.put(
+        `/provider/service-requests/${id}/status`,
+        {
+          status: newStatus,
+        },
+      );
 
       if (response.data.success) {
         setRequest(response.data.request || response.data.service_request);
@@ -239,19 +356,24 @@ const ProviderRequestDetails = () => {
       }
     } catch (err) {
       console.error("Status Update Error:", err);
-      setError(err.response?.data?.message || "Unable to update request status.");
+      setError(
+        err.response?.data?.message || "Unable to update request status.",
+      );
     } finally {
       setUpdating(false);
     }
   };
 
   const cancelRequest = async () => {
-    if (!window.confirm("Are you sure you want to cancel this service job?")) return;
+    if (!window.confirm("Are you sure you want to cancel this service job?"))
+      return;
     try {
       setUpdating(true);
       setError("");
       setSuccess("");
-      const response = await api.post(`/provider/service-requests/${id}/cancel`);
+      const response = await api.post(
+        `/provider/service-requests/${id}/cancel`,
+      );
       if (response.data.success) {
         setRequest((prev) => ({ ...prev, status: "cancelled" }));
         setSuccess("Job cancelled successfully.");
@@ -301,19 +423,40 @@ const ProviderRequestDetails = () => {
   const getStatusBadge = (status) => {
     switch (status) {
       case "provider_assigned":
-        return { label: "Assigned", className: "bg-sky-50 text-sky-700 border-sky-200" };
+        return {
+          label: "Assigned",
+          className: "bg-sky-50 text-sky-700 border-sky-200",
+        };
       case "provider_on_the_way":
-        return { label: "On Way", className: "bg-blue-50 text-blue-700 border-blue-200" };
+        return {
+          label: "On Way",
+          className: "bg-blue-50 text-blue-700 border-blue-200",
+        };
       case "arrived":
-        return { label: "Arrived", className: "bg-indigo-50 text-indigo-700 border-indigo-200" };
+        return {
+          label: "Arrived",
+          className: "bg-indigo-50 text-indigo-700 border-indigo-200",
+        };
       case "service_started":
-        return { label: "In Progress", className: "bg-amber-50 text-amber-700 border-amber-200" };
+        return {
+          label: "In Progress",
+          className: "bg-amber-50 text-amber-700 border-amber-200",
+        };
       case "service_completed":
-        return { label: "Completed", className: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+        return {
+          label: "Completed",
+          className: "bg-emerald-50 text-emerald-700 border-emerald-200",
+        };
       case "cancelled":
-        return { label: "Cancelled", className: "bg-rose-50 text-rose-700 border-rose-200" };
+        return {
+          label: "Cancelled",
+          className: "bg-rose-50 text-rose-700 border-rose-200",
+        };
       default:
-        return { label: status?.replaceAll("_", " ") || "In Review", className: "bg-slate-50 text-slate-700 border-slate-200" };
+        return {
+          label: status?.replaceAll("_", " ") || "In Review",
+          className: "bg-slate-50 text-slate-700 border-slate-200",
+        };
     }
   };
 
@@ -322,7 +465,9 @@ const ProviderRequestDetails = () => {
       <div className="flex min-h-screen items-center justify-center bg-slate-50/60">
         <div className="flex flex-col items-center gap-2">
           <Loader2 size={24} className="animate-spin text-blue-600" />
-          <p className="text-[11px] font-semibold text-slate-500">Loading details...</p>
+          <p className="text-[11px] font-semibold text-slate-500">
+            Loading details...
+          </p>
         </div>
       </div>
     );
@@ -341,8 +486,12 @@ const ProviderRequestDetails = () => {
           </button>
           <div className="rounded-2xl border border-rose-200 bg-white p-6 text-center shadow-xs">
             <AlertCircle size={30} className="mx-auto text-rose-500 mb-2" />
-            <h2 className="text-sm font-bold text-slate-900">Request Not Found</h2>
-            <p className="mt-0.5 text-[11px] text-slate-500">{error || "Unable to find this request."}</p>
+            <h2 className="text-sm font-bold text-slate-900">
+              Request Not Found
+            </h2>
+            <p className="mt-0.5 text-[11px] text-slate-500">
+              {error || "Unable to find this request."}
+            </p>
           </div>
         </div>
       </div>
@@ -366,7 +515,7 @@ const ProviderRequestDetails = () => {
           currentProviderPosition[0],
           currentProviderPosition[1],
           customerPosition[0],
-          customerPosition[1]
+          customerPosition[1],
         )
       : null;
 
@@ -381,14 +530,16 @@ const ProviderRequestDetails = () => {
   return (
     <div className="min-h-screen bg-slate-50/60 p-3 sm:p-5">
       <div className="mx-auto max-w-5xl space-y-3.5">
-
         {/* TOP BAR NAVIGATION */}
         <div className="flex items-center justify-between">
           <button
             onClick={() => navigate(-1)}
             className="group inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 transition hover:text-blue-700"
           >
-            <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-0.5" />
+            <ArrowLeft
+              size={14}
+              className="transition-transform group-hover:-translate-x-0.5"
+            />
             Back to Dashboard
           </button>
 
@@ -401,7 +552,11 @@ const ProviderRequestDetails = () => {
           >
             <RefreshCw
               size={11}
-              className={locationLoading ? "animate-spin text-blue-600" : "text-slate-400"}
+              className={
+                locationLoading
+                  ? "animate-spin text-blue-600"
+                  : "text-slate-400"
+              }
             />
             Sync
           </button>
@@ -464,13 +619,17 @@ const ProviderRequestDetails = () => {
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
 
-                <MapCenter position={currentProviderPosition || customerPosition} />
+                <MapCenter
+                  position={currentProviderPosition || customerPosition}
+                />
 
                 <Marker position={customerPosition} icon={customerIcon}>
                   <Popup>
                     <div className="p-0.5 text-[11px]">
                       <strong className="text-slate-900">Destination</strong>
-                      <p className="text-slate-500 mt-0.5">{request.address || "Customer location"}</p>
+                      <p className="text-slate-500 mt-0.5">
+                        {request.address || "Customer location"}
+                      </p>
                     </div>
                   </Popup>
                 </Marker>
@@ -494,7 +653,9 @@ const ProviderRequestDetails = () => {
             ) : (
               <div className="flex h-full flex-col items-center justify-center bg-slate-50 p-4 text-center">
                 <MapPin size={28} className="text-slate-300 mb-1" />
-                <p className="text-[11px] text-slate-500">Customer coordinates not provided</p>
+                <p className="text-[11px] text-slate-500">
+                  Customer coordinates not provided
+                </p>
               </div>
             )}
           </div>
@@ -502,19 +663,25 @@ const ProviderRequestDetails = () => {
           {/* MAP METRICS STRIP */}
           <div className="grid grid-cols-3 divide-x border-t border-slate-100 bg-slate-50/60 text-center py-2 px-1 text-[11px]">
             <div>
-              <span className="text-[9px] uppercase font-semibold text-slate-400 block">Distance</span>
+              <span className="text-[9px] uppercase font-semibold text-slate-400 block">
+                Distance
+              </span>
               <span className="font-bold text-slate-800">
                 {distanceKm ? `${distanceKm} km` : "N/A"}
               </span>
             </div>
             <div>
-              <span className="text-[9px] uppercase font-semibold text-slate-400 block">GPS Sync</span>
+              <span className="text-[9px] uppercase font-semibold text-slate-400 block">
+                GPS Sync
+              </span>
               <span className="font-bold text-slate-800">
                 {locationLoading ? "Syncing..." : "Active"}
               </span>
             </div>
             <div>
-              <span className="text-[9px] uppercase font-semibold text-slate-400 block">Phase</span>
+              <span className="text-[9px] uppercase font-semibold text-slate-400 block">
+                Phase
+              </span>
               <span className="font-bold text-slate-800">
                 {statusInfo.label}
               </span>
@@ -567,7 +734,6 @@ const ProviderRequestDetails = () => {
 
         {/* 3. COMPACT TWO-COLUMN CARDS */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-
           {/* CUSTOMER CARD */}
           <div className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-xs">
             <div>
@@ -576,7 +742,9 @@ const ProviderRequestDetails = () => {
                   <User size={14} className="text-blue-600" />
                   <h3 className="text-xs font-bold text-slate-900">Customer</h3>
                 </div>
-                <span className="text-[10px] text-slate-400">#{request.id}</span>
+                <span className="text-[10px] text-slate-400">
+                  #{request.id}
+                </span>
               </div>
 
               <div className="mt-2.5 space-y-2">
@@ -586,7 +754,9 @@ const ProviderRequestDetails = () => {
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-xs font-bold text-slate-900">
-                      {request.customer?.name || request.user?.name || "Customer"}
+                      {request.customer?.name ||
+                        request.user?.name ||
+                        "Customer"}
                     </p>
                     <p className="text-[10px] text-slate-400">Client</p>
                   </div>
@@ -612,7 +782,10 @@ const ProviderRequestDetails = () => {
                   )}
 
                   <div className="flex items-start gap-2 pt-0.5 text-slate-700">
-                    <MapPin size={12} className="mt-0.5 shrink-0 text-rose-500" />
+                    <MapPin
+                      size={12}
+                      className="mt-0.5 shrink-0 text-rose-500"
+                    />
                     <span className="leading-tight line-clamp-2">
                       {request.address || "Address not provided"}
                     </span>
@@ -621,15 +794,56 @@ const ProviderRequestDetails = () => {
               </div>
             </div>
 
-            {(request.customer?.phone || request.user?.phone) && (
-              <div className="mt-3 border-t border-slate-100 pt-2">
+            <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-2">
+              {(request.customer?.phone || request.user?.phone) && (
                 <a
                   href={`tel:${request.customer?.phone || request.user?.phone}`}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-sky-100/80 py-1.5 text-[11px] font-bold text-blue-700 hover:bg-blue-100 active:scale-95"
+                  className="flex items-center justify-center gap-1.5 rounded-lg bg-sky-100/80 py-1.5 text-[11px] font-bold text-blue-700 hover:bg-blue-100 active:scale-95"
                 >
                   <Phone size={12} />
-                  Call Customer
+                  Call
                 </a>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setShowChat(true)}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-600 transition hover:bg-blue-100"
+              >
+                <MessageCircle size={16} />
+
+                <span>Chat</span>
+
+                {unreadCount > 0 && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </button>
+            </div>
+            {showChat && (
+              <div className="fixed bottom-5 right-5 z-[2000]">
+                <ChatBox
+                  requestId={request.id}
+                  currentUserId={
+                    request.provider?.user_id ||
+                    request.provider?.user?.id ||
+                    request.provider?.id
+                  }
+                  currentUserRole="provider"
+                  otherUserId={
+                    request?.customer?.id ||
+                    request?.customer?.user_id ||
+                    request?.user?.id ||
+                    request?.customer_id
+                  }
+                   otherUserName={
+                    request.customer?.user?.name ||
+                    request.customer?.name ||
+                    "Customer"
+                  }
+                  onClose={() => setShowChat(false)}
+                />
               </div>
             )}
           </div>
@@ -640,9 +854,13 @@ const ProviderRequestDetails = () => {
               <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                 <div className="flex items-center gap-1.5">
                   <Wrench size={14} className="text-blue-600" />
-                  <h3 className="text-xs font-bold text-slate-900">Service Info</h3>
+                  <h3 className="text-xs font-bold text-slate-900">
+                    Service Info
+                  </h3>
                 </div>
-                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusInfo.className}`}>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusInfo.className}`}
+                >
                   {statusInfo.label}
                 </span>
               </div>
@@ -650,16 +868,22 @@ const ProviderRequestDetails = () => {
               <div className="mt-2.5 space-y-2 text-[11px]">
                 <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/70 p-2.5">
                   <div>
-                    <span className="text-[9px] uppercase font-semibold text-slate-400 block">Service</span>
+                    <span className="text-[9px] uppercase font-semibold text-slate-400 block">
+                      Service
+                    </span>
                     <p className="text-xs font-bold text-slate-900">
                       {request.service?.name || "Request"}
                     </p>
                   </div>
                   <div className="text-right">
-                    <span className="text-[9px] uppercase font-semibold text-slate-400 block">Payout</span>
+                    <span className="text-[9px] uppercase font-semibold text-slate-400 block">
+                      Payout
+                    </span>
                     <p className="flex items-center text-xs font-extrabold text-slate-900">
                       <IndianRupee size={11} className="text-emerald-600" />
-                      {Number(request.service?.base_price || 0).toLocaleString("en-IN")}
+                      {Number(request.service?.base_price || 0).toLocaleString(
+                        "en-IN",
+                      )}
                     </p>
                   </div>
                 </div>
@@ -681,12 +905,15 @@ const ProviderRequestDetails = () => {
                       Time
                     </span>
                     <span className="font-semibold text-slate-800">
-                      {new Date(request.scheduled_at).toLocaleDateString("en-IN", {
-                        day: "2-digit",
-                        month: "short",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {new Date(request.scheduled_at).toLocaleDateString(
+                        "en-IN",
+                        {
+                          day: "2-digit",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        },
+                      )}
                     </span>
                   </div>
                 )}
@@ -700,10 +927,222 @@ const ProviderRequestDetails = () => {
               </div>
             )}
           </div>
-
         </div>
+        {/* EXISTING CUSTOMER REVIEW (PROVIDER PERSPECTIVE) */}
+        {request.status === "service_completed" && existingReview && (
+          <div className="md:col-span-2">
+            <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-xs transition-all hover:border-slate-300">
+              {/* Top indicator bar */}
+              <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-sky-400 via-blue-500 to-emerald-400" />
 
+              {/* HEADER */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-sky-100 bg-sky-50 text-blue-600 shadow-2xs">
+                    <User size={16} />
+                  </div>
+
+                  <div className="min-w-0">
+                    <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                      Your Customer Review
+                    </span>
+
+                    <p className="truncate text-xs font-bold text-slate-900 leading-tight">
+                      {request.customer?.name ||
+                        request.user?.name ||
+                        "Customer"}
+                    </p>
+
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <div className="flex items-center tracking-tight">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <span
+                            key={star}
+                            className={`text-xs leading-none ${
+                              star <= Number(existingReview.rating)
+                                ? "text-amber-400 drop-shadow-[0_1px_2px_rgba(251,191,36,0.3)]"
+                                : "text-slate-200"
+                            }`}
+                          >
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-600">
+                        {Number(existingReview.rating).toFixed(1)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200/70 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Submitted
+                </span>
+              </div>
+
+              {/* COMMENT BOX */}
+              {existingReview.comment && (
+                <div className="mt-2.5 rounded-xl border border-slate-100 bg-slate-50/75 p-2.5">
+                  <p className="text-[11px] leading-relaxed text-slate-600 italic">
+                    "{existingReview.comment}"
+                  </p>
+                </div>
+              )}
+
+              {/* FOOTER */}
+              <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
+                <span>Feedback recorded on QuickFix</span>
+                <span className="text-emerald-600 font-medium">Thank you!</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* PROVIDER REVIEW SECTION */}
+
+      {/* COMPACT REVIEW CARD (BOTTOM RIGHT, NO BLUR) */}
+      {request.status === "service_completed" &&
+        showReviewModal &&
+        !reviewSubmitted && (
+          <div className="fixed bottom-5 right-5 z-[1000] w-[310px] max-w-[calc(100vw-32px)] animate-in fade-in slide-in-from-bottom-3 duration-300">
+            <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+              {/* TOP ACCENT BAR */}
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-400 via-blue-500 to-sky-500" />
+
+              {/* CLOSE BUTTON */}
+              <button
+                type="button"
+                onClick={() => setShowReviewModal(false)}
+                className="absolute right-2.5 top-2.5 flex h-6 w-6 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                title="Dismiss"
+              >
+                <X size={15} />
+              </button>
+
+              {/* CUSTOMER HEADER */}
+              <div className="flex items-center gap-2.5 pr-6">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-sky-100 bg-sky-50 text-blue-600">
+                  <User size={16} />
+                </div>
+
+                <div className="min-w-0">
+                  <span className="block text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+                    Rate Customer
+                  </span>
+                  <h3 className="truncate text-xs font-bold text-slate-900 leading-tight">
+                    {request.customer?.name ||
+                      request.user?.name ||
+                      "Your Customer"}
+                  </h3>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Service Completed
+                  </span>
+                </div>
+              </div>
+
+              {/* RATING WELL */}
+              <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50/70 p-2.5 text-center">
+                <p className="text-xs font-bold text-slate-800">
+                  How was your experience?
+                </p>
+                <p className="mt-0.5 text-[10px] text-slate-400">
+                  Rate your interaction with the customer
+                </p>
+
+                {/* STAR SELECTION */}
+                <div className="mt-1.5 flex items-center justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => {
+                        setReviewRating(star);
+                        if (setReviewError) setReviewError("");
+                      }}
+                      className="transition-transform duration-150 hover:scale-125 active:scale-95"
+                    >
+                      <span
+                        className={`text-xl transition-colors ${
+                          star <= reviewRating
+                            ? "text-amber-400 drop-shadow-[0_1px_4px_rgba(251,191,36,0.35)]"
+                            : "text-slate-200 hover:text-amber-200"
+                        }`}
+                      >
+                        ★
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* DYNAMIC FEEDBACK TEXT */}
+                {reviewRating > 0 && (
+                  <p className="mt-1 text-[10px] font-semibold text-sky-800 animate-in fade-in duration-200">
+                    {reviewRating === 5 && "Excellent customer! ⭐"}
+                    {reviewRating === 4 && "Great customer experience!"}
+                    {reviewRating === 3 && "Good & professional."}
+                    {reviewRating === 2 && "Could be better."}
+                    {reviewRating === 1 && "Difficult interaction."}
+                  </p>
+                )}
+              </div>
+
+              {/* COMMENT INPUT */}
+              <div className="mt-2.5">
+                <textarea
+                  value={reviewComment}
+                  onChange={(e) => {
+                    setReviewComment(e.target.value);
+                    if (setReviewError) setReviewError("");
+                  }}
+                  placeholder="Leave notes on client punctuality, location clarity, etc. (optional)..."
+                  rows={2}
+                  maxLength={500}
+                  className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/70 p-2 text-xs text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10"
+                />
+              </div>
+
+              {/* INLINE ERROR */}
+              {reviewError && (
+                <div className="mt-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-[10px] font-medium text-rose-600">
+                  {reviewError}
+                </div>
+              )}
+
+              {/* ACTIONS */}
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowReviewModal(false)}
+                  className="flex-1 rounded-xl border border-slate-200 bg-white py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 active:scale-95"
+                >
+                  Later
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSubmitReview}
+                  disabled={reviewSubmitting || reviewRating === 0}
+                  className="flex-[2] inline-flex items-center justify-center gap-1.5 rounded-xl bg-sky-100/90 py-1.5 text-xs font-bold text-blue-700 transition hover:bg-blue-100 active:scale-95 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  {reviewSubmitting ? (
+                    <>
+                      <Loader2
+                        size={13}
+                        className="animate-spin text-blue-600"
+                      />
+                      <span>Submitting...</span>
+                    </>
+                  ) : (
+                    <span>Submit Review</span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 };

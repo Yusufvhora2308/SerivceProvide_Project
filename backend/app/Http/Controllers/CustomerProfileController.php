@@ -8,29 +8,41 @@ use Illuminate\Support\Facades\Storage;
 
 use Illuminate\Support\Facades\Validator;
 
+use Illuminate\Support\Facades\Log;
+
 class CustomerProfileController extends Controller
 {
-     /**
+      /**
      * Get logged-in customer profile
      */
     public function show(Request $request)
     {
         $user = $request->user();
 
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated user.',
+            ], 401);
+        }
+
         return response()->json([
             'success' => true,
+            'message' => 'Profile fetched successfully.',
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone,
                 'address' => $user->address,
+
                 'profile_photo' => $user->profile_photo
                     ? asset('storage/' . $user->profile_photo)
                     : null,
+
                 'is_verified' => $user->is_verified,
             ],
-        ]);
+        ], 200);
     }
 
     /**
@@ -40,44 +52,29 @@ class CustomerProfileController extends Controller
     {
         $user = $request->user();
 
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated user.',
+            ], 401);
+        }
+
         $validator = Validator::make(
             $request->all(),
             [
-                'name' => [
-                    'required',
-                    'string',
-                    'max:100',
-                ],
+                'name' => 'required|string|min:3|max:100',
 
-                'email' => [
-                    'required',
-                    'email',
-                    'max:150',
-                    'unique:users,email,' . $user->id,
-                ],
+                'email' => 'required|email|max:150|unique:users,email,' . $user->id,
 
-                'phone' => [
-                    'required',
-                    'string',
-                    'max:15',
-                    'unique:users,phone,' . $user->id,
-                ],
+                'phone' => 'required|string|max:15|unique:users,phone,' . $user->id,
 
-                'address' => [
-                    'nullable',
-                    'string',
-                    'max:500',
-                ],
+                'address' => 'nullable|string|max:500',
 
-                'profile_photo' => [
-                    'nullable',
-                    'image',
-                    'mimes:jpg,jpeg,png,webp',
-                    'max:2048',
-                ],
+                'profile_photo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             ],
             [
                 'name.required' => 'Full name is required.',
+                'name.min' => 'Name must contain at least 3 characters.',
 
                 'email.required' => 'Email address is required.',
                 'email.email' => 'Please enter a valid email address.',
@@ -86,11 +83,9 @@ class CustomerProfileController extends Controller
                 'phone.required' => 'Phone number is required.',
                 'phone.unique' => 'This phone number is already registered.',
 
-                'profile_photo.image' =>
-                    'Profile photo must be an image.',
-
-                'profile_photo.max' =>
-                    'Profile photo must not exceed 2 MB.',
+                'profile_photo.image' => 'Profile photo must be an image.',
+                'profile_photo.mimes' => 'Only JPG, JPEG, PNG and WEBP images are allowed.',
+                'profile_photo.max' => 'Profile photo must not exceed 2 MB.',
             ]
         );
 
@@ -102,51 +97,63 @@ class CustomerProfileController extends Controller
             ], 422);
         }
 
-        $user->name = $request->name;
-        $user->email = $request->email;
-        $user->phone = $request->phone;
-        $user->address = $request->address;
+        try {
 
-        /*
-         * Profile Photo
-         */
-        if ($request->hasFile('profile_photo')) {
+            // Update basic information
+            $user->name = $request->name;
+            $user->email = $request->email;
+            $user->phone = $request->phone;
+            $user->address = $request->address;
 
-            // Delete old image
-            if (
-                $user->profile_photo &&
-                Storage::disk('public')->exists(
-                    $user->profile_photo
-                )
-            ) {
-                Storage::disk('public')->delete(
-                    $user->profile_photo
-                );
+            // Upload new profile photo
+            if ($request->hasFile('profile_photo')) {
+
+                // Delete previous photo if it exists
+                if (
+                    $user->profile_photo &&
+                    Storage::disk('public')->exists($user->profile_photo)
+                ) {
+                    Storage::disk('public')->delete(
+                        $user->profile_photo
+                    );
+                }
+
+                // Store new photo
+                $path = $request->file('profile_photo')
+                    ->store('profile_photos', 'public');
+
+                $user->profile_photo = $path;
             }
 
-            $path = $request
-                ->file('profile_photo')
-                ->store('profile_photos', 'public');
+            // Save changes
+            $user->save();
 
-            $user->profile_photo = $path;
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile updated successfully.',
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'address' => $user->address,
+
+                    'profile_photo' => $user->profile_photo
+                        ?asset('storage/' . $user->profile_photo)
+                        : null,
+
+                    'is_verified' => $user->is_verified,
+                ],
+            ], 200);
+
+        } catch (\Exception $e) {
+
+            Log::error('Customer profile update failed: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong while updating your profile.',
+            ], 500);
         }
-
-        $user->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Profile updated successfully.',
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'phone' => $user->phone,
-                'address' => $user->address,
-                'profile_photo' => $user->profile_photo
-                    ? asset('storage/' . $user->profile_photo)
-                    : null,
-                'is_verified' => $user->is_verified,
-            ],
-        ]);
     }
 }

@@ -25,6 +25,12 @@ class ServiceRequest extends Model
         'extra_charges_reason',
         'final_price',
         'price_status',
+
+           // Admin fields
+        'cancellation_reason',
+        'admin_notes',
+        'issue_classification',
+        'issue_status',
     ];
 
     protected $casts = [
@@ -36,6 +42,7 @@ class ServiceRequest extends Model
         'provider_service_price' => 'decimal:2',
         'extra_charges' => 'decimal:2',
         'final_price' => 'decimal:2',
+
     ];
 
     /*

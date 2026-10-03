@@ -2,18 +2,31 @@
 
     use App\Http\Controllers\Admin\AdminUserController;
     use App\Http\Controllers\Admin\AdminProviderController;
+    use App\Http\Controllers\Admin\AdminServiceController;
+    use App\Http\Controllers\Admin\AdminServiceRequestController;
+
+
+
+
+
+
+
     use App\Http\Controllers\ProviderController;
     use App\Http\Controllers\Api\ServiceController;
     use App\Http\Controllers\Api\Customer\ServiceRequestController;
+    use App\Http\Controllers\Api\Customer\CustomerSettingsController;
     use App\Http\Controllers\AuthController;
     use App\Http\Controllers\CustomerProfileController;
     use Illuminate\Http\Request;
     use Illuminate\Support\Facades\Route;
+
+
+
     use App\Http\Controllers\Provider\ProviderServiceController;
     use App\Http\Controllers\Provider\ProviderServiceRequestController;
     use App\Http\Controllers\Provider\ProviderProfileController;
     use App\Http\Controllers\Provider\ProviderBookingController;
-
+    use App\Http\Controllers\Provider\ProviderSettingsController;
     use App\Http\Controllers\Api\Customer\NearbyProviderController;
 
     /*
@@ -99,6 +112,27 @@
             '/service-requests/{id}/cancel',
             [ServiceRequestController::class, 'cancel']
         );
+
+          // Get logged-in customer profile
+    Route::get(
+        '/user/profile',
+        [CustomerProfileController::class, 'show']
+    );
+
+    // Update customer profile
+    Route::post(
+        '/user/profile/update',
+        [CustomerProfileController::class, 'update']
+    );
+
+       // ==========================================
+    // CUSTOMER SETTINGS
+    // ==========================================
+
+    Route::post(
+        '/settings/change-password',
+        [CustomerSettingsController::class, 'changePassword']
+    );
 
     });
 
@@ -269,8 +303,14 @@
 
         Route::put('/my-profile', [
             ProviderProfileController::class,
-            'update'
+            'update'    
         ]);
+
+          // Provider Settings
+        Route::post(
+            '/settings/change-password',
+            [ProviderSettingsController::class, 'changePassword']
+        );
 
         /*
         |--------------------------------------------------------------------------
@@ -413,4 +453,99 @@
             '/documents/view',
             [AdminProviderController::class, 'viewDocument']
         );
+
+
+        /*
+|--------------------------------------------------------------------------
+| Admin Services Management
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('admin/services')->group(function () {
+
+    // Statistics
+    Route::get('/stats', [
+        AdminServiceController::class,
+        'stats'
+    ]);
+
+    // Categories
+    Route::get('/categories', [
+        AdminServiceController::class,
+        'categories'
+    ]);
+
+    // List services
+    Route::get('/', [
+        AdminServiceController::class,
+        'index'
+    ]);
+
+    // Add service
+    Route::post('/', [
+        AdminServiceController::class,
+        'store'
+    ]);
+
+    // Single service
+    Route::get('/{id}', [
+        AdminServiceController::class,
+        'show'
+    ])->whereNumber('id');
+
+    // Update service
+    Route::put('/{id}', [
+        AdminServiceController::class,
+        'update'
+    ])->whereNumber('id');
+
+    // Toggle active/inactive
+    Route::patch('/{id}/toggle-status', [
+        AdminServiceController::class,
+        'toggleStatus'
+    ])->whereNumber('id');
+
+    // Delete service
+    Route::delete('/{id}', [
+        AdminServiceController::class,
+        'destroy'
+    ])->whereNumber('id');
+
+});
+
+   /*
+    |--------------------------------------------------------------------------
+    | Service Requests
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/admin/service-requests',
+        [AdminServiceRequestController::class, 'index']
+    );
+
+    Route::get(
+        '/admin/service-requests/options',
+        [AdminServiceRequestController::class, 'options']
+    );
+
+    Route::get(
+        '/admin/service-requests/export',
+        [AdminServiceRequestController::class, 'export']
+    );
+
+    Route::get(
+        '/admin/service-requests/{id}',
+        [AdminServiceRequestController::class, 'show']
+    );
+
+    Route::put(
+        '/admin/service-requests/{id}',
+        [AdminServiceRequestController::class, 'update']
+    );
+
+    Route::post(
+        '/admin/service-requests/{id}/cancel',
+        [AdminServiceRequestController::class, 'cancel']
+    );
     });

@@ -106,13 +106,14 @@ const AdminNavbar = ({ onMenuClick, onLogout }) => {
 
           {/* Mobile Menu */}
           <button
-            type="button"
-            onClick={onMenuClick}
-            aria-label="Open menu"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50 hover:text-blue-600 lg:hidden"
-          >
-            <Menu size={19} />
-          </button>
+  type="button"
+  onClick={onMenuClick}
+  aria-label="Toggle sidebar"
+  title="Toggle Sidebar"
+  className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-blue-50 hover:text-blue-600"
+>
+  <Menu size={19} />
+</button>
 
           {/* Mobile Logo */}
           <div className="flex items-center gap-2 lg:hidden">

@@ -105,60 +105,59 @@ const AdminSidebar = ({ isOpen, onClose, onLogout }) => {
     },
   ];
 
-  const renderMenu = (items) =>
-    items.map((item) => {
-      const Icon = item.icon;
+const renderMenu = (items) =>
+  items.map((item) => {
+    const Icon = item.icon;
 
-      return (
-        <NavLink
-          key={item.name}
-          to={item.path}
-          onClick={onClose}
-          className={({ isActive }) =>
-            `group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200 ${
-              isActive
-                ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
-                : "text-slate-600 hover:bg-blue-50 hover:text-blue-600"
-            }`
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <div className="flex min-w-0 items-center gap-3">
-                <div
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
+    return (
+      <NavLink
+        key={item.name}
+        to={item.path}
+        className={({ isActive }) =>
+          `group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200 ${
+            isActive
+              ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
+              : "text-slate-600 hover:bg-blue-50 hover:text-blue-600"
+          }`
+        }
+      >
+        {({ isActive }) => (
+          <>
+            <div className="flex min-w-0 items-center gap-3">
+              <div
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                  isActive
+                    ? "bg-white/15"
+                    : "bg-slate-50 group-hover:bg-blue-100"
+                }`}
+              >
+                <Icon
+                  size={17}
+                  strokeWidth={isActive ? 2.3 : 2}
+                  className={
                     isActive
-                      ? "bg-white/15"
-                      : "bg-slate-50 group-hover:bg-blue-100"
-                  }`}
-                >
-                  <Icon
-                    size={17}
-                    strokeWidth={isActive ? 2.3 : 2}
-                    className={
-                      isActive
-                        ? "text-white"
-                        : "text-slate-400 group-hover:text-blue-600"
-                    }
-                  />
-                </div>
-
-                <span className="truncate">{item.name}</span>
+                      ? "text-white"
+                      : "text-slate-400 group-hover:text-blue-600"
+                  }
+                />
               </div>
 
-              <ChevronRight
-                size={15}
-                className={`shrink-0 transition-all duration-200 ${
-                  isActive
-                    ? "translate-x-0 text-white/80 opacity-100"
-                    : "-translate-x-1 text-blue-500 opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
-                }`}
-              />
-            </>
-          )}
-        </NavLink>
-      );
-    });
+              <span className="truncate">{item.name}</span>
+            </div>
+
+            <ChevronRight
+              size={15}
+              className={`shrink-0 transition-all duration-200 ${
+                isActive
+                  ? "translate-x-0 text-white/80 opacity-100"
+                  : "-translate-x-1 text-blue-500 opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
+              }`}
+            />
+          </>
+        )}
+      </NavLink>
+    );
+  });
 
   return (
     <>
@@ -172,11 +171,11 @@ const AdminSidebar = ({ isOpen, onClose, onLogout }) => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-slate-200 bg-white transition-transform duration-300 ${
-          isOpen
-            ? "translate-x-0 shadow-2xl"
-            : "-translate-x-full"
-        } lg:translate-x-0`}
+       className={`fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-slate-200 bg-white transition-transform duration-300 ${
+  isOpen
+    ? "translate-x-0 shadow-2xl"
+    : "-translate-x-full"
+}`}
       >
         {/* Brand */}
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-5">

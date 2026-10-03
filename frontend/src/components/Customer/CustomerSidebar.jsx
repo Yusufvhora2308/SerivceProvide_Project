@@ -215,17 +215,7 @@ const CustomerSidebar = ({ isOpen, onClose, onLogout }) => {
         <div className="border-b border-gray-100 px-5 py-4">
           <div className="flex items-center gap-3 rounded-2xl bg-gray-50/80 p-2.5 ring-1 ring-gray-100">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-50 to-blue-100 text-sm font-semibold text-blue-600 ring-1 ring-blue-600/10">
-              {user?.profile_photo ? (
-                <img
-                  src={user.profile_photo}
-                  alt={user?.name || "Customer"}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                user?.name
-                  ? user.name.charAt(0).toUpperCase()
-                  : "U"
-              )}
+            
             </div>
 
             <div className="min-w-0 flex-1">
